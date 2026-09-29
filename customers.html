@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customers | Triple Maintenance Group</title>
+<link rel="stylesheet" href="assets/css/base.css">
+<style>
+.hero { background:var(--ink); color:#fff; padding:110px 0 90px; }
+.hero .eyebrow { color:#e0554f; margin-bottom:16px; display:block; }
+.hero h1 { font-size:clamp(42px,6vw,72px); margin-bottom:14px; max-width:800px; }
+.hero .tag { font-size:clamp(20px,2.4vw,26px); color:#e6e4dc; margin-bottom:22px; }
+.hero p.lead { color:#c7c5be; font-size:16px; max-width:600px; margin-bottom:30px; }
+.hero-btns { display:flex; gap:16px; }
+/* COMPARISON */
+.compare { padding:100px 0; }
+.compare-head { text-align:center; margin-bottom:56px; }
+.compare-head .serif-italic { font-size:26px; color:var(--red); display:block; margin-bottom:10px; }
+.compare-head h2 { font-size:clamp(26px,4vw,38px); }
+.compare-table { display:grid; grid-template-columns:1fr 1fr; border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+.compare-col { padding:36px 32px; }
+.compare-col.old { background:var(--concrete); }
+.compare-col.new { background:var(--ink); color:#fff; }
+.compare-col h3 { font-size:16px; margin-bottom:22px; }
+.compare-col.old h3 { color:var(--steel); }
+.compare-col.new h3 { color:#e0554f; }
+.compare-item { padding:14px 0; border-top:1px solid rgba(0,0,0,0.08); font-size:14px; }
+.compare-col.new .compare-item { border-top:1px solid rgba(255,255,255,0.12); color:#e6e4dc; }
+.compare-col.old .compare-item { color:var(--steel); }
+.compare-item:first-child { border-top:none; }
+/* CASE STUDIES */
+.cases { background:var(--concrete); padding:100px 0; }
+.cases-head { margin-bottom:48px; }
+.cases-head .eyebrow { margin-bottom:12px; }
+.cases-head h2 { font-size:clamp(26px,3.5vw,36px); }
+.case-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; }
+.case-card { background:#fff; border:1px solid var(--border); border-radius:4px; padding:28px 24px; min-height:220px; display:flex; flex-direction:column; justify-content:space-between; }
+.case-card .tag-label { font-family:'Oswald',sans-serif; font-size:11px; letter-spacing:0.1em; text-transform:uppercase; color:var(--red); margin-bottom:14px; }
+.case-card h3 { font-size:17px; margin-bottom:10px; }
+.case-card p { font-size:13px; color:var(--steel); font-style:italic; }
+/* STATS */
+.stats { padding:90px 0; }
+.stats-head { text-align:center; margin-bottom:48px; }
+.stats-head .serif-italic { font-size:24px; color:var(--red); display:block; margin-bottom:8px; }
+.stat-row { display:flex; justify-content:center; gap:56px; flex-wrap:wrap; }
+.stat-block { text-align:center; }
+.stat-num { font-family:'Oswald',sans-serif; font-size:48px; font-weight:700; color:var(--red); }
+.stat-lbl { font-size:13px; color:var(--steel); text-transform:uppercase; letter-spacing:0.05em; margin-top:6px; }
+.stats-note { text-align:center; font-size:12px; color:var(--steel); font-style:italic; margin-top:32px; }
+.cta { background:var(--red); color:#fff; text-align:center; padding:90px 0; }
+.cta .serif-italic { font-size:26px; display:block; margin-bottom:14px; }
+.cta h2 { font-size:clamp(28px,4vw,40px); margin-bottom:26px; }
+.cta .btn-primary { background:#fff; color:var(--red); border-color:#fff; }
+@media (max-width:900px){
+  .compare-table,.case-grid,.grid4 { grid-template-columns:1fr; }
+  .stat-row { gap:32px; }
+  nav { display:none; }
+}
+.how { padding:90px 0 0; }
+.how-head { text-align:center; margin-bottom:52px; }
+.how-head .serif-italic { font-size:24px; color:var(--red); display:block; margin-bottom:8px; }
+.how-head h2 { font-size:clamp(26px,4vw,38px); }
+.how-grid { display:grid; grid-template-columns:repeat(4,1fr); }
+.how-item { padding:6px 28px; border-left:1px solid var(--border); text-align:center; }
+.how-item:first-child { border-left:none; }
+.how-icon { width:70px; height:70px; border-radius:50%; border:2px solid var(--red); display:flex; align-items:center; justify-content:center; margin:0 auto 18px; }
+.how-item h3 { font-size:17px; margin-bottom:10px; }
+.how-item p { font-size:14px; color:var(--steel); }
+@media (max-width:900px){ .how-grid { grid-template-columns:repeat(2,1fr); row-gap:44px; } .how-item:nth-child(3) { border-left:none; } }
+@media (max-width:520px){ .how-grid { grid-template-columns:1fr; } .how-item { border-left:none; } }
+.hero { position:relative; overflow:hidden; }
+.hero .wrap { position:relative; z-index:2; }
+.hero h1 { font-size:clamp(38px,5vw,62px); }
+.hero-copy { max-width:56%; }
+.hero-person-bg { position:absolute; top:0; bottom:0; right:0; width:46%; background:linear-gradient(160deg,#950606 0%,#5a0404 100%); clip-path:polygon(26% 0,100% 0,100% 100%,0 100%); z-index:0; }
+.hero-person { position:absolute; bottom:0; right:max(32px, calc((100% - 1200px)/2 + 32px)); height:min(520px, calc(100% - 50px)); width:auto; z-index:1; display:block; }
+button.btn { cursor:pointer; }
+@media (max-width:900px){
+  .hero-copy { max-width:100%; }
+  .hero-person-bg { display:none; }
+  .hero-person { position:static; height:auto; width:min(300px,76%); margin:32px auto -90px; }
+}
+.x3 { padding:90px 0 10px; }
+.x3-grid { display:grid; grid-template-columns:0.9fr 1.1fr; gap:56px; align-items:center; }
+.x3-photo { border-radius:4px; overflow:hidden; aspect-ratio:1/1; }
+.x3-photo img { width:100%; height:100%; object-fit:cover; object-position:center 80%; display:block; }
+.x3-copy .serif-italic { font-size:24px; color:var(--red); display:block; margin-bottom:6px; }
+.x3-copy h2 { font-size:clamp(46px,6vw,78px); line-height:1; }
+.x3-mark { color:var(--red); font-size:1.15em; }
+.x3-tag { font-family:'Oswald',sans-serif; font-size:clamp(20px,2.4vw,28px); letter-spacing:0.04em; text-transform:uppercase; margin:10px 0 24px; }
+.x3-list { list-style:none; }
+.x3-list li { border-top:1px solid var(--border); padding:14px 0; font-size:15px; color:var(--steel); }
+.x3-list li:last-child { border-bottom:1px solid var(--border); }
+.x3-list strong { display:block; font-family:'Oswald',sans-serif; font-size:15px; letter-spacing:0.06em; text-transform:uppercase; color:var(--red); margin-bottom:3px; }
+@media (max-width:900px){ .x3-grid { grid-template-columns:1fr; gap:32px; } }
+.modal { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; }
+.modal[hidden] { display:none !important; }
+.modal-backdrop { position:absolute; inset:0; background:rgba(10,10,10,0.68); }
+.modal-card { position:relative; background:#fff; width:100%; max-width:520px; max-height:92vh; overflow:auto; border-radius:6px; border-top:4px solid var(--red); padding:38px 34px 32px; }
+.modal-close { position:absolute; top:10px; right:14px; background:none; border:none; font-size:30px; line-height:1; cursor:pointer; color:var(--steel); }
+.modal-card h2 { font-size:26px; margin:8px 0 8px; }
+.modal-sub { color:var(--steel); font-size:14px; margin-bottom:22px; }
+.mf { margin-bottom:16px; }
+.mf label { display:block; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--steel); margin-bottom:6px; }
+.mf .opt { text-transform:none; letter-spacing:0; color:#8a8880; }
+.mf input, .mf select { width:100%; padding:12px; border:1px solid var(--border); background:var(--concrete); font-family:'Inter',sans-serif; font-size:15px; }
+.mf input:focus, .mf select:focus { outline:2px solid var(--red); outline-offset:-1px; }
+.mf-err { display:none; color:var(--red); font-size:12px; margin-top:5px; }
+.mf.has-error input { border-color:var(--red); }
+.mf.has-error .mf-err { display:block; }
+.mf-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.modal-thanks { text-align:center; padding:20px 0 6px; }
+.modal-thanks p { color:var(--steel); margin:6px 0 22px; }
+@media (max-width:520px){ .mf-row { grid-template-columns:1fr; gap:0; } .modal-card { padding:32px 22px 26px; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <a href="index.html"><img src="assets/images/index-1-ce390515eb.png" alt="Triple Maintenance Group" style="height:88px; width:auto;"></a>
+    <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="toggleNav(this)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="siteNav">
+      <a href="about.html">About</a>
+      <a href="services.html">Services</a>
+      <a href="providers.html">Providers</a>
+      <a href="customers.html" class="current">Customers</a>
+      <a href="contact.html">Contact</a>
+      <a href="#" class="btn btn-primary nav-btn">Portal login</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-person-bg"></div>
+  <div class="wrap">
+    <div class="hero-copy">
+    <span class="eyebrow">Customers</span>
+    <h1>Thousands count on you. That&rsquo;s why you count on us.</h1>
+    <p class="lead">Our services are designed to be fully integrated into whatever system you&rsquo;re operating. The list of what we do is long, but the way we do it is simple. We are your partners, helping to create, manage and optimize the exceptional environments and experiences that keep your business thriving.</p>
+    <div class="hero-btns">
+      <button type="button" class="btn btn-primary" onclick="openCall()">Book a discovery call</button>
+      <a href="services.html" class="btn btn-ghost-light">See our services</a>
+    </div>
+    </div>
+  </div>
+  <img class="hero-person" src="assets/images/customers-2-a0e03f10db.webp" alt="TMG team member smiling in a TMG polo">
+</section>
+
+<section class="how">
+  <div class="wrap">
+    <div class="how-head">
+      <span class="serif-italic">Built around you.</span>
+      <h2>How TMG shows up for your business</h2>
+    </div>
+    <div class="how-grid">
+      <div class="how-item">
+        <div class="how-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.6"/></svg></div>
+        <h3>Wherever You Operate</h3>
+        <p>Coverage across 13 states through a local, vetted network &mdash; one partner from your busiest location to your smallest site.</p>
+      </div>
+      <div class="how-item">
+        <div class="how-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5.5c0 4.6-3 8.3-7 9.5-4-1.2-7-4.9-7-9.5V6l7-3z"/><path d="M8.8 12l2.3 2.3 4.2-4.6"/></svg></div>
+        <h3>One Point of Accountability</h3>
+        <p>One team owns every work order from dispatch to closeout. No handoffs, no finger-pointing, no chasing status.</p>
+      </div>
+      <div class="how-item">
+        <div class="how-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="12" r="2.2"/><circle cx="19" cy="6" r="2.2"/><circle cx="19" cy="18" r="2.2"/><path d="M7 11l10-4M7 13l10 4"/></svg></div>
+        <h3>Fits Your Systems</h3>
+        <p>We work inside the tools and processes you already run, so your team keeps its workflow and gains full visibility.</p>
+      </div>
+      <div class="how-item">
+        <div class="how-icon"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c2.9 0 5 2.1 5 5"/></svg></div>
+        <h3>A Vetted Network</h3>
+        <p>Technicians who know your site standards, arrive prepared, and stay consistent job after job.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="x3">
+  <div class="wrap x3-grid">
+    <div class="x3-photo"><img src="assets/images/customers-3-7bb711c19b.jpg" alt="The TMG team gathered around giant TMG x3 letters at Fountain Square in Cincinnati"></div>
+    <div class="x3-copy">
+      <span class="serif-italic">The standard we don&rsquo;t negotiate on.</span>
+      <h2>TMG <span class="x3-mark">&times;3</span></h2>
+      <p class="x3-tag">Speed. Quality. Reliability.</p>
+      <ul class="x3-list">
+        <li><strong>Speed</strong>Fast dispatch and rapid response, because downtime at your sites costs you every hour it continues.</li>
+        <li><strong>Quality</strong>Work done right the first time, backed by a vetted network that knows your standards.</li>
+        <li><strong>Reliability</strong>Single-source accountability and transparent billing &mdash; no surprises, no finger-pointing.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="compare">
+  <div class="wrap">
+    <div class="compare-head">
+      <span class="serif-italic">The difference is in the details.</span>
+      <h2>What changes when you work with TMG</h2>
+    </div>
+    <div class="compare-table">
+      <div class="compare-col old">
+        <h3>Traditional facility vendor</h3>
+        <div class="compare-item">Multiple contacts across trades and regions</div>
+        <div class="compare-item">Invoices with unexplained edits or deductions</div>
+        <div class="compare-item">Job status you have to chase down</div>
+        <div class="compare-item">A fixed scope that doesn't flex with you</div>
+      </div>
+      <div class="compare-col new">
+        <h3>TMG</h3>
+        <div class="compare-item">One point of contact, every state, every trade</div>
+        <div class="compare-item">Clean, transparent invoicing &mdash; no surprises</div>
+        <div class="compare-item">Real-time work order visibility, dispatch to closeout</div>
+        <div class="compare-item">Scope that expands as your needs do</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="stats">
+  <div class="wrap">
+    <div class="stats-head">
+      <span class="serif-italic">The numbers behind the standard.</span>
+    </div>
+    <div class="stat-row">
+      <div class="stat-block"><div class="stat-num">13*</div><div class="stat-lbl">States covered</div></div>
+      <div class="stat-block"><div class="stat-num">24/7</div><div class="stat-lbl">Emergency coverage</div></div>
+      <div class="stat-block"><div class="stat-num">100%</div><div class="stat-lbl">Satisfaction guaranteed</div></div>
+    </div>
+    <p class="stats-note serif-italic" style="font-size:19px;">* Always growing.</p>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <span class="serif-italic">Ready to stop managing a vendor and start working with a partner?</span>
+    <h2>Let's talk.</h2>
+    <button type="button" class="btn btn-primary" onclick="openCall()">Book a discovery call</button>
+  </div>
+</section>
+
+<div class="modal" id="callModal" role="dialog" aria-modal="true" aria-labelledby="callTitle" hidden>
+  <div class="modal-backdrop" onclick="closeCall()"></div>
+  <div class="modal-card">
+    <button type="button" class="modal-close" aria-label="Close" onclick="closeCall()">&times;</button>
+    <div id="callFormWrap">
+      <span class="eyebrow">Discovery call</span>
+      <h2 id="callTitle">Let&rsquo;s talk about your locations.</h2>
+      <p class="modal-sub">Tell us a little about your business and we&rsquo;ll reach out to schedule your call.</p>
+      <form id="callForm" novalidate>
+        <div class="mf" data-f="name"><label for="cf-name">Full name</label><input id="cf-name" name="name" type="text" autocomplete="name"><span class="mf-err">Please enter your name.</span></div>
+        <div class="mf" data-f="company"><label for="cf-company">Company</label><input id="cf-company" name="company" type="text" autocomplete="organization"><span class="mf-err">Please enter your company.</span></div>
+        <div class="mf-row">
+          <div class="mf" data-f="email"><label for="cf-email">Work email</label><input id="cf-email" name="email" type="email" autocomplete="email"><span class="mf-err">Enter a valid email.</span></div>
+          <div class="mf" data-f="phone"><label for="cf-phone">Phone</label><input id="cf-phone" name="phone" type="tel" autocomplete="tel"><span class="mf-err">Enter a valid phone.</span></div>
+        </div>
+        <div class="mf"><label for="cf-locs">Locations you manage <span class="opt">(optional)</span></label>
+          <select id="cf-locs" name="locations"><option value="">Select&hellip;</option><option>1&ndash;5</option><option>6&ndash;25</option><option>26&ndash;100</option><option>100+</option></select></div>
+        <button type="submit" class="btn btn-primary" style="width:100%;">Book my call</button>
+      </form>
+    </div>
+    <div id="callThanks" class="modal-thanks" hidden>
+      <h2>Thank you.</h2>
+      <p>We&rsquo;ve got your details and we&rsquo;ll be in touch shortly to schedule your discovery call.</p>
+      <button type="button" class="btn btn-primary" onclick="closeCall()">Close</button>
+    </div>
+  </div>
+</div>
+<footer>
+  <div class="wrap">
+    <div class="grid4" style="margin-bottom:16px;">
+      <div><img src="assets/images/index-1-ce390515eb.png" alt="Triple Maintenance Group" style="height:48px; width:auto; background:var(--paper); padding:8px 12px;"></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">COMPANY</p><p style="font-weight:400; margin-bottom:10px;"><a href="about.html">About TMG</a></p><p style="font-weight:400;"><a href="contact.html">Contact</a></p></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">WORK WITH US</p><p style="font-weight:400; margin-bottom:10px;"><a href="customers.html">For customers</a></p><p style="font-weight:400; margin-bottom:10px;"><a href="providers.html">For providers</a></p><p style="font-weight:400;"><a href="#">Portal login</a></p></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">CONTACT</p><p style="font-weight:400;">513-346-0894</p></div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Triple Maintenance Group. All rights reserved.</span>
+      <div style="display:flex; gap:20px;"><a href="privacy-policy.html">Privacy Policy</a><a href="provider-terms.html">Provider Terms &amp; Conditions</a></div>
+      <span>Together we rise.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleNav(btn){
+  var nav = document.getElementById('siteNav');
+  var open = nav.classList.toggle('nav-open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+</script>
+<script>
+var callModal = document.getElementById('callModal');
+function openCall(){
+  callModal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  document.getElementById('callFormWrap').hidden = false;
+  document.getElementById('callThanks').hidden = true;
+  setTimeout(function(){ document.getElementById('cf-name').focus(); }, 30);
+}
+function closeCall(){ callModal.hidden = true; document.body.style.overflow = ''; }
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !callModal.hidden) closeCall(); });
+document.getElementById('callForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var f = e.target, ok = true;
+  var checks = {
+    name: f.name.value.trim() !== '',
+    company: f.company.value.trim() !== '',
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.value.trim()),
+    phone: /^[\d\s\-().+]{7,20}$/.test(f.phone.value.trim())
+  };
+  Object.keys(checks).forEach(function(k){
+    f.querySelector('[data-f="'+k+'"]').classList.toggle('has-error', !checks[k]);
+    if(!checks[k]) ok = false;
+  });
+  if(!ok) return;
+  // TODO: send to the backend once it is deployed. Nothing is transmitted yet.
+  console.info('Discovery call request (NOT sent - backend not connected yet):', {
+    name: f.name.value, company: f.company.value, email: f.email.value, phone: f.phone.value, locations: f.locations.value
+  });
+  document.getElementById('callFormWrap').hidden = true;
+  document.getElementById('callThanks').hidden = false;
+  f.reset();
+});
+</script>
+</body>
+</html>

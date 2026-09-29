@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>About | Triple Maintenance Group</title>
+<link rel="stylesheet" href="assets/css/base.css">
+<style>
+/* HERO - asymmetric, oversized, overlapping */
+.hero { position:relative; padding:100px 0 0; }
+.hero-grid { display:grid; grid-template-columns:1.1fr 0.9fr; gap:0; align-items:end; }
+.hero-text { padding-bottom:80px; z-index:2; }
+.hero-text .eyebrow { display:block; margin-bottom:18px; }
+.hero-text h1 { font-size:clamp(52px,8vw,108px); letter-spacing:-0.01em; margin-bottom:0; }
+.hero-text h1 span { display:block; }
+.hero-text .tag { font-size:clamp(22px,2.6vw,30px); margin:18px 0 26px; color:var(--red); }
+.hero-text p.lead { font-size:16px; color:var(--steel); max-width:440px; margin-bottom:28px; }
+.hero-photo-wrap { position:relative; height:520px; margin-left:-60px; }
+.hero-photo-wrap img { width:100%; height:100%; object-fit:cover; filter:brightness(1.3) contrast(1.02); }
+.hero-photo-wrap::after { content:''; position:absolute; inset:0; background:linear-gradient(200deg, rgba(10,10,10,0.0), rgba(10,10,10,0.1)); }
+.hero-bars { position:absolute; bottom:40px; left:-40px; display:flex; gap:8px; z-index:3; }
+.hero-bars span { width:14px; height:70px; background:var(--red); }
+.hero-bars span:nth-child(2) { background:var(--ink); }
+.hero-bars span:nth-child(3) { background:var(--red); }
+/* PILLARS - staggered, oversized letterforms */
+.pillars-section { padding:110px 0 90px; }
+.pillars-head { display:flex; align-items:baseline; gap:20px; margin-bottom:64px; flex-wrap:wrap; }
+.pillars-head h2 { font-size:clamp(30px,4vw,44px); }
+.pillars-head .serif-italic { font-size:22px; color:var(--steel); }
+.pillar-row { display:grid; grid-template-columns:120px 1fr; gap:28px; align-items:start; padding:34px 0; border-top:1px solid var(--border); }
+.pillar-row:last-child { border-bottom:1px solid var(--border); }
+.pillar-letter { font-family:'Oswald',sans-serif; font-size:88px; font-weight:700; color:var(--red); line-height:0.8; }
+.pillar-content h3 { font-size:22px; margin-bottom:8px; }
+.pillar-content p { font-size:15px; color:var(--steel); max-width:560px; }
+.pillar-row:nth-child(2) .pillar-content { margin-left:0; }
+.pillar-row:nth-child(3) .pillar-content { margin-left:0; }
+/* STANDARD BANNER - diagonal-feel dark section */
+.standard { background:var(--ink); color:#fff; padding:100px 0; position:relative; }
+.standard-head { text-align:center; margin-bottom:60px; }
+.standard-head .serif-italic { font-size:28px; color:#e0554f; display:block; margin-bottom:10px; }
+.standard-head h2 { font-size:clamp(26px,4vw,40px); }
+.standard-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:0; }
+.standard-col { padding:0 24px; border-left:1px solid #2a2a28; }
+.standard-col:first-child { border-left:none; padding-left:0; }
+.standard-col h3 { font-size:24px; color:var(--red); background:#fff; display:inline-block; padding:4px 12px; margin-bottom:18px; }
+.standard-col ul { list-style:disc; padding-left:18px; font-size:14px; color:#c7c5be; line-height:2; }
+.standard-col ul li::marker { color:var(--red); }
+/* LEADERSHIP - big pull quote style */
+.leader-section { padding:110px 0; }
+.leader-flex { display:grid; grid-template-columns:280px 1fr; gap:56px; align-items:center; }
+.leader-flex img { width:100%; border-radius:2px; filter:grayscale(15%); }
+.leader-name { font-size:clamp(28px,3.5vw,40px); margin-bottom:4px; }
+.leader-title { font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.18em; color:var(--red); margin-bottom:22px; display:block; }
+.leader-quote { font-size:clamp(20px,2.4vw,26px); line-height:1.4; margin-bottom:20px; }
+.leader-flex p.body { font-size:15px; color:var(--steel); max-width:560px; }
+/* HQ */
+.hq { background:var(--concrete); padding:90px 0; }
+.hq-grid { display:grid; grid-template-columns:1fr 1fr; gap:56px; align-items:center; }
+.hq-grid img { width:100%; height:340px; object-fit:cover; }
+.hq-grid h2 { font-size:clamp(24px,3vw,34px); margin:14px 0 16px; }
+.hq-grid p { font-size:15px; color:var(--steel); margin-bottom:24px; max-width:440px; }
+/* CTA */
+.cta { text-align:center; padding:100px 0; }
+.cta .serif-italic { font-size:30px; display:block; margin-bottom:16px; }
+.cta h2 { font-size:clamp(30px,4vw,44px); margin-bottom:20px; }
+@media (max-width:900px){
+  .hero-grid,.leader-flex,.hq-grid { grid-template-columns:1fr; }
+  .hero-photo-wrap { margin-left:0; height:340px; }
+  .pillars-head,.standard-grid,.grid4 { grid-template-columns:1fr; }
+  .standard-col { border-left:none; padding-left:0; margin-bottom:36px; }
+  .pillar-row { grid-template-columns:70px 1fr; }
+  .pillar-letter { font-size:52px; }
+  .pillar-row:nth-child(2) .pillar-content { margin-left:0; }
+  nav { display:none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <a href="index.html"><img src="assets/images/index-1-ce390515eb.png" alt="Triple Maintenance Group" style="height:88px; width:auto;"></a>
+    <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="toggleNav(this)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="siteNav">
+      <a href="about.html" class="current">About</a>
+      <a href="services.html">Services</a>
+      <a href="providers.html">Providers</a>
+      <a href="customers.html">Customers</a>
+      <a href="contact.html">Contact</a>
+      <a href="#" class="btn btn-primary nav-btn">Portal login</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div class="hero-text">
+      <span class="eyebrow">Who we are</span>
+      <h1><span>About</span><span>us.</span></h1>
+      <p class="tag serif-italic">Frictionless results, from the first call.</p>
+      <p class="lead">Facility maintenance should be executed without friction. TMG was built as a partner accountable for the outcome, every time &mdash; not another vendor to manage.</p>
+      <a href="#" class="btn btn-ghost" style="border-color:var(--ink);">View jobs &amp; apply</a>
+    </div>
+    <div class="hero-photo-wrap">
+      <img src="assets/images/index-2-2be4459b71.jpg" alt="TMG team at work">
+      <div class="hero-bars"><span></span><span></span><span></span></div>
+    </div>
+  </div>
+</section>
+
+<section class="pillars-section">
+  <div class="wrap">
+    <div class="pillars-head">
+      <h2>TMG &times; 3</h2>
+      <span class="serif-italic">&mdash; the standard we don't negotiate on.</span>
+    </div>
+
+    <div class="pillar-row">
+      <div class="pillar-letter">S</div>
+      <div class="pillar-content">
+        <h3>Speed</h3>
+        <p>Fast dispatch and rapid response, because downtime at your sites costs you every hour it continues.</p>
+      </div>
+    </div>
+    <div class="pillar-row">
+      <div class="pillar-letter">Q</div>
+      <div class="pillar-content">
+        <h3>Quality</h3>
+        <p>Work done right the first time, backed by a vetted network that knows your standards.</p>
+      </div>
+    </div>
+    <div class="pillar-row">
+      <div class="pillar-letter">R</div>
+      <div class="pillar-content">
+        <h3>Reliability</h3>
+        <p>Single-source accountability and transparent billing &mdash; no surprises, no finger-pointing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="standard">
+  <div class="wrap">
+    <div class="standard-head">
+      <span class="serif-italic">Non-negotiable, from day one.</span>
+      <h2>TMG Upholds <span style="display:block; font-size:1.6em; color:var(--red); letter-spacing:0.02em; margin-top:6px;">The Standard.</span></h2>
+    </div>
+    <div class="standard-grid">
+      <div class="standard-col">
+        <h3>Own the Outcome</h3>
+        <ul>
+          <li>Single point of accountability &mdash; no pointing elsewhere.</li>
+          <li>If it's not done right, it's not done.</li>
+          <li>Problems are ours to solve.</li>
+        </ul>
+      </div>
+      <div class="standard-col">
+        <h3>&times;<span style="font-size:1.7em; color:var(--red); font-weight:700;">3</span></h3>
+        <ul>
+          <li>Speed, Quality, Reliability move together.</li>
+          <li>Every trade, one standard.</li>
+          <li>Communicate before being asked.</li>
+        </ul>
+      </div>
+      <div class="standard-col">
+        <h3>Deliver, Don't Report</h3>
+        <ul>
+          <li>Results over status updates.</li>
+          <li>Be resourceful, not reliant.</li>
+          <li>Urgency is the default.</li>
+        </ul>
+      </div>
+      <div class="standard-col">
+        <h3>Earn Trust in the Open</h3>
+        <ul>
+          <li>Every call gets answered, urgently, not eventually.</li>
+          <li>Our work is visible &mdash; nothing gets quietly changed.</li>
+          <li>We lead with the truth, good news or bad.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+
+<section class="hq">
+  <div class="wrap hq-grid">
+    <img src="assets/images/about-3-e34b701d87.png" alt="TMG office conference room">
+    <div>
+      <span class="eyebrow">Headquarters</span>
+      <h2>Based in Cincinnati, OH</h2>
+      <div style="display:flex; align-items:center; gap:8px; margin-top:14px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.8"><path d="M12 21s-7-6.5-7-12a7 7 0 0 1 14 0c0 5.5-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>
+        <p class="serif-italic" style="font-size:18px; margin:0;">Rooted in Cincinnati. Built to serve the country.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="cta">
+  <div class="wrap">
+    <span class="serif-italic">Great service requires an exceptional team at every level.</span>
+    <h2>Together we rise.</h2>
+    <a href="#" class="btn btn-primary">View jobs &amp; apply</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="grid4" style="margin-bottom:16px;">
+      <div><img src="assets/images/index-1-ce390515eb.png" alt="Triple Maintenance Group" style="height:48px; width:auto; background:var(--paper); padding:8px 12px;"></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">COMPANY</p><p style="font-weight:400; margin-bottom:10px;"><a href="#">About TMG</a></p><p style="font-weight:400;"><a href="contact.html">Contact</a></p></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">WORK WITH US</p><p style="font-weight:400; margin-bottom:10px;"><a href="customers.html">For customers</a></p><p style="font-weight:400; margin-bottom:10px;"><a href="providers.html">For providers</a></p><p style="font-weight:400;"><a href="#">Portal login</a></p></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">CONTACT</p><p style="font-weight:400;">513-346-0894</p></div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Triple Maintenance Group. All rights reserved.</span>
+      <div style="display:flex; gap:20px;"><a href="privacy-policy.html">Privacy Policy</a><a href="provider-terms.html">Provider Terms &amp; Conditions</a></div>
+      <span>Together we rise.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleNav(btn){
+  var nav = document.getElementById('siteNav');
+  var open = nav.classList.toggle('nav-open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+</script>
+</body>
+</html>

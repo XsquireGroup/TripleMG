@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Triple Maintenance Group</title>
+<link rel="stylesheet" href="assets/css/base.css">
+<style>
+.bars { display: flex; gap: 6px; width: 64px; height: 18px; }
+.bars span { flex: 1; background: var(--ink); }
+.bars span:nth-child(2) { background: var(--red); }
+.section { padding: 96px 0; }
+.section.alt { background: var(--concrete); }
+.hero { position:relative; color: var(--paper); padding: 140px 0 120px; overflow:hidden; }
+.hero-carousel { position:absolute; inset:0; z-index:0; }
+.hero-carousel img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0; animation: heroFade 25s infinite; }
+.hero-carousel img:nth-child(1) { animation-delay: 0s; }
+.hero-carousel img:nth-child(2) { animation-delay: 5s; }
+.hero-carousel img:nth-child(3) { animation-delay: 10s; }
+.hero-carousel img:nth-child(4) { animation-delay: 15s; }
+.hero-carousel img:nth-child(5) { animation-delay: 20s; }
+@keyframes heroFade { 0%{opacity:0;} 4%{opacity:1;} 18%{opacity:1;} 22%{opacity:0;} 100%{opacity:0;} }
+.hero-overlay { position:absolute; inset:0; background:rgba(10,10,10,0.72); z-index:1; }
+.hero .wrap { position:relative; z-index:2; }
+.hero h1 { font-size: clamp(44px, 6.5vw, 88px); margin: 16px 0 10px; }
+.hero .subhead { font-family: 'Oswald', sans-serif; font-size: 22px; font-weight: 500; letter-spacing: 0.04em; color: #e6e4dc; margin-bottom: 24px; }
+.hero p.body { font-size: 17px; color: #c7c5be; max-width: 560px; margin-bottom: 40px; }
+.hero-btns { display: flex; gap: 16px; }
+.grid { display: grid; gap: 32px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); align-items: center; }
+.grid-4 { grid-template-columns: repeat(4, 1fr); }
+.industry-card { background: var(--paper); border: 1px solid var(--border); padding: 28px 24px; }
+.industry-card svg { margin-bottom: 16px; }
+.industry-card h3 { font-size: 17px; margin-bottom: 10px; }
+.industry-card p { font-size: 14px; color: var(--steel); }
+.stat { text-align: center; }
+.stat-value { font-family: 'Oswald', sans-serif; font-size: 44px; font-weight: 700; }
+.stat-label { font-size: 13px; letter-spacing: 0.05em; text-transform: uppercase; margin-top: 6px; }
+.feature-list { list-style: none; display: flex; flex-direction: column; gap: 20px; }
+.feature-list li { border-left: 3px solid var(--red); padding-left: 20px; }
+.feature-list p { font-size: 14px; color: var(--steel); margin-top: 4px; }
+@media (max-width: 900px) {
+  .grid-2, .grid-4 { grid-template-columns: 1fr; }
+  nav { display: none; }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <a href="#">
+      <img src="assets/images/index-1-ce390515eb.png" alt="Triple Maintenance Group" style="height:88px; width:auto;">
+    </a>
+    <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="toggleNav(this)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="siteNav">
+      <a href="about.html">About</a>
+<a href="services.html">Services</a>
+<a href="providers.html">Providers</a>
+<a href="customers.html">Customers</a>
+<a href="contact.html">Contact</a>
+<a href="#" class="btn btn-primary nav-btn">Portal login</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-carousel">
+    <img src="assets/images/index-2-2be4459b71.jpg" alt="TMG team">
+    <img src="assets/images/index-3-3ceb0a1cc0.png" alt="Commercial rooftop HVAC units"><img src="assets/images/index-4-bea3bc3476.jpg" alt="TMG plumber on site">
+    <img src="assets/images/index-5-6df30ef0ed.jpg" alt="TMG snow and ice removal truck">
+    <img src="assets/images/index-6-2a5f42f9eb.jpg" alt="TMG field team member">
+  </div>
+  <div class="hero-overlay"></div>
+  <div class="wrap">
+    <p class="eyebrow" style="color:#e0554f">Facility maintenance, done right</p>
+    <h1>Execution Without Exception.</h1>
+    <p class="subhead">Speed. Quality. Reliability.</p>
+    <p class="body">Triple Maintenance Group is specifically designed to provide facility maintenance for customers anytime, anywhere.</p>
+    <div class="hero-btns">
+      <a href="#" class="btn btn-primary">Explore services</a>
+      <a href="#" class="btn btn-ghost-light">Become a provider</a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap grid grid-2">
+    <div>
+      <span class="bars" aria-hidden="true"><span></span><span></span><span></span></span>
+      <h2 style="font-size:32px; margin:20px 0;">Built as an Operational Partner, Not a Middleman</h2>
+      <p style="color:var(--steel); font-size:16px; max-width:480px;">TMG handles the high-volume maintenance demands of modern retail, cold storage, and distribution centers&mdash;freeing your internal team to focus on other operations. With single-source accountability, transparent billing, and a dedicated field network, we eliminate the friction of traditional facilities management.</p>
+    </div>
+    <div>
+      <ul class="feature-list">
+        <li><strong>Transparent Invoicing</strong><p>Clean, predictable billing with zero surprise deductions, hidden edits, or unexpected line items.</p></li>
+        <li><strong>Flawless Technology Integration</strong><p>One connected platform tying dispatch, billing, and reporting together&mdash;no disconnected systems, no manual handoffs.</p></li>
+        <li><strong>Real-Time Visibility</strong><p>Complete work order tracking and live operational reporting from dispatch to closeout.</p></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="section alt">
+  <div class="wrap">
+    <p class="eyebrow">Industries we serve</p>
+    <h2 style="font-size:32px; margin:12px 0 14px;">Where TMG works</h2>
+    <p style="color:var(--steel); font-size:15px; max-width:640px; margin-bottom:36px;">High-performance facility management tailored to the unique operational demands of your sector.</p>
+    <div class="grid grid-4">
+      <div class="industry-card"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.4"><rect x="9" y="3" width="6" height="3" rx="0.5"/><rect x="3" y="7" width="18" height="13" rx="0.5"/><rect x="5" y="9.5" width="2.5" height="2.5"/><rect x="9" y="9.5" width="2.5" height="2.5"/><rect x="13" y="9.5" width="2.5" height="2.5"/><rect x="17" y="9.5" width="2.5" height="2.5"/><rect x="10" y="15" width="4" height="5"/></svg><h3>Retail &amp; Big-Box</h3><p>Protecting brand reputation and customer experience through rapid-response repairs, scheduled PMs, and zero-downtime store maintenance.</p></div>
+      <div class="industry-card"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.4"><path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/></svg><h3>Distribution &amp; Fulfillment</h3><p>Keeping high-volume logistics hubs running 24/7 with specialized trade support, dock-to-door reliability, and fast field dispatch.</p></div>
+      <div class="industry-card"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.4"><line x1="7" y1="2" x2="7" y2="8"/><line x1="10" y1="2" x2="10" y2="8"/><line x1="13" y1="2" x2="13" y2="8"/><path d="M7 8c0 2.5 1.3 3.5 3 3.5s3-1 3-3.5"/><line x1="10" y1="11.5" x2="10" y2="21"/><ellipse cx="18" cy="6" rx="3.2" ry="4.5"/><line x1="18" y1="10.5" x2="18" y2="21"/></svg><h3>Restaurants &amp; Food Service</h3><p>Rapid, compliant emergency maintenance and facility care engineered to protect food safety, uptime, and high foot traffic.</p></div>
+      <div class="industry-card"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#950606" stroke-width="1.4"><path d="M4 8h16l-1.5 11a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><h3>Grocery &amp; Supermarkets</h3><p>High-stakes environment management&mdash;from cold storage continuity to floor safety and emergency trade response.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="section" style="background:var(--red); color:var(--paper);">
+  <div class="wrap grid grid-4">
+    <div class="stat"><div class="stat-value">13</div><div class="stat-label">States covered</div></div>
+    <div class="stat"><div class="stat-value">24/7</div><div class="stat-label">Emergency coverage</div></div>
+    <div class="stat"><div class="stat-value">100%</div><div class="stat-label">Transparent invoicing</div></div>
+    <div class="stat"><div class="stat-value">0</div><div class="stat-label">Excuses</div></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap grid grid-2">
+    <div>
+      <p class="eyebrow">Join the TMG Team</p>
+      <h2 style="font-size:32px; margin:12px 0 20px;">Together We Rise.</h2>
+      <p style="color:var(--steel); max-width:480px; margin-bottom:28px;">Great service requires an exceptional team at every single level. That's why Triple Maintenance Group invests in people first&mdash;fostering a collaborative culture where field professionals, account leaders, and operational talent unite to set a new standard in commercial facilities management.</p>
+      <a href="#" class="btn btn-ghost">Explore opportunities</a>
+    </div>
+    <div style="height:280px; overflow:hidden; border-radius:4px;">
+      <img src="assets/images/index-2-2be4459b71.jpg" alt="The TMG team" style="width:100%; height:100%; object-fit:cover;">
+    </div>
+  </div>
+</section>
+
+<section class="section alt" style="text-align:center;">
+  <div class="wrap">
+    <p class="eyebrow">Always Reaching</p>
+    <h2 style="font-size:32px; margin:12px 0 20px;">Active Operations Across 13 States &amp; Growing</h2>
+    <p style="color:var(--steel); max-width:640px; margin:0 auto 32px;">TMG delivers rapid, single-source facility execution across the Midwest and Southeast&mdash;providing seamless multi-state coverage across Ohio, Indiana, Michigan, Kentucky, Tennessee, Florida, Georgia, North Carolina, South Carolina, Pennsylvania, Virginia, Alabama, and West Virginia.</p>
+    <img src="assets/images/index-8-e4f0e910d5.png" alt="Map of TMG's 13-state service region" style="max-width:420px; width:100%; height:auto; margin-bottom:32px;">
+    <div>
+      <a href="#" class="btn btn-primary">View the full map</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="grid grid-4" style="margin-bottom:16px;">
+      <div>
+        <img src="assets/images/index-1-ce390515eb.png" alt="Triple Maintenance Group" style="height:48px; width:auto; background:var(--paper); padding:8px 12px;">
+        <div class="social-icons" aria-label="Social links (placeholder — add real URLs)">
+          <a href="#" aria-label="Facebook"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"><path d="M14 9h3V5h-3c-2.2 0-4 1.8-4 4v2H7v4h3v6h4v-6h3l1-4h-4V9c0-.6.4-1 1-1z"/></svg></a>
+          <a href="#" aria-label="LinkedIn"><svg width="16" height="16" viewBox="0 0 24 24" fill="#fff"><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/><path d="M10 9h4v2c1-1.5 2.5-2.3 4.5-2.3 3.3 0 5.5 2 5.5 6.3V21h-4v-5.5c0-1.8-.7-3-2.3-3-1.3 0-2.2 1-2.2 3V21h-4V9z"/></svg></a>
+        </div>
+      </div>
+      <div>
+        <p style="letter-spacing:0.04em; margin-bottom:16px;">COMPANY</p>
+        <p style="font-weight:400; margin-bottom:10px;"><a href="#">About TMG</a></p>
+        
+        <p style="font-weight:400;"><a href="contact.html">Contact</a></p>
+      </div>
+      <div>
+        <p style="letter-spacing:0.04em; margin-bottom:16px;">WORK WITH US</p>
+        <p style="font-weight:400; margin-bottom:10px;"><a href="customers.html">For customers</a></p>
+        <p style="font-weight:400; margin-bottom:10px;"><a href="providers.html">For providers</a></p>
+        <p style="font-weight:400;"><a href="#">Portal login</a></p>
+      </div>
+      <div>
+        <p style="letter-spacing:0.04em; margin-bottom:16px;">CONTACT</p>
+        <p style="font-weight:400;">513-346-0894</p>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Triple Maintenance Group. All rights reserved.</span>
+      <div class="legal-links">
+        <a href="privacy-policy.html">Privacy Policy</a>
+        <a href="provider-terms.html">Provider Terms &amp; Conditions</a>
+      </div>
+      <span>Together we rise.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleNav(btn){
+  var nav = document.getElementById('siteNav');
+  var open = nav.classList.toggle('nav-open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+</script>
+</body>
+</html>
