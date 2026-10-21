@@ -32,6 +32,9 @@ form { display:flex; flex-direction:column; gap:18px; }
   .mark-bars { width:110px; }
 }
 </style>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
 <body>
 
@@ -77,10 +80,10 @@ form { display:flex; flex-direction:column; gap:18px; }
       </div>
     </div>
 
-    <form>
+    <form id="contactForm" novalidate>
       <div class="field">
-        <label>I am a...</label>
-        <select>
+        <label for="ct-role">I am a...</label>
+        <select id="ct-role" name="role">
           <option>Prospective customer</option>
           <option>Prospective provider</option>
           <option>Job applicant</option>
@@ -88,23 +91,24 @@ form { display:flex; flex-direction:column; gap:18px; }
         </select>
       </div>
       <div class="field">
-        <label>Name</label>
-        <input type="text">
+        <label for="ct-name">Name</label>
+        <input id="ct-name" name="name" type="text" autocomplete="name" required>
       </div>
       <div class="field">
-        <label>Email</label>
-        <input type="email">
+        <label for="ct-email">Email</label>
+        <input id="ct-email" name="email" type="email" autocomplete="email" required>
       </div>
       <div class="field">
-        <label>Phone</label>
-        <input type="tel">
+        <label for="ct-phone">Phone</label>
+        <input id="ct-phone" name="phone" type="tel" autocomplete="tel">
       </div>
       <div class="field">
-        <label>Message</label>
-        <textarea></textarea>
+        <label for="ct-msg">Message</label>
+        <textarea id="ct-msg" name="message" required></textarea>
       </div>
-      <button type="submit" class="btn btn-primary" style="align-self:flex-start;">Send message</button>
-      <p class="form-note">Form is not yet wired to a backend &mdash; connect once the function app is live.</p>
+      <div style="position:absolute;left:-9999px;" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+      <button type="submit" id="ct-btn" class="btn btn-primary" style="align-self:flex-start;">Send message</button>
+      <p class="form-note" id="ct-status" role="status" aria-live="polite"></p>
     </form>
   </div>
 </section>
@@ -131,6 +135,26 @@ function toggleNav(btn){
   var open = nav.classList.toggle('nav-open');
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
+</script>
+<script src="tmg-forms.js"></script>
+<script>
+document.getElementById('contactForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var f = e.target, st = document.getElementById('ct-status'), btn = document.getElementById('ct-btn');
+  var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.value.trim());
+  if(!f.name.value.trim() || !emailOk || !f.message.value.trim()){
+    st.style.color = '#950606'; st.textContent = 'Please enter your name, a valid email, and a message.'; return;
+  }
+  btn.disabled = true; st.style.color = ''; st.textContent = 'Sending\u2026';
+  TMGForms.sendJson('/contact', {
+    role: f.role.value, name: f.name.value, email: f.email.value,
+    phone: f.phone.value, message: f.message.value, website: f.website.value
+  }).then(function(r){
+    btn.disabled = false;
+    if(r.ok){ f.reset(); st.style.color = ''; st.textContent = 'Thank you \u2014 we\u2019ve got your message and will be in touch shortly.'; }
+    else { st.style.color = '#950606'; st.textContent = r.message; }
+  });
+});
 </script>
 </body>
 </html>
