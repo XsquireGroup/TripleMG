@@ -113,6 +113,9 @@ button.btn { cursor:pointer; }
 .modal-thanks p { color:var(--steel); margin:6px 0 22px; }
 @media (max-width:520px){ .mf-row { grid-template-columns:1fr; gap:0; } .modal-card { padding:32px 22px 26px; } }
 </style>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 </head>
 <body>
 
@@ -260,7 +263,9 @@ button.btn { cursor:pointer; }
         </div>
         <div class="mf"><label for="cf-locs">Locations you manage <span class="opt">(optional)</span></label>
           <select id="cf-locs" name="locations"><option value="">Select&hellip;</option><option>1&ndash;5</option><option>6&ndash;25</option><option>26&ndash;100</option><option>100+</option></select></div>
-        <button type="submit" class="btn btn-primary" style="width:100%;">Book my call</button>
+        <div style="position:absolute;left:-9999px;" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+        <p id="cf-error" class="mf-err" role="alert" style="margin:0 0 10px;"></p>
+        <button type="submit" id="cf-btn" class="btn btn-primary" style="width:100%;">Book my call</button>
       </form>
     </div>
     <div id="callThanks" class="modal-thanks" hidden>
@@ -293,6 +298,7 @@ function toggleNav(btn){
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 </script>
+<script src="tmg-forms.js"></script>
 <script>
 var callModal = document.getElementById('callModal');
 function openCall(){
@@ -318,13 +324,19 @@ document.getElementById('callForm').addEventListener('submit', function(e){
     if(!checks[k]) ok = false;
   });
   if(!ok) return;
-  // TODO: send to the backend once it is deployed. Nothing is transmitted yet.
-  console.info('Discovery call request (NOT sent - backend not connected yet):', {
-    name: f.name.value, company: f.company.value, email: f.email.value, phone: f.phone.value, locations: f.locations.value
+  var btn = document.getElementById('cf-btn'), err = document.getElementById('cf-error');
+  btn.disabled = true; btn.textContent = 'Sending\u2026'; err.style.display = 'none';
+  TMGForms.sendJson('/call-request', {
+    name: f.name.value, company: f.company.value, email: f.email.value,
+    phone: f.phone.value, locations: f.locations.value, website: f.website.value
+  }).then(function(r){
+    btn.disabled = false; btn.textContent = 'Book my call';
+    if(r.ok){
+      document.getElementById('callFormWrap').hidden = true;
+      document.getElementById('callThanks').hidden = false;
+      f.reset();
+    } else { err.textContent = r.message; err.style.display = 'block'; }
   });
-  document.getElementById('callFormWrap').hidden = true;
-  document.getElementById('callThanks').hidden = false;
-  f.reset();
 });
 </script>
 </body>
