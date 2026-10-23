@@ -34,6 +34,22 @@ var TMGForms = (function () {
     },
     sendForm: function (path, formData) {
       return post(path, { method: 'POST', body: formData });
+    },
+    /* Like sendJson, but also hands back the server's reply (used for the terms signature). */
+    sendJsonData: function (path, data) {
+      if (!connected()) {
+        return Promise.resolve(fail('Online signing is not switched on yet. Please call us at ' + TMG_PHONE + '.'));
+      }
+      return fetch(TMG_API_BASE + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      }).then(function (res) {
+        return res.json().then(function (d) {
+          if (res.ok) return { ok: true, data: d };
+          return fail((d && d.errors && d.errors.join(' ')) || (d && d.error));
+        }, function () { return res.ok ? { ok: true, data: {} } : fail(); });
+      }, function () { return fail(); });
     }
   };
 })();
