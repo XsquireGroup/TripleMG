@@ -310,11 +310,12 @@
         <div class="mf"><label for="ap-lic">Trade license <span class="opt">(optional)</span></label><input id="ap-lic" type="file" data-doc="trade_license" accept=".pdf,.png,.jpg,.jpeg"></div>
 
         <div class="mf-section">Provider Terms &amp; Conditions</div>
-        <div class="mf mf-terms" data-f="terms">
-          <label><input type="checkbox" id="ap-terms" name="termsAccepted"> <span>I have read and agree to TMG&rsquo;s <a href="provider-terms.html" target="_blank" rel="noopener">Provider Terms &amp; Conditions</a>.</span></label>
-          <span class="mf-err">You must accept the Provider Terms &amp; Conditions to apply.</span>
+        <div class="mf mf-terms" data-f="termsCode">
+          <p id="ap-signed" style="margin:0 0 10px;font-size:14px;">Before you apply, <a href="provider-terms.html#sign"><strong>read and sign the Provider Terms</strong></a>. Then come back here and your signature code fills in automatically.</p>
+          <label for="ap-code" style="display:block;margin:0 0 6px;">Signature code</label>
+          <input id="ap-code" name="termsSignatureId" type="text" autocomplete="off" placeholder="Paste the code shown after you sign">
+          <span class="mf-err">Sign the Provider Terms first, then enter your signature code.</span>
         </div>
-        <div class="mf" data-f="signerName"><label for="ap-sign">Type your full name to sign</label><input id="ap-sign" name="signerName" type="text" autocomplete="name"><span class="mf-err">Type your full name to sign.</span></div>
 
         <div style="position:absolute;left:-9999px;" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
         <p id="ap-error" class="mf-err" role="alert" style="margin:0 0 10px;"></p>
@@ -364,6 +365,18 @@ function openApply(){
   setTimeout(function(){ document.getElementById('ap-biz').focus(); }, 30);
 }
 function closeApply(){ applyModal.hidden = true; document.body.style.overflow = ''; }
+/* Fill in the signature code if this browser has a saved signature from the terms page. */
+function loadTermsSignature(){
+  try{
+    var s = JSON.parse(localStorage.getItem('tmgTermsSignature') || 'null');
+    if(s && s.id){
+      document.getElementById('ap-code').value = s.id;
+      document.getElementById('ap-signed').innerHTML = 'Provider Terms signed by <strong>' + String(s.name).replace(/</g,'&lt;') + '</strong>. Use the same email on this application (<strong>' + String(s.email).replace(/</g,'&lt;') + '</strong>).';
+    }
+  }catch(x){}
+}
+loadTermsSignature();
+if(location.hash === '#apply'){ openApply(); }
 document.addEventListener('keydown', function(e){
   if(e.key !== 'Escape') return;
   if(!reqModal.hidden) closeReq();
@@ -380,8 +393,7 @@ document.getElementById('applyForm').addEventListener('submit', function(e){
     phone: /^[\d\s\-().+]{7,20}$/.test(f.phone.value.trim()),
     primaryTrade: f.primaryTrade.value !== '',
     serviceStates: states.length > 0,
-    terms: f.termsAccepted.checked,
-    signerName: f.signerName.value.trim().length >= 2
+    termsCode: /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(f.termsSignatureId.value.trim())
   };
   var ok = true, first = null;
   Object.keys(checks).forEach(function(k){
@@ -392,9 +404,8 @@ document.getElementById('applyForm').addEventListener('submit', function(e){
   if(!ok){ first.scrollIntoView({block:'center'}); return; }
 
   var fd = new FormData();
-  ['businessName','contactName','email','phone','ein','primaryTrade','otherTrades','serviceAreas','technicianCount','signerName','website'].forEach(function(n){ fd.append(n, f[n].value); });
+  ['businessName','contactName','email','phone','ein','primaryTrade','otherTrades','serviceAreas','technicianCount','termsSignatureId','website'].forEach(function(n){ fd.append(n, f[n].value); });
   fd.append('serviceStates', states.join(','));
-  fd.append('termsAccepted', 'true');
   Array.prototype.slice.call(f.querySelectorAll('input[type=file]')).forEach(function(inp){
     if(inp.files && inp.files[0]){ fd.append('documents', inp.files[0]); fd.append('documentType', inp.getAttribute('data-doc')); }
   });
