@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Careers | Triple Maintenance Group</title>
+<link rel="stylesheet" href="base.css">
+<style>
+/* HERO */
+.hero { background:var(--ink); color:#fff; padding:110px 0 90px; }
+.hero .eyebrow { color:#e0554f; margin-bottom:16px; display:block; }
+.hero h1 { font-size:clamp(44px,6.5vw,80px); margin-bottom:14px; }
+.hero .tag { font-size:clamp(20px,2.4vw,26px); color:#e6e4dc; margin-bottom:22px; }
+.hero p.lead { color:#c7c5be; font-size:16px; max-width:600px; margin-bottom:30px; }
+/* CTA */
+.cta { background:var(--red); color:#fff; text-align:center; padding:90px 0; }
+.cta .serif-italic { font-size:26px; display:block; margin-bottom:14px; }
+.cta h2 { font-size:clamp(28px,4vw,40px); margin-bottom:26px; }
+.cta .btn { border-color:#fff; }
+.cta .btn-primary { background:#fff; color:var(--red); border-color:#fff; }
+.modal { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; }
+.modal[hidden] { display:none !important; }
+.modal-backdrop { position:absolute; inset:0; background:rgba(10,10,10,0.68); }
+.modal-card { position:relative; background:#fff; width:100%; max-width:640px; max-height:92vh; overflow:auto; border-radius:6px; border-top:4px solid var(--red); padding:38px 34px 32px; }
+.modal-close { position:absolute; top:10px; right:14px; background:none; border:none; font-size:30px; line-height:1; cursor:pointer; color:var(--steel); }
+.modal-card h2 { font-size:26px; margin:8px 0 8px; }
+.modal-sub { color:var(--steel); font-size:14px; margin-bottom:22px; }
+.mf { margin-bottom:16px; }
+.mf label, .mf .mf-label { display:block; font-family:'Oswald',sans-serif; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:var(--steel); margin-bottom:6px; }
+.mf .opt { text-transform:none; letter-spacing:0; color:#8a8880; }
+.mf input[type=text], .mf input[type=email], .mf input[type=tel], .mf input[type=number], .mf select, .mf textarea { width:100%; padding:12px; border:1px solid var(--border); background:var(--concrete); font-family:'Inter',sans-serif; font-size:15px; }
+.mf input[type=file] { width:100%; font-size:14px; }
+.mf input:focus, .mf select:focus, .mf textarea:focus { outline:2px solid var(--red); outline-offset:-1px; }
+.mf-err { display:none; color:var(--red); font-size:12px; margin-top:5px; }
+.mf.has-error .mf-err { display:block; }
+.mf.has-error input[type=text], .mf.has-error input[type=email], .mf.has-error input[type=tel], .mf.has-error select { border-color:var(--red); }
+.mf-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+.mf-hint { font-size:12px; color:var(--steel); margin-top:4px; }
+.mf-states { display:grid; grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); gap:6px 10px; }
+.mf-states label { font-family:'Inter',sans-serif; font-size:14px; letter-spacing:0; text-transform:none; color:var(--ink); margin:0; display:flex; gap:6px; align-items:center; }
+.mf-section { font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:var(--red); margin:26px 0 12px; padding-top:16px; border-top:1px solid var(--border); }
+.mf-terms { background:var(--concrete); padding:14px; font-size:14px; }
+.mf-terms label { font-family:'Inter',sans-serif; text-transform:none; letter-spacing:0; font-size:14px; color:var(--ink); display:flex; gap:10px; align-items:flex-start; margin:0; }
+.req-list { margin:0 0 22px 18px; color:var(--steel); font-size:15px; }
+.req-list li { margin-bottom:10px; }
+.modal-thanks { text-align:center; padding:20px 0 6px; }
+.modal-thanks p { color:var(--steel); margin:6px 0 22px; }
+@media (max-width:520px){ .mf-row { grid-template-columns:1fr; gap:0; } .modal-card { padding:32px 22px 26px; } }
+
+.jobs { padding:90px 0; }
+.jobs h2 { font-size:clamp(26px,3.5vw,36px); margin-bottom:8px; }
+.jobs .lead { color:var(--steel); font-size:15px; margin-bottom:32px; max-width:640px; }
+.job { border:1px solid var(--border); border-left:4px solid var(--red); border-radius:4px; padding:26px 26px 22px; margin-bottom:18px; background:#fff; }
+.job h3 { font-size:22px; margin-bottom:6px; }
+.job .meta { font-size:13px; color:var(--steel); letter-spacing:0.04em; text-transform:uppercase; margin-bottom:12px; font-family:'Oswald',sans-serif; }
+.job p { color:var(--steel); font-size:15px; margin-bottom:10px; }
+.job h4 { font-family:'Oswald',sans-serif; font-size:13px; letter-spacing:0.08em; text-transform:uppercase; color:var(--red); margin:14px 0 6px; }
+.job ul { margin:0 0 14px 20px; color:var(--steel); font-size:15px; }
+.job li { margin-bottom:4px; }
+.job.general { background:var(--concrete); }
+.mf-radio { display:flex; gap:22px; }
+.mf-radio label { font-family:'Inter',sans-serif; font-size:15px; letter-spacing:0; text-transform:none; color:var(--ink); margin:0; display:flex; gap:8px; align-items:center; }
+.mf textarea { min-height:70px; }
+@media (max-width:900px){ nav { display:none; } }
+</style>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+
+<header>
+  <div class="wrap header-inner">
+    <a href="index.html"><img src="index-1-ce390515eb.png" alt="Triple Maintenance Group" style="height:88px; width:auto;"></a>
+    <button class="nav-toggle" aria-label="Open menu" aria-expanded="false" onclick="toggleNav(this)">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0a0a0a" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <nav id="siteNav">
+      <a href="about.html">About</a>
+      <a href="services.html">Services</a>
+      <a href="providers.html">Providers</a>
+      <a href="customers.html">Customers</a>
+      <a href="careers.html" class="current">Careers</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">Careers</span>
+    <h1>Build it<br>with us.</h1>
+    <p class="tag serif-italic">Great service requires an exceptional team at every level.</p>
+    <p class="lead">TMG is growing. See our open positions below, or send a general application and we will keep it on file for future openings.</p>
+  </div>
+</section>
+
+<section class="jobs">
+  <div class="wrap">
+    <h2>Open positions</h2>
+    <p class="lead" id="jobsLead">Apply to a role below. Every application is read by a person.</p>
+    <div id="jobList"></div>
+    <div class="job general">
+      <h3>General application</h3>
+      <p>Don&rsquo;t see the right role? Tell us about yourself and we will keep your application on file for future openings.</p>
+      <a href="#apply" class="btn btn-primary" onclick="openApply('General application');return false;">Apply now</a>
+    </div>
+    <p style="margin-top:26px; font-size:13px; color:var(--steel); font-style:italic;">Triple Maintenance Group is an equal opportunity employer. We consider all qualified applicants without regard to race, color, religion, sex, sexual orientation, gender identity, national origin, age, disability, veteran status, or any other characteristic protected by law.</p>
+  </div>
+</section>
+
+<div class="modal" id="applyModal" role="dialog" aria-modal="true" aria-labelledby="applyTitle" hidden>
+  <div class="modal-backdrop" onclick="closeApply()"></div>
+  <div class="modal-card">
+    <button type="button" class="modal-close" aria-label="Close" onclick="closeApply()">&times;</button>
+    <div id="applyFormWrap">
+      <span class="eyebrow">Apply</span>
+      <h2 id="applyTitle">Apply to TMG.</h2>
+      <p class="modal-sub" id="applyFor"></p>
+      <form id="applyForm" novalidate>
+        <input type="hidden" name="jobTitle" id="ap-job">
+        <div class="mf-section" style="margin-top:6px;">Your name</div>
+        <div class="mf-row">
+          <div class="mf" data-f="firstName"><label for="ap-first">First name</label><input id="ap-first" name="firstName" type="text" autocomplete="given-name"><span class="mf-err">Please enter your first name.</span></div>
+          <div class="mf"><label for="ap-pref">Preferred first name <span class="opt">(optional)</span></label><input id="ap-pref" name="preferredName" type="text"></div>
+        </div>
+        <div class="mf" data-f="lastName"><label for="ap-last">Last name</label><input id="ap-last" name="lastName" type="text" autocomplete="family-name"><span class="mf-err">Please enter your last name.</span></div>
+
+        <div class="mf-section">Address</div>
+        <div class="mf" data-f="address1"><label for="ap-a1">Address</label><input id="ap-a1" name="address1" type="text" autocomplete="address-line1"><span class="mf-err">Please enter your address.</span></div>
+        <div class="mf"><label for="ap-a2">Address 2 <span class="opt">(optional)</span></label><input id="ap-a2" name="address2" type="text" autocomplete="address-line2"></div>
+        <div class="mf-row">
+          <div class="mf" data-f="city"><label for="ap-city">City</label><input id="ap-city" name="city" type="text" autocomplete="address-level2"><span class="mf-err">Please enter your city.</span></div>
+          <div class="mf" data-f="state"><label for="ap-state">State</label><select id="ap-state" name="state" autocomplete="address-level1"><option value="">Select&hellip;</option><option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option><option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option><option>District of Columbia</option><option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option><option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option><option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option><option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option><option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option><option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option><option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option><option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option><option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option><option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option></select><span class="mf-err">Please choose a state.</span></div>
+        </div>
+        <div class="mf" data-f="zip"><label for="ap-zip">ZIP code</label><input id="ap-zip" name="zip" type="text" inputmode="numeric" autocomplete="postal-code"><span class="mf-err">Please enter your ZIP code.</span></div>
+
+        <div class="mf-section">Contact information</div>
+        <div class="mf-row">
+          <div class="mf" data-f="phone"><label for="ap-phone">Phone <span class="opt">(optional if you give a cell)</span></label><input id="ap-phone" name="phone" type="tel" autocomplete="tel"><span class="mf-err">Please give a phone or cell number.</span></div>
+          <div class="mf" data-f="cellPhone"><label for="ap-cell">Cell phone</label><input id="ap-cell" name="cellPhone" type="tel" autocomplete="tel"><span class="mf-err">Please give a phone or cell number.</span></div>
+        </div>
+        <div class="mf" data-f="email"><label for="ap-email">Email</label><input id="ap-email" name="email" type="email" autocomplete="email"><span class="mf-err">Enter a valid email.</span></div>
+
+        <div class="mf-section">Additional information</div>
+        <div class="mf" data-f="over18"><span class="mf-label">Are you 18 years of age or older?</span><div class="mf-radio"><label><input type="radio" name="over18" value="yes"> Yes</label><label><input type="radio" name="over18" value="no"> No</label></div><span class="mf-err">Please answer this question.</span></div>
+        <div class="mf" data-f="authorized"><span class="mf-label">Are you legally authorized to work in the United States?</span><div class="mf-radio"><label><input type="radio" name="authorized" value="yes"> Yes</label><label><input type="radio" name="authorized" value="no"> No</label></div><span class="mf-err">Please answer this question.</span></div>
+        <div class="mf" data-f="sponsorship"><span class="mf-label">Will you now or in the future require immigration sponsorship?</span><div class="mf-radio"><label><input type="radio" name="sponsorship" value="yes"> Yes</label><label><input type="radio" name="sponsorship" value="no"> No</label></div><span class="mf-err">Please answer this question.</span></div>
+        <div class="mf"><label for="ap-comp">Desired compensation <span class="opt">(optional)</span></label><input id="ap-comp" name="desiredCompensation" type="text"></div>
+        <div class="mf"><label for="ap-ref">Were you referred by a TMG employee? If so, who? <span class="opt">(optional)</span></label><input id="ap-ref" name="referredBy" type="text"></div>
+        <div class="mf" data-f="workedBefore"><span class="mf-label">Have you ever worked for us before?</span><div class="mf-radio"><label><input type="radio" name="workedBefore" value="yes"> Yes</label><label><input type="radio" name="workedBefore" value="no"> No</label></div><span class="mf-err">Please answer this question.</span></div>
+        <div class="mf" data-f="restrictiveCovenant"><span class="mf-label">Are you subject to a restrictive covenant (non-compete, non-solicit, etc.) from your current or a previous employer?</span><div class="mf-radio"><label><input type="radio" name="restrictiveCovenant" value="yes"> Yes</label><label><input type="radio" name="restrictiveCovenant" value="no"> No</label></div><span class="mf-err">Please answer this question.</span></div>
+        <div class="mf"><label for="ap-cov">If yes, please explain <span class="opt">(optional)</span></label><textarea id="ap-cov" name="covenantDetails" maxlength="500"></textarea></div>
+
+        <div class="mf-section">Your documents</div>
+        <p class="mf-hint" style="margin:-4px 0 14px;">PDF or Word, up to 10 MB each.</p>
+        <div class="mf" data-f="resume"><label for="ap-resume">Resume</label><input id="ap-resume" name="resume" type="file" accept=".pdf,.doc,.docx"><span class="mf-err">Please upload your resume.</span></div>
+        <div class="mf"><label for="ap-cover">Cover letter <span class="opt">(optional)</span></label><input id="ap-cover" name="coverLetter" type="file" accept=".pdf,.doc,.docx"></div>
+
+        <div class="mf mf-terms" data-f="backgroundCheck">
+          <label><input type="checkbox" id="ap-bg" name="backgroundCheck"> <span>I agree to a background check if I am hired.</span></label>
+          <span class="mf-err">You must agree to a background check to apply.</span>
+        </div>
+        <p class="mf-hint" style="margin:10px 0 18px;">By applying you agree to our <a href="privacy-policy.html" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+
+        <div style="position:absolute;left:-9999px;" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+        <p id="ap-error" class="mf-err" role="alert" style="margin:0 0 10px;"></p>
+        <button type="submit" id="ap-btn" class="btn btn-primary" style="width:100%;">Submit application</button>
+      </form>
+    </div>
+    <div id="applyThanks" class="modal-thanks" hidden>
+      <h2>Application received.</h2>
+      <p>Thank you for applying to TMG. We will review your application and be in touch if there is a fit.</p>
+      <button type="button" class="btn btn-primary" onclick="closeApply()">Close</button>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="wrap">
+    <div class="grid4" style="margin-bottom:16px;">
+      <div><img src="index-1-ce390515eb.png" alt="Triple Maintenance Group" style="height:48px; width:auto; background:var(--paper); padding:8px 12px;"></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">COMPANY</p><p style="font-weight:400; margin-bottom:10px;"><a href="about.html">About TMG</a></p><p style="font-weight:400; margin-bottom:10px;"><a href="careers.html">Careers</a></p><p style="font-weight:400;"><a href="contact.html">Contact</a></p></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">WORK WITH US</p><p style="font-weight:400; margin-bottom:10px;"><a href="customers.html">For customers</a></p><p style="font-weight:400;"><a href="providers.html">For providers</a></p></div>
+      <div><p style="letter-spacing:0.04em; margin-bottom:16px;">CONTACT</p><p style="font-weight:400;">513-346-0894</p></div>
+    </div>
+    <div class="footer-bottom">
+      <span>&copy; 2026 Triple Maintenance Group. All rights reserved.</span>
+      <div style="display:flex; gap:20px;"><a href="privacy-policy.html">Privacy Policy</a><a href="provider-terms.html">Provider Terms &amp; Conditions</a></div>
+      <span>Together we rise.</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+function toggleNav(btn){
+  var nav = document.getElementById('siteNav');
+  var open = nav.classList.toggle('nav-open');
+  btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+</script>
+<script src="tmg-forms.js"></script>
+<script>
+/* ===== OPEN POSITIONS =====
+   To post a job, add an entry to this list. To remove one, delete its entry.
+   Fields: title, location, type, summary, duties (list), requirements (list).
+   Leave the list empty ( [] ) when there are no openings. */
+var TMG_JOBS = [
+  {
+    title: 'Account Executive',
+    location: 'Cincinnati, OH',
+    type: 'Full-time',
+    summary: 'Own the relationship with our commercial and multi-site customers, from the first conversation through service delivery. You will win new accounts, learn how each customer operates, and make sure TMG delivers what we promise.',
+    duties: [
+      'Find, qualify, and win new multi-site facility-maintenance customers',
+      'Run the full sales cycle: discovery calls, proposals, pricing, and contracts',
+      'Learn each customer\u2019s locations, priorities, and service needs, and match them to our provider network',
+      'Be the main point of contact for your accounts and resolve issues quickly',
+      'Check in regularly with customers on satisfaction and gather feedback',
+      'Keep accurate records of your pipeline and report on progress toward goals',
+      'Work with our operations team to deliver on commitments'
+    ],
+    requirements: [
+      'Experience in sales, account management, or operations (facility maintenance experience is a plus, not required)',
+      'Strong written and spoken communication and the confidence to talk with decision-makers',
+      'Comfort with CRM software and Microsoft Office',
+      'Organized, self-directed, and able to handle many accounts at once',
+      'Valid driver\u2019s license and willingness to travel to customer sites when needed',
+      'Availability for occasional after-hours or weekend customer needs'
+    ]
+  },
+  {
+    title: 'Software Engineer',
+    location: 'Cincinnati, OH',
+    type: 'Full-time',
+    summary: 'Help build the technology platform at the center of TMG\u2019s operations: software that brings customers and service providers together in one place and keeps growing as the business does. You will work directly with the founder and shape how the platform is built.',
+    duties: [
+      'Design, build, and maintain web and mobile-friendly applications and the APIs behind them',
+      'Turn real operations problems into simple, usable software',
+      'Work with a cloud-hosted stack and SQL databases, keeping the system secure, reliable, and fast',
+      'Add new capabilities over time as the business expands',
+      'Write clear, tested code and document how things work',
+      'Help decide what to build next and what to leave out'
+    ],
+    requirements: [
+      'Professional experience building and shipping web applications and backend services',
+      'Strong skills in TypeScript or JavaScript and Node.js, and in SQL',
+      'Experience with a major cloud platform (Microsoft Azure is a plus)',
+      'Sound judgment about security, especially with personal and financial information',
+      'Ability to work independently and communicate clearly with non-technical teammates',
+      'A degree in a related field or equivalent experience'
+    ]
+  }
+];
+
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+(function renderJobs(){
+  var box = document.getElementById('jobList');
+  if(!TMG_JOBS.length){
+    document.getElementById('jobsLead').textContent = 'We have no posted openings right now. Send a general application below and we will keep it on file.';
+    return;
+  }
+  box.innerHTML = TMG_JOBS.map(function(j, i){
+    var h = '<div class="job"><h3>' + esc(j.title) + '</h3><div class="meta">' + esc(j.location) + ' &nbsp;|&nbsp; ' + esc(j.type) + '</div>';
+    if(j.summary) h += '<p>' + esc(j.summary) + '</p>';
+    if(j.duties && j.duties.length) h += '<h4>What you will do</h4><ul>' + j.duties.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>';
+    if(j.requirements && j.requirements.length) h += '<h4>What we are looking for</h4><ul>' + j.requirements.map(function(d){ return '<li>' + esc(d) + '</li>'; }).join('') + '</ul>';
+    h += '<a href="#apply" class="btn btn-primary" data-job="' + i + '">Apply for this role</a></div>';
+    return h;
+  }).join('');
+  Array.prototype.slice.call(box.querySelectorAll('a[data-job]')).forEach(function(a){
+    a.addEventListener('click', function(e){ e.preventDefault(); openApply(TMG_JOBS[parseInt(a.getAttribute('data-job'),10)].title); });
+  });
+})();
+
+var applyModal = document.getElementById('applyModal');
+function openApply(job){
+  document.getElementById('ap-job').value = job;
+  document.getElementById('applyFor').textContent = 'Applying for: ' + job;
+  applyModal.hidden = false; document.body.style.overflow = 'hidden';
+  document.getElementById('applyFormWrap').hidden = false;
+  document.getElementById('applyThanks').hidden = true;
+  setTimeout(function(){ document.getElementById('ap-first').focus(); }, 30);
+}
+function closeApply(){ applyModal.hidden = true; document.body.style.overflow = ''; }
+document.addEventListener('keydown', function(e){ if(e.key === 'Escape' && !applyModal.hidden) closeApply(); });
+if(location.hash === '#apply'){ openApply('General application'); }
+
+document.getElementById('applyForm').addEventListener('change', function(e){
+  var box = e.target.closest ? e.target.closest('.mf') : null;
+  if(box) box.classList.remove('has-error');
+});
+document.getElementById('applyForm').addEventListener('submit', function(e){
+  e.preventDefault();
+  var f = e.target, v = function(n){ return f[n].value.trim(); };
+  var radio = function(n){ var r = f.querySelector('input[name="'+n+'"]:checked'); return r ? r.value : ''; };
+  var phoneOk = function(s){ return /^[\d\s\-().+]{7,20}$/.test(s); };
+  var checks = {
+    firstName: v('firstName') !== '',
+    lastName: v('lastName') !== '',
+    address1: v('address1') !== '',
+    city: v('city') !== '',
+    state: f.state.value !== '',
+    zip: v('zip') !== '',
+    phone: phoneOk(v('phone')) || phoneOk(v('cellPhone')),
+    cellPhone: phoneOk(v('phone')) || phoneOk(v('cellPhone')),
+    email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v('email')),
+    over18: radio('over18') !== '',
+    authorized: radio('authorized') !== '',
+    sponsorship: radio('sponsorship') !== '',
+    workedBefore: radio('workedBefore') !== '',
+    restrictiveCovenant: radio('restrictiveCovenant') !== '',
+    resume: f.resume.files && f.resume.files.length > 0,
+    backgroundCheck: f.backgroundCheck.checked
+  };
+  var ok = true, first = null;
+  Object.keys(checks).forEach(function(k){
+    var box = f.querySelector('[data-f="'+k+'"]');
+    if(!box) return;
+    box.classList.toggle('has-error', !checks[k]);
+    if(!checks[k]){ ok = false; if(!first) first = box; }
+  });
+  if(!ok){ first.scrollIntoView({block:'center'}); return; }
+
+  var fd = new FormData();
+  ['jobTitle','firstName','preferredName','lastName','address1','address2','city','state','zip','phone','cellPhone','email','desiredCompensation','referredBy','covenantDetails','website'].forEach(function(n){ fd.append(n, f[n].value); });
+  ['over18','authorized','sponsorship','workedBefore','restrictiveCovenant'].forEach(function(n){ fd.append(n, radio(n)); });
+  fd.append('backgroundCheck', 'true');
+  fd.append('resume', f.resume.files[0]);
+  if(f.coverLetter.files && f.coverLetter.files[0]) fd.append('coverLetter', f.coverLetter.files[0]);
+
+  var btn = document.getElementById('ap-btn'), err = document.getElementById('ap-error');
+  btn.disabled = true; btn.textContent = 'Submitting\u2026'; err.style.display = 'none';
+  TMGForms.sendForm('/careers/apply', fd).then(function(r){
+    btn.disabled = false; btn.textContent = 'Submit application';
+    if(r.ok){
+      document.getElementById('applyFormWrap').hidden = true;
+      document.getElementById('applyThanks').hidden = false;
+      f.reset();
+    } else { err.textContent = r.message; err.style.display = 'block'; }
+  });
+});
+</script>
+</body>
+</html>
