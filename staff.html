@@ -30,6 +30,26 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
 .hello { max-width:980px; margin:36px auto 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
 .hello h1 { font-size:28px; margin:0; }
 .hello .role { margin:0; }
+
+.bar span.off { opacity:.4; cursor:default; }
+.bar span[data-tab] { cursor:pointer; }
+table.t { width:100%; border-collapse:collapse; margin:14px 0 4px; font-size:15px; }
+table.t th { text-align:left; font-family:'Oswald',sans-serif; letter-spacing:0.05em; text-transform:uppercase; font-size:12px; color:var(--steel); border-bottom:2px solid var(--ink); padding:8px 10px; }
+table.t td { border-bottom:1px solid var(--border); padding:10px; vertical-align:top; }
+table.t tr.row { cursor:pointer; }
+table.t tr.row:hover td { background: var(--concrete); }
+.pill { display:inline-block; font-size:12px; font-weight:600; padding:2px 8px; background:var(--concrete); border:1px solid var(--border); }
+.pill.off { color: var(--red); border-color: var(--red); }
+form.f { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:12px; margin-top:18px; align-items:end; }
+form.f label { display:block; font-size:12px; font-weight:600; color:var(--steel); margin-bottom:4px; text-transform:uppercase; letter-spacing:0.04em; }
+form.f input { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
+form.f button { padding:11px 16px; background:var(--red); color:var(--paper); border:0; font-family:'Oswald',sans-serif; letter-spacing:0.06em; text-transform:uppercase; font-weight:600; cursor:pointer; }
+.msg { max-width:980px; margin:16px auto 0; padding:10px 14px; font-weight:600; }
+.msg.ok { background:#e8f3ea; color:#1e5a2b; border:1px solid #b8d9bf; }
+.msg.bad { background:#fbeaea; color:var(--red); border:1px solid #e5b8b8; }
+.back { background:none; border:0; color:var(--steel); text-decoration:underline; cursor:pointer; font-size:14px; padding:0; margin:28px auto 0; display:block; max-width:980px; width:100%; text-align:left; }
+.small { font-size:13px; color:var(--steel); margin-top:6px; }
+.btn-sm { padding:5px 10px; font-size:12px; background:none; border:1px solid var(--steel); color:var(--ink); cursor:pointer; }
 [hidden] { display:none !important; }
 </style>
 </head>
@@ -38,7 +58,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
   <img src="index-1-ce390515eb.png" alt="Triple Maintenance Group">
   <button class="linkbtn" id="signOut" hidden>Sign out</button>
 </div></div>
-<div class="bar" id="bar" hidden><div class="wrap"><span class="on">Tickets</span><span>Customers</span><span>Providers</span><span>Reports</span></div></div>
+<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers</span><span class="off" title="Coming soon">Providers</span><span class="off" title="Coming soon">Reports</span></div></div>
 
 <div class="wrap">
   <div class="card" id="signedOut" hidden>
@@ -53,9 +73,61 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
 
   <div id="home" hidden>
     <div class="hello"><span class="role" id="role"></span><h1 id="welcome"></h1></div>
-    <div class="panel"><h2>Waiting assignment</h2><p>No tickets yet. New tickets will appear here.</p></div>
-    <div class="panel"><h2>My tickets</h2><p>No tickets assigned to you yet.</p></div>
-    <div class="panel"><h2>All active tickets</h2><p>No active tickets yet.</p></div>
+    <div id="msg" class="msg" hidden></div>
+
+    <div id="viewTickets">
+      <div class="panel"><h2>Waiting assignment</h2><p>No tickets yet. New tickets will appear here.</p></div>
+      <div class="panel"><h2>My tickets</h2><p>No tickets assigned to you yet.</p></div>
+      <div class="panel"><h2>All active tickets</h2><p>No active tickets yet.</p></div>
+    </div>
+
+    <div id="viewCustomers" hidden>
+      <div class="panel">
+        <h2>Customers</h2>
+        <table class="t" id="custTable"><thead><tr><th>Customer</th><th>Worksites</th><th>Approved logins</th></tr></thead><tbody></tbody></table>
+        <p class="small" id="custEmpty" hidden>No customers yet. Add the first one below.</p>
+        <form class="f" id="custForm">
+          <div><label for="custName">New customer name</label><input id="custName" maxlength="200" required></div>
+          <div><button type="submit">Add customer</button></div>
+        </form>
+      </div>
+    </div>
+
+    <div id="viewCustomer" hidden>
+      <button class="back" id="backToCustomers">&larr; All customers</button>
+      <div class="panel">
+        <h2 id="cName"></h2>
+        <p class="small">Customers see only the worksites listed here, and only after they sign in with an approved email.</p>
+      </div>
+      <div class="panel">
+        <h2>Worksites</h2>
+        <table class="t" id="siteTable"><thead><tr><th>Site #</th><th>Name</th><th>Address</th><th>On-site contact</th></tr></thead><tbody></tbody></table>
+        <p class="small" id="siteEmpty" hidden>No worksites yet.</p>
+        <form class="f" id="siteForm">
+          <div><label for="sNum">Site number</label><input id="sNum" maxlength="50" required></div>
+          <div><label for="sName">Site name</label><input id="sName" maxlength="200" required></div>
+          <div><label for="sA1">Street address</label><input id="sA1" maxlength="200" required></div>
+          <div><label for="sA2">Suite / unit (optional)</label><input id="sA2" maxlength="200"></div>
+          <div><label for="sCity">City</label><input id="sCity" maxlength="100" required></div>
+          <div><label for="sState">State (2 letters)</label><input id="sState" maxlength="2" required></div>
+          <div><label for="sZip">ZIP</label><input id="sZip" maxlength="10" required></div>
+          <div><label for="sCN">On-site contact (optional)</label><input id="sCN" maxlength="150"></div>
+          <div><label for="sCP">On-site phone (optional)</label><input id="sCP" maxlength="30"></div>
+          <div><button type="submit">Add worksite</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h2>Approved logins</h2>
+        <p class="small">Only these email addresses can sign in for this customer. TMG never sees their password.</p>
+        <table class="t" id="loginTable"><thead><tr><th>Email</th><th>Contact</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="small" id="loginEmpty" hidden>No approved logins yet.</p>
+        <form class="f" id="loginForm">
+          <div><label for="lEmail">Email address</label><input id="lEmail" type="email" maxlength="200" required></div>
+          <div><label for="lName">Contact name</label><input id="lName" maxlength="150" required></div>
+          <div><button type="submit">Approve login</button></div>
+        </form>
+      </div>
+    </div>
   </div>
 
   <div class="card" id="problem" hidden>
@@ -72,18 +144,15 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
   var CLIENT_ID = '6bff2827-795d-45b0-b636-da79ae9dca2e';
   var API = 'https://tmg-api-04b7d1.azurewebsites.net/api';
   var SCOPES = ['openid', 'profile', 'email'];
+  var account = null;
+  var $ = function (id) { return document.getElementById(id); };
 
   function show(id) {
-    ['signedOut', 'loading', 'home', 'problem'].forEach(function (x) {
-      document.getElementById(x).hidden = (x !== id);
-    });
-    document.getElementById('signOut').hidden = (id !== 'home');
-    document.getElementById('bar').hidden = (id !== 'home');
+    ['signedOut', 'loading', 'home', 'problem'].forEach(function (x) { $(x).hidden = (x !== id); });
+    $('signOut').hidden = (id !== 'home');
+    $('bar').hidden = (id !== 'home');
   }
-  function problem(msg) {
-    document.getElementById('problemText').textContent = msg;
-    show('problem');
-  }
+  function problem(msg) { $('problemText').textContent = msg; show('problem'); }
 
   var app = new msal.PublicClientApplication({
     auth: {
@@ -95,36 +164,174 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
   });
 
   function signIn() { app.loginRedirect({ scopes: SCOPES }); }
-  document.getElementById('signIn').onclick = signIn;
-  document.getElementById('tryAgain').onclick = signIn;
-  document.getElementById('signOut').onclick = function () {
+  $('signIn').onclick = signIn;
+  $('tryAgain').onclick = signIn;
+  $('signOut').onclick = function () {
     app.logoutRedirect({ postLogoutRedirectUri: window.location.origin + window.location.pathname });
   };
 
-  async function enter(account) {
-    show('loading');
-    var token;
-    try {
-      var r = await app.acquireTokenSilent({ scopes: SCOPES, account: account });
-      token = r.idToken;
-    } catch (e) {
-      return app.loginRedirect({ scopes: SCOPES });
-    }
-    try {
-      var resp = await fetch(API + '/staff/me', { headers: { Authorization: 'Bearer ' + token } });
+  async function token(force) {
+    var r = await app.acquireTokenSilent({ scopes: SCOPES, account: account, forceRefresh: !!force });
+    return r.idToken;
+  }
+
+  // Calls the TMG backend. Retries once with a fresh token if the first one was rejected.
+  async function api(path, method, body) {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      var t = await token(attempt === 1);
+      var resp = await fetch(API + path, {
+        method: method || 'GET',
+        headers: Object.assign({ Authorization: 'Bearer ' + t }, body ? { 'Content-Type': 'application/json' } : {}),
+        body: body ? JSON.stringify(body) : undefined
+      });
+      if (resp.status === 401 && attempt === 0) continue;
       var data = await resp.json().catch(function () { return {}; });
-      if (!resp.ok) { return problem(data.error || 'Please try again.'); }
-      document.getElementById('welcome').textContent = 'Welcome, ' + data.name;
-      document.getElementById('role').textContent = data.role;
+      if (!resp.ok) { var e = new Error(data.error || 'Please try again.'); e.status = resp.status; throw e; }
+      return data;
+    }
+  }
+
+  function flash(text, ok) {
+    var m = $('msg');
+    m.textContent = text;
+    m.className = 'msg ' + (ok ? 'ok' : 'bad');
+    m.hidden = false;
+    clearTimeout(flash.t);
+    flash.t = setTimeout(function () { m.hidden = true; }, ok ? 4000 : 9000);
+  }
+
+  function td(text) { var c = document.createElement('td'); c.textContent = text == null ? '' : text; return c; }
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+
+  // ---- tabs ----
+  function view(name) {
+    ['viewTickets', 'viewCustomers', 'viewCustomer'].forEach(function (v) { $(v).hidden = true; });
+    $(name).hidden = false;
+    var tab = (name === 'viewTickets') ? 'tickets' : 'customers';
+    document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
+      s.className = (s.getAttribute('data-tab') === tab) ? 'on' : '';
+    });
+  }
+  document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
+    s.onclick = function () {
+      if (s.getAttribute('data-tab') === 'customers') { loadCustomers(); } else { view('viewTickets'); }
+    };
+  });
+
+  // ---- customers ----
+  async function loadCustomers() {
+    view('viewCustomers');
+    try {
+      var d = await api('/staff/customers');
+      var body = $('custTable').tBodies[0];
+      clear(body);
+      $('custEmpty').hidden = d.customers.length > 0;
+      d.customers.forEach(function (c) {
+        var tr = document.createElement('tr');
+        tr.className = 'row';
+        tr.appendChild(td(c.name)); tr.appendChild(td(c.sites)); tr.appendChild(td(c.logins));
+        tr.onclick = function () { openCustomer(c.id); };
+        body.appendChild(tr);
+      });
+    } catch (e) { flash(e.message, false); }
+  }
+
+  $('custForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    try {
+      var d = await api('/staff/customers', 'POST', { name: $('custName').value });
+      $('custName').value = '';
+      flash('Customer added.', true);
+      openCustomer(d.id);
+    } catch (e) { flash(e.message, false); }
+  };
+
+  var currentCustomer = null;
+  async function openCustomer(id) {
+    currentCustomer = id;
+    try {
+      var d = await api('/staff/customers/' + id);
+      view('viewCustomer');
+      $('cName').textContent = d.customer.name;
+
+      var sb = $('siteTable').tBodies[0]; clear(sb);
+      $('siteEmpty').hidden = d.worksites.length > 0;
+      d.worksites.forEach(function (w) {
+        var tr = document.createElement('tr');
+        var addr = w.address1 + (w.address2 ? ', ' + w.address2 : '') + ', ' + w.city + ', ' + w.state + ' ' + w.zip;
+        var contact = [w.on_site_contact_name, w.on_site_contact_phone].filter(Boolean).join(' - ');
+        tr.appendChild(td(w.site_number)); tr.appendChild(td(w.name)); tr.appendChild(td(addr)); tr.appendChild(td(contact));
+        sb.appendChild(tr);
+      });
+
+      var lb = $('loginTable').tBodies[0]; clear(lb);
+      $('loginEmpty').hidden = d.logins.length > 0;
+      d.logins.forEach(function (l) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td(l.email)); tr.appendChild(td(l.display_name));
+        var st = document.createElement('td');
+        var pill = document.createElement('span');
+        pill.className = 'pill' + (l.active ? '' : ' off');
+        pill.textContent = l.active ? (l.has_signed_in ? 'Active' : 'Approved, not signed in yet') : 'Turned off';
+        st.appendChild(pill); tr.appendChild(st);
+        var act = document.createElement('td');
+        var b = document.createElement('button');
+        b.className = 'btn-sm'; b.textContent = l.active ? 'Turn off' : 'Turn on';
+        b.onclick = async function () {
+          try { await api('/staff/logins/' + l.id + '/active', 'POST', { active: !l.active }); openCustomer(id); }
+          catch (e) { flash(e.message, false); }
+        };
+        act.appendChild(b); tr.appendChild(act);
+        lb.appendChild(tr);
+      });
+    } catch (e) { flash(e.message, false); }
+  }
+  $('backToCustomers').onclick = loadCustomers;
+
+  $('siteForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    try {
+      await api('/staff/customers/' + currentCustomer + '/worksites', 'POST', {
+        siteNumber: $('sNum').value, name: $('sName').value, address1: $('sA1').value, address2: $('sA2').value,
+        city: $('sCity').value, state: $('sState').value, zip: $('sZip').value,
+        onSiteContactName: $('sCN').value, onSiteContactPhone: $('sCP').value
+      });
+      $('siteForm').reset();
+      flash('Worksite added.', true);
+      openCustomer(currentCustomer);
+    } catch (e) { flash(e.message, false); }
+  };
+
+  $('loginForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    try {
+      await api('/staff/customers/' + currentCustomer + '/logins', 'POST', { email: $('lEmail').value, displayName: $('lName').value });
+      $('loginForm').reset();
+      flash('Login approved. Tell them to open the TMG sign-in page and create their password with this email.', true);
+      openCustomer(currentCustomer);
+    } catch (e) { flash(e.message, false); }
+  };
+
+  // ---- start ----
+  async function enter(acct) {
+    account = acct;
+    show('loading');
+    try {
+      var me = await api('/staff/me');
+      $('welcome').textContent = 'Welcome, ' + me.name;
+      $('role').textContent = me.role;
+      view('viewTickets');
       show('home');
     } catch (e) {
-      problem('Could not reach the server. Please try again.');
+      if (e.status) { problem(e.message); }
+      else if (e.errorCode) { app.loginRedirect({ scopes: SCOPES }); }
+      else { problem('Could not reach the server. Please try again.'); }
     }
   }
 
   app.handleRedirectPromise().then(function (result) {
-    var account = (result && result.account) || app.getAllAccounts()[0];
-    if (account) { enter(account); } else { show('signedOut'); }
+    var acct = (result && result.account) || app.getAllAccounts()[0];
+    if (acct) { enter(acct); } else { show('signedOut'); }
   }).catch(function () {
     problem('Sign-in was interrupted. Please try again.');
   });
