@@ -19,6 +19,17 @@ body { background: var(--concrete); }
 .err { color: var(--red); font-weight:600; }
 button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-color:var(--red); }
 .linkbtn { background:none; border:0; color:var(--steel); text-decoration:underline; cursor:pointer; font-size:14px; }
+
+.bar { background: var(--ink); }
+.bar .wrap { display:flex; gap:4px; padding-top:0; padding-bottom:0; flex-wrap:wrap; }
+.bar span { font-family:'Oswald',sans-serif; letter-spacing:0.06em; text-transform:uppercase; font-size:13px; font-weight:600; color:var(--paper); padding:14px 18px; opacity:.85; }
+.bar span.on { background:var(--red); opacity:1; }
+.panel { background: var(--paper); border:1px solid var(--border); margin:28px auto; padding:28px 32px; max-width:980px; }
+.panel h2 { font-size:22px; margin-bottom:6px; }
+.panel p { color: var(--steel); margin:0; }
+.hello { max-width:980px; margin:36px auto 0; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.hello h1 { font-size:28px; margin:0; }
+.hello .role { margin:0; }
 [hidden] { display:none !important; }
 </style>
 </head>
@@ -27,6 +38,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
   <img src="index-1-ce390515eb.png" alt="Triple Maintenance Group">
   <button class="linkbtn" id="signOut" hidden>Sign out</button>
 </div></div>
+<div class="bar" id="bar" hidden><div class="wrap"><span class="on">Tickets</span><span>Customers</span><span>Providers</span><span>Reports</span></div></div>
 
 <div class="wrap">
   <div class="card" id="signedOut" hidden>
@@ -39,10 +51,11 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     <p>Signing you in&hellip;</p>
   </div>
 
-  <div class="card" id="home" hidden>
-    <span class="role" id="role"></span>
-    <h1 id="welcome"></h1>
-    <p>Your sign-in works. The employee portal is being built and will appear here.</p>
+  <div id="home" hidden>
+    <div class="hello"><span class="role" id="role"></span><h1 id="welcome"></h1></div>
+    <div class="panel"><h2>Waiting assignment</h2><p>No tickets yet. New tickets will appear here.</p></div>
+    <div class="panel"><h2>My tickets</h2><p>No tickets assigned to you yet.</p></div>
+    <div class="panel"><h2>All active tickets</h2><p>No active tickets yet.</p></div>
   </div>
 
   <div class="card" id="problem" hidden>
@@ -65,6 +78,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       document.getElementById(x).hidden = (x !== id);
     });
     document.getElementById('signOut').hidden = (id !== 'home');
+    document.getElementById('bar').hidden = (id !== 'home');
   }
   function problem(msg) {
     document.getElementById('problemText').textContent = msg;
