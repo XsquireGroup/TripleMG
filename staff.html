@@ -102,7 +102,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         <h2>New ticket</h2><div class="steps" id="wizSteps"></div>
         <div id="w1"><label for="wCust">1. Customer</label><select id="wCust"></select></div>
         <div id="w2" hidden><label for="wSite">2. Worksite</label><select id="wSite"></select></div>
-        <div id="w3" hidden><label for="wTrade">3. Trade</label><select id="wTrade"><option value="">Choose...</option><option>HVAC</option><option>Plumbing</option><option>Electrical</option><option>Roofing</option><option>Flooring</option><option>Painting</option><option>Carpentry</option><option>Locksmith / Doors</option><option>Landscaping / Snow</option><option>Janitorial</option><option>General maintenance</option><option>Other</option></select></div>
+        <div id="w3" hidden><label for="wTrade">3. Trade</label><select id="wTrade"><option value="">Choose...</option><option>Building maintenance (general)</option><option>Plumbing</option><option>Electrical</option><option>HVAC</option><option>Grounds &amp; landscaping</option><option>Janitorial</option><option>Painting &amp; finishes</option><option>Roofing</option><option>Other</option></select></div>
         <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><p class="small">Photos and the paste-an-email helper come in a later step.</p></div>
         <div id="w5" hidden><label for="wPri">5. Priority</label><select id="wPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
         <div id="w6" hidden><label for="wCN">6. Customer NTE ($)</label><input id="wCN" type="number" min="1" step="0.01"><label for="wPN">Initial provider NTE ($)</label><input id="wPN" type="number" min="1" step="0.01"><p class="small" id="wMargin"></p></div>
@@ -115,6 +115,11 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       <button class="back" id="backToTickets">&larr; All tickets</button>
       <div class="panel"><h2 id="tkTitle"></h2><p class="small" id="tkMeta"></p><p id="tkDesc" style="margin-top:12px;color:var(--ink)"></p></div>
       <div class="panel"><h2>Money</h2><p id="tkMoney"></p></div>
+      <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p>
+        <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Jobs done</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
+        <form class="f" id="assignForm"><div><label for="asSel">Assign any approved provider</label><select id="asSel" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"></select></div><div><button type="submit">Assign</button></div></form>
+      </div>
       <div class="panel"><h2>History</h2><table class="t" id="tkHist"><thead><tr><th>When</th><th>Change</th><th>By</th></tr></thead><tbody></tbody></table></div>
     </div>
 
@@ -448,6 +453,22 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       $('tkTitle').textContent = t.job_number + ' - ' + t.title;
       $('tkMeta').textContent = [t.customer_name, t.site_number + ' ' + t.site_name, t.address1 + ', ' + t.city + ', ' + t.state + ' ' + t.zip, t.trade, 'Priority: ' + t.priority, 'Status: ' + t.status.replace(/_/g, ' '), 'Handled by: ' + (t.staff_name || 'unassigned'), t.provider_name ? 'Provider: ' + t.provider_name : ''].filter(Boolean).join(' | ');
       $('tkDesc').textContent = t.description;
+      currentTicket = id;
+      var open = (t.status === 'waiting_assignment' || t.status === 'needs_manual_match');
+      $('tkAssignNote').textContent = open ? '' : (t.provider_name ? 'Assigned to ' + t.provider_name + '.' : '');
+      $('assignForm').hidden = !open;
+      var ab = $('tkAcc').tBodies[0]; clear(ab);
+      $('tkAccE').hidden = !open || d.acceptances.length > 0;
+      $('tkAcc').hidden = !open;
+      d.acceptances.forEach(function (a) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td('Yes')); tr.appendChild(td(a.business_name + (a.preferred ? ' \u2605' : ''))); tr.appendChild(td(a.completed_jobs)); tr.appendChild(td(fmt(a.accepted_at)));
+        var c = document.createElement('td');
+        if (open) c.appendChild(btn('Assign', function () { doAssign(a.provider_id, a.business_name); }));
+        tr.appendChild(c); ab.appendChild(tr);
+      });
+      var sel2 = $('asSel'); clear(sel2); opt(sel2, '', 'Choose a provider...');
+      d.providers.forEach(function (p) { opt(sel2, p.id, p.business_name + (p.preferred ? ' \u2605' : '') + ' - ' + p.primary_trade + (p.covers_state ? '' : ' (not in this state)')); });
       $('tkMoney').textContent = t.customer_nte == null ? 'No pricing yet.' : 'Customer NTE $' + Number(t.customer_nte).toFixed(2) + ' | Provider NTE $' + Number(t.provider_nte).toFixed(2) + ' | Margin ' + t.margin_pct + '%';
       var hb = $('tkHist').tBodies[0]; clear(hb);
       d.history.forEach(function (h) {
@@ -458,6 +479,18 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       });
     } catch (e) { flash(e.message, false); }
   }
+
+  var currentTicket = null;
+  async function doAssign(pid, name) {
+    if (!window.confirm('Assign this job to ' + name + '? Their pay will be the provider NTE.')) return;
+    try { await api('/staff/tickets/' + currentTicket + '/assign', 'POST', { providerId: pid }); flash('Assigned to ' + name + '.', true); openTicket(currentTicket); }
+    catch (e) { flash(e.message, false); }
+  }
+  $('assignForm').onsubmit = function (ev) {
+    ev.preventDefault();
+    if (!$('asSel').value) return flash('Choose a provider.', false);
+    doAssign($('asSel').value, sel('asSel').replace(/ \u2605.*| - .*/, ''));
+  };
 
   // ---- guided new ticket ----
   var wz = { step: 1, lookups: null };
