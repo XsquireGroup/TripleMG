@@ -19,6 +19,18 @@ body { background: var(--concrete); }
 .err { color: var(--red); font-weight:600; }
 button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-color:var(--red); }
 .linkbtn { background:none; border:0; color:var(--steel); text-decoration:underline; cursor:pointer; font-size:14px; }
+.board { max-width:880px; margin:28px auto; }
+.board h2 { font-size:22px; margin:26px 0 10px; }
+.job { background:var(--paper); border:1px solid var(--border); padding:18px 22px; margin-bottom:12px; }
+.job h3 { font-size:18px; margin:0 0 4px; }
+.job .meta { font-size:13px; color:var(--steel); margin-bottom:8px; }
+.job .pay { font-weight:700; }
+.job button { cursor:pointer; padding:9px 16px; border:0; background:var(--red); color:var(--paper); font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; margin-top:10px; }
+.job button.sec { background:none; color:var(--ink); border:1px solid var(--steel); }
+.tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; background:var(--ink); color:#fff; text-transform:uppercase; margin-right:6px; }
+.tag.urgent { background:#c2410c; } .tag.emergency { background:#b91c1c; } .tag.ok { background:#15803d; }
+.msg { margin:16px 0 0; padding:10px 14px; font-weight:600; } .msg.ok { background:#e8f3ea; color:#1e5a2b; } .msg.bad { background:#fbeaea; color:var(--red); }
+.empty { color:var(--steel); font-size:14px; }
 [hidden] { display:none !important; }
 </style>
 </head>
@@ -45,6 +57,18 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     <p>Your sign-in works. Your portal is being built and will appear here.</p>
   </div>
 
+  <div class="board" id="board" hidden>
+    <span class="role" id="role2"></span>
+    <h1 id="welcome2" style="font-size:28px;margin:0"></h1>
+    <div id="msg" class="msg" hidden></div>
+    <h2>Open jobs</h2>
+    <p class="empty" id="offersEmpty" hidden>No open jobs right now. New jobs appear here as soon as they are posted.</p>
+    <div id="offers"></div>
+    <h2>My jobs</h2>
+    <p class="empty" id="mineEmpty" hidden>You have no assigned jobs yet.</p>
+    <div id="mine"></div>
+  </div>
+
   <div class="card" id="problem" hidden>
     <h1>We could not sign you in</h1>
     <p class="err" id="problemText"></p>
@@ -62,10 +86,10 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
   var SCOPES = ['openid', 'profile', 'email'];
 
   function show(id) {
-    ['signedOut', 'loading', 'home', 'problem'].forEach(function (x) {
+    ['signedOut', 'loading', 'home', 'board', 'problem'].forEach(function (x) {
       document.getElementById(x).hidden = (x !== id);
     });
-    document.getElementById('signOut').hidden = (id !== 'home');
+    document.getElementById('signOut').hidden = (id !== 'home' && id !== 'board');
   }
   function problem(msg) {
     document.getElementById('problemText').textContent = msg;
@@ -89,23 +113,81 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     app.logoutRedirect({ postLogoutRedirectUri: window.location.origin + window.location.pathname });
   };
 
-  async function enter(account) {
-    show('loading');
-    var token;
-    try {
-      var r = await app.acquireTokenSilent({ scopes: SCOPES, account: account });
-      token = r.idToken;
-    } catch (e) {
-      return app.loginRedirect({ scopes: SCOPES });
-    }
-    try {
-      var resp = await fetch(API + '/external/me', { headers: { Authorization: 'Bearer ' + token } });
+  var acct = null;
+  var $ = function (id) { return document.getElementById(id); };
+  async function token(force) {
+    var r = await app.acquireTokenSilent({ scopes: SCOPES, account: acct, forceRefresh: !!force });
+    return r.idToken;
+  }
+  async function api(path, method) {
+    for (var i = 0; i < 2; i++) {
+      var t = await token(i === 1);
+      var resp = await fetch(API + path, { method: method || 'GET', headers: { Authorization: 'Bearer ' + t } });
+      if (resp.status === 401 && i === 0) continue;
       var data = await resp.json().catch(function () { return {}; });
-      if (!resp.ok) { return problem(data.error || 'Please try again.'); }
-      document.getElementById('welcome').textContent = 'Welcome, ' + data.name;
-      document.getElementById('role').textContent = data.kind;
+      if (!resp.ok) { var e = new Error(data.error || 'Please try again.'); e.status = resp.status; throw e; }
+      return data;
+    }
+  }
+  function flash(text, ok) {
+    var m = $('msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'bad'); m.hidden = false;
+    clearTimeout(flash.t); flash.t = setTimeout(function () { m.hidden = true; }, ok ? 4000 : 9000);
+  }
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  function money(v) { return '$' + Number(v).toFixed(2); }
+
+  function jobCard(j, offer) {
+    var d = el('div', 'job');
+    var head = el('div'); 
+    if (j.priority !== 'normal') head.appendChild(el('span', 'tag ' + j.priority, j.priority));
+    if (!offer) head.appendChild(el('span', 'tag ok', j.status_label));
+    if (offer && j.accepted) head.appendChild(el('span', 'tag ok', 'You accepted'));
+    d.appendChild(head);
+    d.appendChild(el('h3', null, j.job_number + ' - ' + j.title));
+    var where = j.customer_name + ' - ' + j.site_name + ' - ' + j.address1 + (j.address2 ? ', ' + j.address2 : '') + ', ' + j.city + ', ' + j.state + ' ' + j.zip;
+    d.appendChild(el('div', 'meta', [j.trade, where].filter(Boolean).join(' | ')));
+    d.appendChild(el('div', null, j.description));
+    d.appendChild(el('div', 'pay', 'Your pay (not to exceed): ' + money(j.pay)));
+    if (!offer) {
+      if (j.on_site_contact_name || j.on_site_contact_phone) d.appendChild(el('div', 'meta', 'On-site contact: ' + [j.on_site_contact_name, j.on_site_contact_phone].filter(Boolean).join(' - ')));
+      if (j.employee_name) d.appendChild(el('div', 'meta', 'Your TMG contact: ' + j.employee_name + (j.employee_email ? ' - ' + j.employee_email : '')));
+    } else {
+      var b = el('button', j.accepted ? 'sec' : '', j.accepted ? 'Withdraw' : 'Accept job');
+      b.onclick = async function () {
+        try { await api('/provider/jobs/' + j.id + (j.accepted ? '/withdraw' : '/accept'), 'POST'); flash(j.accepted ? 'Withdrawn.' : 'Accepted. TMG will confirm if you are selected.', true); loadBoard(); }
+        catch (e) { flash(e.message, false); loadBoard(); }
+      };
+      d.appendChild(b);
+    }
+    return d;
+  }
+  async function loadBoard() {
+    try {
+      var d = await api('/provider/jobs');
+      var o = $('offers'), m = $('mine'); o.textContent = ''; m.textContent = '';
+      $('offersEmpty').hidden = d.offers.length > 0; $('mineEmpty').hidden = d.mine.length > 0;
+      d.offers.forEach(function (j) { o.appendChild(jobCard(j, true)); });
+      d.mine.forEach(function (j) { m.appendChild(jobCard(j, false)); });
+    } catch (e) { flash(e.message, false); }
+  }
+
+  async function enter(account) {
+    acct = account;
+    show('loading');
+    try {
+      var data = await api('/external/me');
+      if (data.kind === 'provider') {
+        $('welcome2').textContent = 'Welcome, ' + data.name;
+        $('role2').textContent = 'Provider';
+        show('board'); loadBoard();
+        return;
+      }
+      $('welcome').textContent = 'Welcome, ' + data.name;
+      $('role').textContent = data.kind;
       show('home');
     } catch (e) {
+      if (e.status) return problem(e.message);
+      if (e.errorCode) return app.loginRedirect({ scopes: SCOPES });
       problem('Could not reach the server. Please try again.');
     }
   }
