@@ -56,6 +56,11 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .nte.cust { background:#e8efff; border-left:6px solid #1d4ed8; color:#1e3a8a; }
 .nte.prov { background:#fff0e3; border-left:6px solid #c2410c; color:#7c2d12; }
 .nte.mar { background:var(--concrete); border-left:6px solid var(--steel); color:var(--ink); }
+.st.req { background:#c2410c; } .st.cust { background:#7c3aed; }
+.alert { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px 14px; margin:8px 0; background:#fff4e5; border:1px solid #f0c98a; border-left:6px solid #c2410c; }
+.alert.low { background:#fbeaea; border-color:#e5b8b8; border-left-color:#b91c1c; }
+.nq button { margin:4px 6px 0 0; }
+.calc { font-size:14px; margin-top:10px; line-height:1.6; } .calc .warn { color:#b91c1c; font-weight:700; }
 .st { display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; color:#fff; background:#666; text-transform:uppercase; letter-spacing:.03em; }
 .st.waiting_assignment,.st.new { background:#b8860b; } .st.needs_manual_match { background:#c2410c; }
 .st.assigned,.st.dispatched { background:#1d4ed8; } .st.in_progress { background:#15803d; }
@@ -96,6 +101,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     <div id="msg" class="msg" hidden></div>
 
     <div id="viewTickets">
+      <div class="panel" id="alertsPanel" hidden><h2>Alerts</h2><div id="alertsList"></div></div>
       <div class="panel"><button class="btn-sm" id="newTicket" style="font-size:14px;padding:9px 16px;background:var(--red);color:#fff;border:0">+ New ticket</button></div>
       <div class="panel"><h2>Waiting assignment</h2><table class="t" id="tkWaiting"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkWaitingE" hidden>Nothing waiting.</p></div>
       <div class="panel"><h2>My tickets</h2><table class="t" id="tkMine"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkMineE" hidden>No tickets assigned to you yet.</p></div>
@@ -125,6 +131,30 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Jobs done</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
         <form class="f" id="assignForm"><div><label for="asSel">Assign any approved provider</label><select id="asSel" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"></select></div><div><button type="submit">Assign</button></div></form>
+      </div>
+      <div class="panel" id="nteSection" hidden>
+        <h2>NTE increase</h2>
+        <div id="nteReq"></div>
+        <div id="nteNew" hidden>
+          <form class="f" id="nteForm">
+            <div><label for="nP">New provider NTE ($)</label><input id="nP" type="number" min="1" step="0.01" required></div>
+            <div><label for="nC">New customer total ($)</label><input id="nC" type="number" min="1" step="0.01" required></div>
+            <div><label for="nR">Reason</label><input id="nR" maxlength="500"></div>
+            <div><button type="submit">Start customer approval</button></div>
+          </form>
+          <div class="nq" id="nteQuick"></div>
+          <div class="calc" id="nteCalc"></div>
+        </div>
+        <div id="ntePend" hidden>
+          <p id="ntePendText" style="color:var(--ink);font-weight:600"></p>
+          <form class="f" id="nteDecideForm">
+            <div><label for="dM">How did the customer answer?</label><select id="dM" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"><option value="phone">Phone</option><option value="email">Email</option><option value="text">Text</option><option value="in_person">In person</option></select></div>
+            <div><label for="dN">Who at the customer</label><input id="dN" maxlength="300"></div>
+            <div><button type="button" id="dYes">Customer confirmed</button></div>
+            <div><button type="button" id="dNo" style="background:none;color:var(--ink);border:1px solid var(--steel)">Customer said no</button></div>
+          </form>
+        </div>
+        <table class="t" id="nteHist" hidden><thead><tr><th>Date</th><th>Customer</th><th>Provider</th><th>Margin</th><th>Result</th></tr></thead><tbody></tbody></table>
       </div>
       <div class="panel"><h2>History</h2><table class="t" id="tkHist"><thead><tr><th>When</th><th>Change</th><th>By</th></tr></thead><tbody></tbody></table></div>
     </div>
@@ -461,6 +491,8 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       tr.appendChild(td(t.customer_name + ' - ' + t.site_number + ' ' + t.site_name));
       tr.appendChild(td(t.title + (t.priority !== 'normal' ? ' [' + t.priority + ']' : '')));
       var c = document.createElement('td'); c.appendChild(pill(t.status));
+      if (t.increase_requested) { var q1 = document.createElement('span'); q1.className = 'st req'; q1.style.marginLeft = '6px'; q1.textContent = 'increase requested'; c.appendChild(q1); }
+      if (t.awaiting_customer) { var q2 = document.createElement('span'); q2.className = 'st cust'; q2.style.marginLeft = '6px'; q2.textContent = 'awaiting customer'; c.appendChild(q2); }
       if (t.accepted_count > 0 && (t.status === 'waiting_assignment' || t.status === 'needs_manual_match')) {
         var ac = document.createElement('span'); ac.className = 'st in_progress'; ac.style.marginLeft = '6px'; ac.textContent = t.accepted_count + ' accepted'; c.appendChild(ac);
       }
@@ -477,6 +509,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       fillTickets('tkWaiting', 'tkWaitingE', d.waiting);
       fillTickets('tkMine', 'tkMineE', d.mine);
       fillTickets('tkActive', 'tkActiveE', d.active);
+      loadAlerts();
     } catch (e) { flash(e.message, false); }
   }
   $('backToTickets').onclick = loadTickets;
@@ -514,6 +547,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         });
       }
       var hb = $('tkHist').tBodies[0]; clear(hb);
+      loadNte(id, t);
       d.history.forEach(function (h) {
         var tr = document.createElement('tr');
         tr.appendChild(td(String(h.changed_at).replace('T', ' ').slice(0, 16)));
@@ -534,6 +568,102 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     if (!$('asSel').value) return flash('Choose a provider.', false);
     doAssign($('asSel').value, sel('asSel').replace(/ \u2605.*| - .*/, ''));
   };
+
+  // ---- alerts ----
+  async function loadAlerts() {
+    try {
+      var d = await api('/staff/alerts');
+      var box = $('alertsList'); clear(box);
+      $('alertsPanel').hidden = d.alerts.length === 0;
+      d.alerts.forEach(function (a) {
+        var r = document.createElement('div'); r.className = 'alert' + (a.kind === 'low_margin' ? ' low' : '');
+        var t = document.createElement('span'); t.textContent = a.message; r.appendChild(t);
+        var b = document.createElement('span');
+        if (a.ticket_id) b.appendChild(btn('Open', function () { openTicket(a.ticket_id); }));
+        b.appendChild(btn('Dismiss', async function () { try { await api('/staff/alerts/' + a.id + '/dismiss', 'POST'); loadAlerts(); } catch (e) { flash(e.message, false); } }));
+        r.appendChild(b); box.appendChild(r);
+      });
+    } catch (e) { /* alerts are a convenience; ignore */ }
+  }
+
+  // ---- NTE increase ----
+  var nteCur = null, nteChange = null;
+  function dollars(v) { return '$' + Number(v).toFixed(2); }
+  function nteCalc() {
+    var C0 = nteCur.c, P0 = nteCur.p, C = Number($('nC').value), P = Number($('nP').value);
+    var box = $('nteCalc'); clear(box);
+    function line(t, cls) { var d = document.createElement('div'); if (cls) d.className = cls; d.textContent = t; box.appendChild(d); }
+    if (!(C > 0) || !(P > 0)) return;
+    var dC = C - C0, dP = P - P0;
+    line('Customer +' + dollars(dC).replace('$-', '-$') + '  |  Provider +' + dollars(dP).replace('$-', '-$'));
+    line('Margin on this increase: ' + (dC > 0 ? (((dC - dP) / dC) * 100).toFixed(1) + '%' : 'n/a') + '  |  Overall margin on the ticket: ' + (((C - P) / C) * 100).toFixed(1) + '%');
+    if (((C - P) / C) * 100 < 5) line('Below 5%: you will be alerted when this is approved.', 'warn');
+  }
+  function nteQuick() {
+    var q = $('nteQuick'); clear(q);
+    var P = Number($('nP').value); if (!(P > nteCur.p)) return;
+    [16, 18, 20, 22.5].forEach(function (m) {
+      var total = nteCur.c + (P - nteCur.p) / (1 - m / 100);
+      q.appendChild(btn(m + '% = ' + dollars(total), function () { $('nC').value = total.toFixed(2); nteCalc(); }));
+    });
+  }
+  $('nP').oninput = function () { nteQuick(); nteCalc(); };
+  $('nC').oninput = nteCalc;
+  async function loadNte(id, t) {
+    var sec = $('nteSection'); sec.hidden = true;
+    try {
+      var d = await api('/staff/tickets/' + id + '/nte');
+      nteCur = { c: Number(t.customer_nte), p: Number(t.provider_nte) };
+      var pend = d.changes.filter(function (c) { return c.status === 'pending'; })[0];
+      nteChange = pend || null;
+      var show = d.canRequest || pend || d.changes.length;
+      if (!show) return;
+      sec.hidden = false;
+      var rq = $('nteReq'); clear(rq);
+      if (d.providerRequest && d.canRequest) {
+        var box = document.createElement('div'); box.className = 'alert';
+        var tx = document.createElement('span'); tx.textContent = 'Provider asked for a new total of ' + dollars(d.providerRequest.requested_total) + '. Reason: ' + d.providerRequest.reason;
+        box.appendChild(tx);
+        box.appendChild(btn('Use this amount', function () { $('nP').value = Number(d.providerRequest.requested_total).toFixed(2); nteQuick(); nteCalc(); $('nR').value = d.providerRequest.reason; }));
+        box.appendChild(btn('Decline', async function () { try { await api('/staff/nte-requests/' + d.providerRequest.id + '/decline', 'POST'); flash('Declined. The provider will see that it was not approved.', true); openTicket(id); } catch (e) { flash(e.message, false); } }));
+        rq.appendChild(box);
+      }
+      $('nteNew').hidden = !(d.canRequest && !pend);
+      $('ntePend').hidden = !pend;
+      if (!pend) { $('nP').value = ''; $('nC').value = ''; $('nR').value = ''; clear($('nteQuick')); clear($('nteCalc')); }
+      if (pend) $('ntePendText').textContent = 'Waiting on the customer: total ' + dollars(pend.new_customer_nte) + ' (was ' + dollars(pend.old_customer_nte) + '), provider ' + dollars(pend.new_provider_nte) + ' (was ' + dollars(pend.old_provider_nte) + ').';
+      var hb = $('nteHist').tBodies[0]; clear(hb);
+      var past = d.changes.filter(function (c) { return c.status !== 'pending'; });
+      $('nteHist').hidden = past.length === 0;
+      past.forEach(function (c) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td(fmt(c.created_at)));
+        tr.appendChild(td(dollars(c.old_customer_nte) + ' \u2192 ' + dollars(c.new_customer_nte)));
+        tr.appendChild(td(dollars(c.old_provider_nte) + ' \u2192 ' + dollars(c.new_provider_nte)));
+        tr.appendChild(td(c.margin_pct + '%'));
+        tr.appendChild(td((c.status === 'approved' ? 'Approved' : 'Customer said no') + (c.confirm_method ? ' by ' + c.confirm_method.replace('_', ' ') : '') + (c.confirm_note ? ' (' + c.confirm_note + ')' : '')));
+        hb.appendChild(tr);
+      });
+    } catch (e) { /* panel stays hidden */ }
+  }
+  $('nteForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    try {
+      await api('/staff/tickets/' + currentTicket + '/nte', 'POST', { newProviderNte: $('nP').value, newCustomerNte: $('nC').value, reason: $('nR').value });
+      flash('Increase started. Get the customer\u2019s answer, then record it below.', true); openTicket(currentTicket);
+    } catch (e) { flash(e.message, false); }
+  };
+  async function nteDecide(approve) {
+    if (!nteChange) return;
+    try {
+      var r = await api('/staff/nte/' + nteChange.id + '/decide', 'POST', { approve: approve, method: $('dM').value, note: $('dN').value });
+      $('dN').value = '';
+      flash(approve ? (r.lowMargin ? 'Approved. Margin is below 5%, so the Owner has been alerted.' : 'Approved. The new amounts are in effect.') : 'Recorded: customer said no. Nothing changed.', true);
+      openTicket(currentTicket);
+    } catch (e) { flash(e.message, false); }
+  }
+  $('dYes').onclick = function () { nteDecide(true); };
+  $('dNo').onclick = function () { nteDecide(false); };
 
   // ---- guided new ticket ----
   var wz = { step: 1, lookups: null };
