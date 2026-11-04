@@ -50,6 +50,20 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .back { background:none; border:0; color:var(--steel); text-decoration:underline; cursor:pointer; font-size:14px; padding:0; margin:28px auto 0; display:block; max-width:980px; width:100%; text-align:left; }
 .small { font-size:13px; color:var(--steel); margin-top:6px; }
 .btn-sm { padding:5px 10px; font-size:12px; background:none; border:1px solid var(--steel); color:var(--ink); cursor:pointer; }
+.st { display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; color:#fff; background:#666; text-transform:uppercase; letter-spacing:.03em; }
+.st.waiting_assignment,.st.new { background:#b8860b; } .st.needs_manual_match { background:#c2410c; }
+.st.assigned,.st.dispatched { background:#1d4ed8; } .st.in_progress { background:#15803d; }
+.st.awaiting_funds { background:#7c3aed; } .st.awaiting_part { background:#0e7490; }
+.st.completed,.st.needs_billing { background:#334155; } .st.on_hold { background:#6b7280; }
+.st.emergency { background:#b91c1c; } .st.urgent { background:#c2410c; }
+.steps { display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap; } .steps span { font-size:12px; padding:3px 8px; background:var(--concrete); border:1px solid var(--border); }
+.steps span.on { background:var(--ink); color:var(--paper); }
+.wiz label { display:block; font-size:12px; font-weight:600; color:var(--steel); margin:14px 0 4px; text-transform:uppercase; letter-spacing:.04em; }
+.wiz select,.wiz input,.wiz textarea { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
+.wiz textarea { min-height:110px; } .wiz .nav { margin-top:20px; display:flex; gap:10px; }
+.wiz .nav button { padding:11px 18px; border:0; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; cursor:pointer; background:var(--red); color:var(--paper); }
+.wiz .nav button.sec { background:none; color:var(--ink); border:1px solid var(--steel); }
+.wiz dl { display:grid; grid-template-columns:160px 1fr; gap:6px 12px; margin:10px 0; } .wiz dt { color:var(--steel); font-size:13px; }
 [hidden] { display:none !important; }
 </style>
 </head>
@@ -76,9 +90,32 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     <div id="msg" class="msg" hidden></div>
 
     <div id="viewTickets">
-      <div class="panel"><h2>Waiting assignment</h2><p>No tickets yet. New tickets will appear here.</p></div>
-      <div class="panel"><h2>My tickets</h2><p>No tickets assigned to you yet.</p></div>
-      <div class="panel"><h2>All active tickets</h2><p>No active tickets yet.</p></div>
+      <div class="panel"><button class="btn-sm" id="newTicket" style="font-size:14px;padding:9px 16px;background:var(--red);color:#fff;border:0">+ New ticket</button></div>
+      <div class="panel"><h2>Waiting assignment</h2><table class="t" id="tkWaiting"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkWaitingE" hidden>Nothing waiting.</p></div>
+      <div class="panel"><h2>My tickets</h2><table class="t" id="tkMine"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkMineE" hidden>No tickets assigned to you yet.</p></div>
+      <div class="panel"><h2>All active tickets</h2><table class="t" id="tkActive"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkActiveE" hidden>No active tickets yet.</p></div>
+    </div>
+
+    <div id="viewWizard" hidden>
+      <button class="back" id="wizCancel">&larr; Cancel</button>
+      <div class="panel wiz">
+        <h2>New ticket</h2><div class="steps" id="wizSteps"></div>
+        <div id="w1"><label for="wCust">1. Customer</label><select id="wCust"></select></div>
+        <div id="w2" hidden><label for="wSite">2. Worksite</label><select id="wSite"></select></div>
+        <div id="w3" hidden><label for="wTrade">3. Trade</label><select id="wTrade"><option value="">Choose...</option><option>HVAC</option><option>Plumbing</option><option>Electrical</option><option>Roofing</option><option>Flooring</option><option>Painting</option><option>Carpentry</option><option>Locksmith / Doors</option><option>Landscaping / Snow</option><option>Janitorial</option><option>General maintenance</option><option>Other</option></select></div>
+        <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><p class="small">Photos and the paste-an-email helper come in a later step.</p></div>
+        <div id="w5" hidden><label for="wPri">5. Priority</label><select id="wPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
+        <div id="w6" hidden><label for="wCN">6. Customer NTE ($)</label><input id="wCN" type="number" min="1" step="0.01"><label for="wPN">Initial provider NTE ($)</label><input id="wPN" type="number" min="1" step="0.01"><p class="small" id="wMargin"></p></div>
+        <div id="w7" hidden><label>7. Review</label><dl id="wReview"></dl></div>
+        <div class="nav"><button class="sec" id="wBack">Back</button><button id="wNext">Next</button></div>
+      </div>
+    </div>
+
+    <div id="viewTicket" hidden>
+      <button class="back" id="backToTickets">&larr; All tickets</button>
+      <div class="panel"><h2 id="tkTitle"></h2><p class="small" id="tkMeta"></p><p id="tkDesc" style="margin-top:12px;color:var(--ink)"></p></div>
+      <div class="panel"><h2>Money</h2><p id="tkMoney"></p></div>
+      <div class="panel"><h2>History</h2><table class="t" id="tkHist"><thead><tr><th>When</th><th>Change</th><th>By</th></tr></thead><tbody></tbody></table></div>
     </div>
 
     <div id="viewCustomers" hidden>
@@ -265,9 +302,9 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 
   // ---- tabs ----
   function view(name) {
-    ['viewTickets', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam'].forEach(function (v) { $(v).hidden = true; });
+    ['viewTickets', 'viewWizard', 'viewTicket', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam'].forEach(function (v) { $(v).hidden = true; });
     $(name).hidden = false;
-    var tab = ({viewTickets:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team'})[name] || 'customers';
+    var tab = ({viewTickets:'tickets', viewWizard:'tickets', viewTicket:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team'})[name] || 'customers';
     document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
       s.className = (s.getAttribute('data-tab') === tab) ? 'on' : '';
     });
@@ -275,7 +312,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
     s.onclick = function () {
       var t = s.getAttribute('data-tab');
-      if (t === 'customers') loadCustomers(); else if (t === 'providers') loadProviders(); else if (t === 'team') loadTeam(); else view('viewTickets');
+      if (t === 'customers') loadCustomers(); else if (t === 'providers') loadProviders(); else if (t === 'team') loadTeam(); else loadTickets();
     };
   });
 
@@ -379,6 +416,108 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var b = document.createElement('button'); b.className = cls || 'btn-sm'; b.textContent = label; b.onclick = fn; return b;
   }
   function fmt(d) { return d ? String(d).slice(0, 10) : ''; }
+
+  // ---- tickets ----
+  function pill(st) { var s2 = document.createElement('span'); s2.className = 'st ' + st; s2.textContent = st.replace(/_/g, ' '); return s2; }
+  function fillTickets(tableId, emptyId, rows) {
+    var body = $(tableId).tBodies[0]; clear(body); $(emptyId).hidden = rows.length > 0;
+    rows.forEach(function (t) {
+      var tr = document.createElement('tr'); tr.className = 'row';
+      tr.appendChild(td(t.job_number));
+      tr.appendChild(td(t.customer_name + ' - ' + t.site_number + ' ' + t.site_name));
+      tr.appendChild(td(t.title + (t.priority !== 'normal' ? ' [' + t.priority + ']' : '')));
+      var c = document.createElement('td'); c.appendChild(pill(t.status)); tr.appendChild(c);
+      tr.onclick = function () { openTicket(t.id); };
+      body.appendChild(tr);
+    });
+  }
+  async function loadTickets() {
+    view('viewTickets');
+    try {
+      var d = await api('/staff/tickets');
+      fillTickets('tkWaiting', 'tkWaitingE', d.waiting);
+      fillTickets('tkMine', 'tkMineE', d.mine);
+      fillTickets('tkActive', 'tkActiveE', d.active);
+    } catch (e) { flash(e.message, false); }
+  }
+  $('backToTickets').onclick = loadTickets;
+  async function openTicket(id) {
+    try {
+      var d = await api('/staff/tickets/' + id); var t = d.ticket;
+      view('viewTicket');
+      $('tkTitle').textContent = t.job_number + ' - ' + t.title;
+      $('tkMeta').textContent = [t.customer_name, t.site_number + ' ' + t.site_name, t.address1 + ', ' + t.city + ', ' + t.state + ' ' + t.zip, t.trade, 'Priority: ' + t.priority, 'Status: ' + t.status.replace(/_/g, ' '), 'Handled by: ' + (t.staff_name || 'unassigned'), t.provider_name ? 'Provider: ' + t.provider_name : ''].filter(Boolean).join(' | ');
+      $('tkDesc').textContent = t.description;
+      $('tkMoney').textContent = t.customer_nte == null ? 'No pricing yet.' : 'Customer NTE $' + Number(t.customer_nte).toFixed(2) + ' | Provider NTE $' + Number(t.provider_nte).toFixed(2) + ' | Margin ' + t.margin_pct + '%';
+      var hb = $('tkHist').tBodies[0]; clear(hb);
+      d.history.forEach(function (h) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td(String(h.changed_at).replace('T', ' ').slice(0, 16)));
+        tr.appendChild(td((h.old_status ? h.old_status.replace(/_/g, ' ') + ' \u2192 ' : 'Created as ') + h.new_status.replace(/_/g, ' ')));
+        tr.appendChild(td(h.changed_by)); hb.appendChild(tr);
+      });
+    } catch (e) { flash(e.message, false); }
+  }
+
+  // ---- guided new ticket ----
+  var wz = { step: 1, lookups: null };
+  var STEPS = ['Customer', 'Worksite', 'Trade', 'Details', 'Priority', 'Money', 'Review'];
+  function wizDraw() {
+    for (var i = 1; i <= 7; i++) $('w' + i).hidden = (i !== wz.step);
+    var sp = $('wizSteps'); clear(sp);
+    STEPS.forEach(function (n, i) { var x = document.createElement('span'); x.textContent = (i + 1) + ' ' + n; if (i + 1 === wz.step) x.className = 'on'; sp.appendChild(x); });
+    $('wBack').hidden = wz.step === 1;
+    $('wNext').textContent = wz.step === 7 ? 'Create ticket' : 'Next';
+  }
+  function opt(sel, v, label) { var o = document.createElement('option'); o.value = v; o.textContent = label; sel.appendChild(o); }
+  $('newTicket').onclick = async function () {
+    try {
+      wz.lookups = await api('/staff/lookups'); wz.step = 1;
+      var cs = $('wCust'); clear(cs); opt(cs, '', 'Choose a customer...');
+      wz.lookups.customers.forEach(function (c) { opt(cs, c.id, c.name); });
+      ['wTrade', 'wTitle', 'wDesc', 'wCN', 'wPN'].forEach(function (i) { $(i).value = ''; }); $('wPri').value = 'normal'; $('wMargin').textContent = '';
+      view('viewWizard'); wizDraw();
+    } catch (e) { flash(e.message, false); }
+  };
+  $('wizCancel').onclick = loadTickets;
+  $('wBack').onclick = function () { if (wz.step > 1) { wz.step--; wizDraw(); } };
+  function marginText() {
+    var c = Number($('wCN').value), p = Number($('wPN').value);
+    return (c > 0 && p > 0) ? 'Margin at these amounts: ' + (((c - p) / c) * 100).toFixed(1) + '%' : '';
+  }
+  $('wCN').oninput = $('wPN').oninput = function () { $('wMargin').textContent = marginText(); };
+  function sel(id) { var e = $(id); return e.options[e.selectedIndex] ? e.options[e.selectedIndex].text : ''; }
+  $('wNext').onclick = async function () {
+    var st = wz.step;
+    if (st === 1) {
+      if (!$('wCust').value) return flash('Pick a customer.', false);
+      var ss = $('wSite'); clear(ss); opt(ss, '', 'Choose a worksite...');
+      wz.lookups.worksites.filter(function (w) { return w.customer_id === $('wCust').value; })
+        .forEach(function (w) { opt(ss, w.id, w.site_number + ' - ' + w.name + ' (' + w.city + ', ' + w.state + ')'); });
+      if (ss.options.length === 1) return flash('That customer has no worksites yet. Add one on the Customers tab first.', false);
+    }
+    if (st === 2 && !$('wSite').value) return flash('Pick a worksite.', false);
+    if (st === 3 && !$('wTrade').value) return flash('Pick a trade.', false);
+    if (st === 4 && ($('wTitle').value.trim().length < 3 || $('wDesc').value.trim().length < 5)) return flash('Add a short title and the problem details.', false);
+    if (st === 6) {
+      var c = Number($('wCN').value), p = Number($('wPN').value);
+      if (!(c > 0) || !(p > 0)) return flash('Enter both NTE amounts.', false);
+      if (p > c) return flash('Provider NTE cannot be higher than the customer NTE.', false);
+      var r = $('wReview'); clear(r);
+      [['Customer', sel('wCust')], ['Worksite', sel('wSite')], ['Trade', $('wTrade').value], ['Title', $('wTitle').value], ['Details', $('wDesc').value], ['Priority', $('wPri').value], ['Customer NTE', '$' + c.toFixed(2)], ['Provider NTE', '$' + p.toFixed(2)], ['Margin', (((c - p) / c) * 100).toFixed(1) + '%']].forEach(function (x) {
+        var dt = document.createElement('dt'); dt.textContent = x[0]; var dd = document.createElement('dd'); dd.textContent = x[1]; r.appendChild(dt); r.appendChild(dd);
+      });
+    }
+    if (st === 7) {
+      try {
+        var res = await api('/staff/tickets', 'POST', { customerId: $('wCust').value, worksiteId: $('wSite').value, trade: $('wTrade').value, title: $('wTitle').value, description: $('wDesc').value, priority: $('wPri').value, customerNte: $('wCN').value, providerNte: $('wPN').value });
+        flash('Ticket ' + res.jobNumber + ' created and waiting assignment.', true);
+        openTicket(res.id);
+      } catch (e) { flash(e.message, false); }
+      return;
+    }
+    wz.step++; wizDraw();
+  };
 
   // ---- providers ----
   async function loadProviders() {
@@ -533,7 +672,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       $('teamTab').hidden = (me.role !== 'owner');
       $('welcome').textContent = 'Welcome, ' + me.name;
       $('role').textContent = me.role;
-      view('viewTickets');
+      loadTickets();
       show('home');
     } catch (e) {
       if (e.status) { problem(e.message); }
