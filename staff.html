@@ -58,7 +58,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   <img src="index-1-ce390515eb.png" alt="Triple Maintenance Group">
   <button class="linkbtn" id="signOut" hidden>Sign out</button>
 </div></div>
-<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers</span><span class="off" title="Coming soon">Providers</span><span class="off" title="Coming soon">Reports</span></div></div>
+<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers</span><span data-tab="providers">Providers</span><span data-tab="team" id="teamTab" hidden>Team</span><span class="off" title="Coming soon">Reports</span></div></div>
 
 <div class="wrap">
   <div class="card" id="signedOut" hidden>
@@ -89,6 +89,66 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         <form class="f" id="custForm">
           <div><label for="custName">New customer name</label><input id="custName" maxlength="200" required></div>
           <div><button type="submit">Add customer</button></div>
+        </form>
+      </div>
+    </div>
+
+
+    <div id="viewProviders" hidden>
+      <div class="panel">
+        <h2>Providers</h2>
+        <table class="t" id="provTable"><thead><tr><th>Business</th><th>Trade</th><th>States</th><th>Status</th><th>Logins</th><th>Jobs</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="small" id="provEmpty" hidden>No providers yet.</p>
+      </div>
+    </div>
+
+    <div id="viewProvider" hidden>
+      <button class="back" id="backToProviders">&larr; All providers</button>
+      <div class="panel">
+        <h2 id="pName"></h2>
+        <p class="small" id="pMeta"></p>
+        <p class="small" id="pTerms"></p>
+        <p class="small" id="pPref"></p>
+        <div id="pActions" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
+        <form class="f" id="noteForm" hidden>
+          <div><label for="pNote">Note (optional, kept on record)</label><input id="pNote" maxlength="1000"></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h2>Documents</h2>
+        <table class="t" id="docTable"><thead><tr><th>Type</th><th>File</th><th>Uploaded</th><th>Expires</th></tr></thead><tbody></tbody></table>
+        <p class="small" id="docEmpty" hidden>No documents uploaded.</p>
+      </div>
+      <div class="panel">
+        <h2>Logins</h2>
+        <p class="small" id="pLimit"></p>
+        <table class="t" id="plTable"><thead><tr><th>Email</th><th>Contact</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="small" id="plEmpty" hidden>No logins yet.</p>
+        <form class="f" id="plForm" data-mgr>
+          <div><label for="plEmail">Email address</label><input id="plEmail" type="email" maxlength="200" required></div>
+          <div><label for="plName">Contact name</label><input id="plName" maxlength="150" required></div>
+          <div><button type="submit">Approve login</button></div>
+        </form>
+        <form class="f" id="limForm" data-mgr>
+          <div><label for="limN">Set login limit</label><input id="limN" type="number" min="1" max="50" required></div>
+          <div><button type="submit">Save limit</button></div>
+        </form>
+      </div>
+      <div class="panel">
+        <h2>Login requests</h2>
+        <table class="t" id="lrTable"><thead><tr><th>Date</th><th>Requested by</th><th>Total wanted</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+        <p class="small" id="lrEmpty" hidden>No requests.</p>
+      </div>
+    </div>
+
+    <div id="viewTeam" hidden>
+      <div class="panel">
+        <h2>Team</h2>
+        <p class="small">You can always mark providers Preferred. Allow others here. A person appears after their first sign-in.</p>
+        <table class="t" id="teamTable"><thead><tr><th>Emp #</th><th>Name</th><th>Role</th><th>Can mark Preferred</th><th></th></tr></thead><tbody></tbody></table>
+        <form class="f" id="teamForm">
+          <div><label for="tNum">Or enter employee number</label><input id="tNum" type="number" min="1" required></div>
+          <div><button type="submit">Allow</button></div>
         </form>
       </div>
     </div>
@@ -205,16 +265,17 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 
   // ---- tabs ----
   function view(name) {
-    ['viewTickets', 'viewCustomers', 'viewCustomer'].forEach(function (v) { $(v).hidden = true; });
+    ['viewTickets', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam'].forEach(function (v) { $(v).hidden = true; });
     $(name).hidden = false;
-    var tab = (name === 'viewTickets') ? 'tickets' : 'customers';
+    var tab = ({viewTickets:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team'})[name] || 'customers';
     document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
       s.className = (s.getAttribute('data-tab') === tab) ? 'on' : '';
     });
   }
   document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
     s.onclick = function () {
-      if (s.getAttribute('data-tab') === 'customers') { loadCustomers(); } else { view('viewTickets'); }
+      var t = s.getAttribute('data-tab');
+      if (t === 'customers') loadCustomers(); else if (t === 'providers') loadProviders(); else if (t === 'team') loadTeam(); else view('viewTickets');
     };
   });
 
@@ -312,12 +373,164 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     } catch (e) { flash(e.message, false); }
   };
 
+  var me = null;
+  var isMgr = function () { return me && (me.role === 'manager' || me.role === 'owner'); };
+  function btn(label, fn, cls) {
+    var b = document.createElement('button'); b.className = cls || 'btn-sm'; b.textContent = label; b.onclick = fn; return b;
+  }
+  function fmt(d) { return d ? String(d).slice(0, 10) : ''; }
+
+  // ---- providers ----
+  async function loadProviders() {
+    view('viewProviders');
+    try {
+      var d = await api('/staff/providers');
+      var body = $('provTable').tBodies[0]; clear(body);
+      $('provEmpty').hidden = d.providers.length > 0;
+      d.providers.forEach(function (p) {
+        var tr = document.createElement('tr'); tr.className = 'row';
+        tr.appendChild(td(p.business_name + (p.preferred ? ' \u2605' : '')));
+        tr.appendChild(td(p.primary_trade)); tr.appendChild(td(p.service_states));
+        tr.appendChild(td(p.status.replace(/_/g, ' ') + (p.pending_requests ? ' (login request)' : '')));
+        tr.appendChild(td(p.logins + ' / ' + p.max_logins)); tr.appendChild(td(p.completed_jobs));
+        tr.appendChild(td(''));
+        tr.onclick = function () { openProvider(p.id); };
+        body.appendChild(tr);
+      });
+    } catch (e) { flash(e.message, false); }
+  }
+  $('backToProviders').onclick = loadProviders;
+
+  var currentProvider = null;
+  async function openProvider(id) {
+    currentProvider = id;
+    try {
+      var d = await api('/staff/providers/' + id);
+      view('viewProvider');
+      var p = d.provider;
+      $('pName').textContent = p.business_name + (p.preferred ? ' \u2605 Preferred' : '');
+      $('pMeta').textContent = [p.contact_name, p.email, p.phone, p.primary_trade, 'States: ' + p.service_states, 'Status: ' + p.status.replace(/_/g, ' '), 'Completed jobs: ' + d.completedJobs].filter(Boolean).join(' | ');
+      $('pTerms').textContent = p.terms_accepted_at ? 'Terms ' + p.terms_version + ' signed by ' + p.terms_signer_name + ' on ' + fmt(p.terms_accepted_at) : 'Terms not on file.';
+      $('pPref').textContent = p.preferred && p.preferred_set_by ? 'Preferred set by ' + p.preferred_set_by + ' on ' + fmt(p.preferred_set_at) : '';
+
+      var act = $('pActions'); clear(act);
+      $('noteForm').hidden = !isMgr();
+      function setStatus(st, label) {
+        act.appendChild(btn(label, async function () {
+          if (!window.confirm(label + ' for ' + p.business_name + '?')) return;
+          try { await api('/staff/providers/' + id + '/status', 'POST', { status: st, note: $('pNote').value }); $('pNote').value = ''; flash('Updated.', true); openProvider(id); }
+          catch (e) { flash(e.message, false); }
+        }));
+      }
+      if (isMgr()) {
+        if (p.status !== 'approved') setStatus('approved', 'Approve');
+        if (p.status === 'pending_review') setStatus('documents_requested', 'Request documents');
+        if (p.status !== 'rejected' && p.status !== 'approved') setStatus('rejected', 'Reject');
+        if (p.status === 'approved') setStatus('suspended', 'Suspend');
+      }
+      if (me.canMarkPreferred && p.status === 'approved') {
+        act.appendChild(btn(p.preferred ? 'Remove Preferred' : 'Mark Preferred', async function () {
+          try { await api('/staff/providers/' + id + '/preferred', 'POST', { preferred: !p.preferred }); openProvider(id); }
+          catch (e) { flash(e.message, false); }
+        }));
+      }
+
+      var db = $('docTable').tBodies[0]; clear(db);
+      $('docEmpty').hidden = d.documents.length > 0;
+      d.documents.forEach(function (x) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td(x.document_type)); tr.appendChild(td(x.original_filename)); tr.appendChild(td(fmt(x.uploaded_at))); tr.appendChild(td(fmt(x.expires_on)));
+        db.appendChild(tr);
+      });
+
+      var active = d.logins.filter(function (l) { return l.active; }).length;
+      $('pLimit').textContent = active + ' of ' + p.max_logins + ' logins in use. More logins need a request that a manager approves.';
+      $('limN').value = p.max_logins;
+      document.querySelectorAll('[data-mgr]').forEach(function (f) { f.hidden = !isMgr(); });
+      var lb = $('plTable').tBodies[0]; clear(lb);
+      $('plEmpty').hidden = d.logins.length > 0;
+      d.logins.forEach(function (l) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td(l.email)); tr.appendChild(td(l.display_name));
+        var st = document.createElement('td'); var pill = document.createElement('span');
+        pill.className = 'pill' + (l.active ? '' : ' off');
+        pill.textContent = l.active ? (l.has_signed_in ? 'Active' : 'Approved, not signed in yet') : 'Turned off';
+        st.appendChild(pill); tr.appendChild(st);
+        var c = document.createElement('td');
+        if (isMgr()) c.appendChild(btn(l.active ? 'Turn off' : 'Turn on', async function () {
+          try { await api('/staff/provider-logins/' + l.id + '/active', 'POST', { active: !l.active }); openProvider(id); }
+          catch (e) { flash(e.message, false); }
+        }));
+        tr.appendChild(c); lb.appendChild(tr);
+      });
+
+      var rb = $('lrTable').tBodies[0]; clear(rb);
+      $('lrEmpty').hidden = d.loginRequests.length > 0;
+      d.loginRequests.forEach(function (r) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td(fmt(r.created_at))); tr.appendChild(td(r.requested_by)); tr.appendChild(td(r.requested_total)); tr.appendChild(td(r.reason)); tr.appendChild(td(r.status));
+        var c = document.createElement('td');
+        if (r.status === 'pending' && isMgr()) {
+          [[true, 'Approve'], [false, 'Deny']].forEach(function (o) {
+            c.appendChild(btn(o[1], async function () {
+              try { await api('/staff/login-requests/' + r.id + '/decide', 'POST', { approve: o[0] }); openProvider(id); }
+              catch (e) { flash(e.message, false); }
+            }));
+          });
+        }
+        tr.appendChild(c); rb.appendChild(tr);
+      });
+    } catch (e) { flash(e.message, false); }
+  }
+  $('plForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    try {
+      await api('/staff/providers/' + currentProvider + '/logins', 'POST', { email: $('plEmail').value, displayName: $('plName').value });
+      $('plForm').reset(); flash('Login approved.', true); openProvider(currentProvider);
+    } catch (e) { flash(e.message, false); }
+  };
+  $('limForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    try {
+      await api('/staff/providers/' + currentProvider + '/max-logins', 'POST', { maxLogins: Number($('limN').value) });
+      flash('Login limit saved.', true); openProvider(currentProvider);
+    } catch (e) { flash(e.message, false); }
+  };
+
+  // ---- team (owner only) ----
+  async function loadTeam() {
+    view('viewTeam');
+    try {
+      var d = await api('/staff/team');
+      var body = $('teamTable').tBodies[0]; clear(body);
+      d.team.forEach(function (m) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td(m.employee_number)); tr.appendChild(td(m.display_name)); tr.appendChild(td(m.role));
+        tr.appendChild(td(m.role === 'owner' ? 'Always' : (m.can_mark_preferred ? 'Yes' : 'No')));
+        var c = document.createElement('td');
+        if (m.role !== 'owner') c.appendChild(btn(m.can_mark_preferred ? 'Remove' : 'Allow', async function () {
+          try { await api('/staff/team/preferred-permission', 'POST', { staffId: m.id, allowed: !m.can_mark_preferred }); loadTeam(); }
+          catch (e) { flash(e.message, false); }
+        }));
+        tr.appendChild(c); body.appendChild(tr);
+      });
+    } catch (e) { flash(e.message, false); }
+  }
+  $('teamForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    try {
+      var r = await api('/staff/team/preferred-permission', 'POST', { employeeNumber: $('tNum').value, allowed: true });
+      $('teamForm').reset(); flash(r.name + ' can now mark providers Preferred.', true); loadTeam();
+    } catch (e) { flash(e.message, false); }
+  };
+
   // ---- start ----
   async function enter(acct) {
     account = acct;
     show('loading');
     try {
-      var me = await api('/staff/me');
+      me = await api('/staff/me');
+      $('teamTab').hidden = (me.role !== 'owner');
       $('welcome').textContent = 'Welcome, ' + me.name;
       $('role').textContent = me.role;
       view('viewTickets');
