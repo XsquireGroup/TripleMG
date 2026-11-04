@@ -147,7 +147,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     var where = j.customer_name + ' - ' + j.site_name + ' - ' + j.address1 + (j.address2 ? ', ' + j.address2 : '') + ', ' + j.city + ', ' + j.state + ' ' + j.zip;
     d.appendChild(el('div', 'meta', [j.trade, where].filter(Boolean).join(' | ')));
     d.appendChild(el('div', null, j.description));
-    d.appendChild(el('div', 'pay', 'Your pay (not to exceed): ' + money(j.pay)));
+    d.appendChild(el('div', 'pay', 'Provider NTE: ' + money(j.pay)));
     if (!offer) {
       if (j.on_site_contact_name || j.on_site_contact_phone) d.appendChild(el('div', 'meta', 'On-site contact: ' + [j.on_site_contact_name, j.on_site_contact_phone].filter(Boolean).join(' - ')));
       if (j.employee_name) d.appendChild(el('div', 'meta', 'Your TMG contact: ' + j.employee_name + (j.employee_email ? ' - ' + j.employee_email : '')));
