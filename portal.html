@@ -119,10 +119,10 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     var r = await app.acquireTokenSilent({ scopes: SCOPES, account: acct, forceRefresh: !!force });
     return r.idToken;
   }
-  async function api(path, method) {
+  async function api(path, method, body) {
     for (var i = 0; i < 2; i++) {
       var t = await token(i === 1);
-      var resp = await fetch(API + path, { method: method || 'GET', headers: { Authorization: 'Bearer ' + t } });
+      var resp = await fetch(API + path, { method: method || 'GET', headers: Object.assign({ Authorization: 'Bearer ' + t }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
       if (resp.status === 401 && i === 0) continue;
       var data = await resp.json().catch(function () { return {}; });
       if (!resp.ok) { var e = new Error(data.error || 'Please try again.'); e.status = resp.status; throw e; }
@@ -151,6 +151,24 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     if (!offer) {
       if (j.on_site_contact_name || j.on_site_contact_phone) d.appendChild(el('div', 'meta', 'On-site contact: ' + [j.on_site_contact_name, j.on_site_contact_phone].filter(Boolean).join(' - ')));
       if (j.employee_name) d.appendChild(el('div', 'meta', 'Your TMG contact: ' + j.employee_name + (j.employee_email ? ' - ' + j.employee_email : '')));
+      if (j.requested_total != null) d.appendChild(el('div', 'meta', 'Increase requested: ' + money(j.requested_total) + '. Waiting on TMG.'));
+      else if (j.change_pending) d.appendChild(el('div', 'meta', 'Your increase is being reviewed. You will see the new amount once it is approved.'));
+      else if (j.last_denied) d.appendChild(el('div', 'meta', 'Your last increase request was not approved.'));
+      if (j.can_request) {
+        var rb = el('button', 'sec', 'Request an increase');
+        var form = el('div'); form.hidden = true; form.style.marginTop = '10px';
+        var amt = el('input'); amt.type = 'number'; amt.min = '1'; amt.step = '0.01'; amt.placeholder = 'New total Provider NTE, e.g. ' + (Number(j.pay) + 100).toFixed(2);
+        amt.style.cssText = 'padding:9px;border:1px solid var(--border);font:inherit;margin-right:8px;width:260px';
+        var why = el('input'); why.placeholder = 'Why is more needed?'; why.maxLength = 500; why.style.cssText = 'padding:9px;border:1px solid var(--border);font:inherit;margin-right:8px;width:260px;margin-top:6px';
+        var go = el('button', '', 'Send request');
+        go.onclick = async function () {
+          try { await api('/provider/jobs/' + j.id + '/nte-request', 'POST', { amount: amt.value, reason: why.value }); flash('Request sent. Your TMG contact has been alerted.', true); loadBoard(); }
+          catch (e) { flash(e.message, false); }
+        };
+        form.appendChild(amt); form.appendChild(why); form.appendChild(go);
+        rb.onclick = function () { form.hidden = !form.hidden; };
+        d.appendChild(rb); d.appendChild(form);
+      }
     } else {
       var b = el('button', j.accepted ? 'sec' : '', j.accepted ? 'Withdraw' : 'Accept job');
       b.onclick = async function () {
