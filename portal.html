@@ -25,6 +25,8 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
 .job h3 { font-size:18px; margin:0 0 4px; }
 .job .meta { font-size:13px; color:var(--steel); margin-bottom:8px; }
 .job .pay { font-weight:700; }
+.job .ph { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+.job .ph img { width:120px; height:90px; object-fit:cover; border:1px solid var(--border); cursor:pointer; display:block; background:#eee; }
 .job button { cursor:pointer; padding:9px 16px; border:0; background:var(--red); color:var(--paper); font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; margin-top:10px; }
 .job button.sec { background:none; color:var(--ink); border:1px solid var(--steel); }
 .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; background:var(--ink); color:#fff; text-transform:uppercase; margin-right:6px; }
@@ -129,6 +131,28 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       return data;
     }
   }
+  async function apiBlob(path) {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      var t = await token(attempt === 1);
+      var resp = await fetch(API + path, { headers: { Authorization: 'Bearer ' + t } });
+      if (resp.status === 401 && attempt === 0) continue;
+      if (!resp.ok) throw new Error('Photo unavailable.');
+      return resp.blob();
+    }
+  }
+  // Photos for a job: fetched through the backend (it checks this provider may see them), shown as small thumbnails.
+  async function loadJobPhotos(jobId, box) {
+    try {
+      var d = await api('/provider/jobs/' + jobId + '/photos');
+      for (var i = 0; i < d.photos.length; i++) {
+        try {
+          var u = URL.createObjectURL(await apiBlob('/provider/photos/' + d.photos[i].id));
+          var im = document.createElement('img'); im.src = u; im.alt = 'Job photo'; im.onclick = function () { window.open(this.src, '_blank'); };
+          box.appendChild(im);
+        } catch (e) { /* skip one bad image */ }
+      }
+    } catch (e) { /* no photos is fine */ }
+  }
   function flash(text, ok) {
     var m = $('msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'bad'); m.hidden = false;
     clearTimeout(flash.t); flash.t = setTimeout(function () { m.hidden = true; }, ok ? 4000 : 9000);
@@ -147,6 +171,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     var where = j.customer_name + ' - ' + j.site_name + ' - ' + j.address1 + (j.address2 ? ', ' + j.address2 : '') + ', ' + j.city + ', ' + j.state + ' ' + j.zip;
     d.appendChild(el('div', 'meta', [j.trade, where].filter(Boolean).join(' | ')));
     d.appendChild(el('div', null, j.description));
+    var phBox = el('div', 'ph'); d.appendChild(phBox); loadJobPhotos(j.id, phBox);
     d.appendChild(el('div', 'pay', 'Provider NTE: ' + money(j.pay)));
     if (!offer) {
       if (j.on_site_contact_name || j.on_site_contact_phone) d.appendChild(el('div', 'meta', 'On-site contact: ' + [j.on_site_contact_name, j.on_site_contact_phone].filter(Boolean).join(' - ')));
