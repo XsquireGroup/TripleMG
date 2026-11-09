@@ -69,7 +69,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .st.waiting_assignment,.st.new { background:#b8860b; } .st.needs_manual_match { background:#c2410c; }
 .st.assigned,.st.dispatched { background:#1d4ed8; } .st.in_progress { background:#15803d; }
 .st.awaiting_funds { background:#7c3aed; } .st.awaiting_part { background:#0e7490; }
-.st.completed,.st.needs_billing { background:#334155; } .st.on_hold { background:#6b7280; }
+.st.completed,.st.needs_billing { background:#334155; } .st.completion_review { background:#a16207; } .st.margin_review { background:#9d174d; } .st.on_hold { background:#6b7280; }
 .st.emergency { background:#b91c1c; } .st.urgent { background:#c2410c; }
 .steps { display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap; } .steps span { font-size:12px; padding:3px 8px; background:var(--concrete); border:1px solid var(--border); }
 .steps span.on { background:var(--ink); color:var(--paper); }
@@ -131,6 +131,18 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       <button class="back" id="backToTickets">&larr; All tickets</button>
       <div class="panel"><h2 id="tkTitle"></h2><p class="small" id="tkMeta"></p><p id="tkDesc" style="margin-top:12px;color:var(--ink)"></p></div>
       <div class="panel"><h2>Photos</h2><p class="small" id="tkPhE"></p><div class="ph" id="tkPhotos"></div><div style="margin-top:12px"><label for="tkPhAdd" style="display:block">Add photos (up to 10 per ticket)</label><input id="tkPhAdd" type="file" accept="image/*" multiple></div></div>
+      <div class="panel" id="cmpSection" hidden><h2>Completion</h2><div id="cmpBody"></div><div class="ph" id="cmpPhotos"></div>
+        <div id="cmpReview" hidden>
+          <p class="small" style="margin-top:12px">Look at the photos, verify with the customer if needed, then confirm or send it back.</p>
+          <form class="f" id="cmpForm">
+            <div><label for="cmpMethod">How was it verified?</label><select id="cmpMethod" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"><option value="phone">Phone with customer</option><option value="email">Email with customer</option><option value="text">Text with customer</option><option value="in_person">In person</option><option value="photos_only">Photos only</option></select></div>
+            <div><label for="cmpWho">Who at the customer confirmed</label><input id="cmpWho" maxlength="200"></div>
+            <div><label for="cmpNote">Note (required to send back)</label><input id="cmpNote" maxlength="1000"></div>
+            <div><button type="submit">Confirm complete</button></div>
+          </form>
+          <div id="cmpBackRow" style="margin-top:10px"></div>
+        </div>
+      </div>
       <div class="panel"><h2>Money</h2><div id="tkMoney"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p>
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Jobs done</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
@@ -414,6 +426,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var box = $('tkPhotos'); clear(box); $('tkPhE').textContent = '';
     try {
       var d = await api('/staff/tickets/' + id + '/photos');
+      d.photos = d.photos.filter(function (x) { return x.kind === 'job'; });
       phCount = d.photos.length;
       $('tkPhE').textContent = phCount ? '' : 'No photos on this ticket yet.';
       $('tkPhAdd').hidden = phCount >= MAXPH;
@@ -442,6 +455,55 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     }
     if (files.length && !bad) flash('Photo' + (files.length > 1 ? 's' : '') + ' added.', true);
     loadPhotos(id);
+  };
+
+
+  // ---- completion review ----
+  var cmpUrls = [];
+  var METHOD_TEXT = { phone: 'by phone', email: 'by email', text: 'by text', in_person: 'in person', photos_only: 'from the photos' };
+  async function loadCompletion(id) {
+    cmpUrls.forEach(function (u) { URL.revokeObjectURL(u); }); cmpUrls = [];
+    $('cmpSection').hidden = true; $('cmpReview').hidden = true; clear($('cmpPhotos')); clear($('cmpBody'));
+    try {
+      var d = await api('/staff/tickets/' + id + '/completion');
+      if (currentTicket !== id || !d.reports.length) return;
+      $('cmpSection').hidden = false;
+      var body = $('cmpBody');
+      d.reports.forEach(function (r, i) {
+        var line = document.createElement('p'); line.className = 'small'; line.style.marginBottom = '6px';
+        var txt;
+        if (r.status === 'pending') txt = 'Submitted by ' + r.submitted_by + ' on ' + String(r.submitted_at).replace('T', ' ').slice(0, 16) + '. Waiting on your review.';
+        else if (r.status === 'confirmed') txt = 'Confirmed by ' + r.reviewed_by + ' on ' + String(r.reviewed_at).replace('T', ' ').slice(0, 16) + ' (' + (METHOD_TEXT[r.verified_method] || '') + (r.verified_with ? ', ' + r.verified_with : '') + ').' + (r.review_note ? ' Note: ' + r.review_note : '');
+        else txt = 'Sent back by ' + r.reviewed_by + ' on ' + String(r.reviewed_at).replace('T', ' ').slice(0, 16) + '. Note: ' + r.review_note;
+        line.textContent = (i === 0 ? '' : 'Earlier: ') + txt;
+        body.appendChild(line);
+        if (i === 0 && r.note) { var pn = document.createElement('p'); pn.textContent = 'Provider note: ' + r.note; pn.style.marginBottom = '6px'; body.appendChild(pn); }
+      });
+      var latest = d.reports[0];
+      for (var i = 0; i < latest.photos.length; i++) {
+        if (currentTicket !== id) return;
+        try { var u = URL.createObjectURL(await apiBlob('/staff/photos/' + latest.photos[i])); cmpUrls.push(u); $('cmpPhotos').appendChild(thumb(u, '', null)); } catch (er) { /* skip */ }
+      }
+      $('cmpReview').hidden = !d.canReview;
+      if (d.canReview) {
+        $('cmpWho').value = ''; $('cmpNote').value = ''; $('cmpMethod').value = 'phone';
+        var row = $('cmpBackRow'); clear(row);
+        row.appendChild(btn('Send back to provider', async function () {
+          var n = $('cmpNote').value.trim();
+          if (n.length < 3) return flash('Add a note telling the provider what still needs to be done.', false);
+          try { await api('/staff/tickets/' + id + '/completion/send-back', 'POST', { note: n }); flash('Sent back to the provider.', true); openTicket(id); loadAlerts(); }
+          catch (er) { flash(er.message, false); }
+        }, 'btn-sm'));
+      }
+    } catch (er) { /* panel stays hidden */ }
+  }
+  $('cmpForm').onsubmit = async function (e) {
+    e.preventDefault();
+    var id = currentTicket;
+    try {
+      await api('/staff/tickets/' + id + '/completion/confirm', 'POST', { method: $('cmpMethod').value, who: $('cmpWho').value, note: $('cmpNote').value });
+      flash('Marked complete. The provider can now submit their bill.', true); openTicket(id); loadAlerts();
+    } catch (er) { flash(er.message, false); }
   };
 
   // ---- browser back/forward: every screen gets its own history entry ----
@@ -651,6 +713,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       var hb = $('tkHist').tBodies[0]; clear(hb);
       loadNte(id, t);
       loadPhotos(id);
+      loadCompletion(id);
       d.history.forEach(function (h) {
         var tr = document.createElement('tr');
         tr.appendChild(td(String(h.changed_at).replace('T', ' ').slice(0, 16)));
