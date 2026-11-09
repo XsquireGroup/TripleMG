@@ -69,7 +69,10 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .st.waiting_assignment,.st.new { background:#b8860b; } .st.needs_manual_match { background:#c2410c; }
 .st.assigned,.st.dispatched { background:#1d4ed8; } .st.in_progress { background:#15803d; }
 .st.awaiting_funds { background:#7c3aed; } .st.awaiting_part { background:#0e7490; }
-.st.completed,.st.needs_billing { background:#334155; } .st.completion_review { background:#a16207; } .st.margin_review { background:#9d174d; } .st.on_hold { background:#6b7280; }
+.st.completed,.st.needs_billing { background:#334155; } .st.completion_review { background:#a16207; } .st.billed { background:#0f766e; }
+.bill-in { width:100%; padding:7px; border:1px solid var(--border); font:inherit; background:var(--paper); }
+.bill-ta { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
+.bill-warn { color:var(--red); font-weight:600; font-size:13px; margin:6px 0; } .st.margin_review { background:#9d174d; } .st.on_hold { background:#6b7280; }
 .st.emergency { background:#b91c1c; } .st.urgent { background:#c2410c; }
 .steps { display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap; } .steps span { font-size:12px; padding:3px 8px; background:var(--concrete); border:1px solid var(--border); }
 .steps span.on { background:var(--ink); color:var(--paper); }
@@ -107,6 +110,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     <div id="viewTickets">
       <div class="panel" id="alertsPanel" hidden><h2>Alerts</h2><div id="alertsList"></div></div>
       <div class="panel"><button class="btn-sm" id="newTicket" style="font-size:14px;padding:9px 16px;background:var(--red);color:#fff;border:0">+ New ticket</button></div>
+      <div class="panel" id="invoicePanel" hidden><h2>Ready to invoice</h2><table class="t" id="invTable"><thead><tr><th>Job #</th><th>Customer</th><th>Provider</th><th>Customer total</th><th>Margin</th><th>Approved</th><th>Invoice #</th></tr></thead><tbody></tbody></table><p class="small" id="invEmpty">Nothing waiting to be invoiced.</p></div>
       <div class="panel"><h2>Waiting assignment</h2><table class="t" id="tkWaiting"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkWaitingE" hidden>Nothing waiting.</p></div>
       <div class="panel"><h2>My tickets</h2><table class="t" id="tkMine"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkMineE" hidden>No tickets assigned to you yet.</p></div>
       <div class="panel"><h2>All active tickets</h2><table class="t" id="tkActive"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkActiveE" hidden>No active tickets yet.</p></div>
@@ -143,6 +147,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
           <div id="cmpBackRow" style="margin-top:10px"></div>
         </div>
       </div>
+      <div class="panel" id="billSection" hidden><h2>Bill</h2><div id="billBody"></div></div>
       <div class="panel"><h2>Money</h2><div id="tkMoney"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p>
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Jobs done</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
@@ -210,6 +215,14 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         </form>
       </div>
       <div class="panel">
+        <h2>Hourly labor rate</h2>
+        <p class="small">TMG sets this rate. The provider only enters hours on their bill. Leave it blank until you have agreed a rate; the provider cannot bill hours without one.</p>
+        <form class="f" id="rateForm">
+          <div><label for="prRate">Hourly rate ($ per hour)</label><input id="prRate" type="number" min="0" step="0.01"></div>
+          <div><button type="submit" id="prRateSave">Save</button></div>
+        </form>
+      </div>
+      <div class="panel">
         <h2>Documents</h2>
         <table class="t" id="docTable"><thead><tr><th>Type</th><th>File</th><th>Uploaded</th><th>Expires</th></tr></thead><tbody></tbody></table>
         <p class="small" id="docEmpty" hidden>No documents uploaded.</p>
@@ -253,6 +266,15 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       <div class="panel">
         <h2 id="cName"></h2>
         <p class="small">Customers see only the worksites listed here, and only after they sign in with an approved email.</p>
+      </div>
+      <div class="panel">
+        <h2>Billing terms (client agreement)</h2>
+        <p class="small">Set from this client's Master Service Agreement. The flat initial trip is preloaded on every bill for this client. The provider is paid for the initial trip only, however many return visits it takes. Providers never see the trip charge.</p>
+        <form class="f" id="btForm">
+          <div><label for="btCharge">Trip charge billed to customer ($)</label><input id="btCharge" type="number" min="0" step="0.01"></div>
+          <div><label for="btPay">Trip pay to provider ($)</label><input id="btPay" type="number" min="0" step="0.01"></div>
+          <div><button type="submit" id="btSave">Save</button></div>
+        </form>
       </div>
       <div class="panel">
         <h2>Worksites</h2>
@@ -506,6 +528,164 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     } catch (er) { flash(er.message, false); }
   };
 
+
+  // ---- billing: client trip terms, provider hourly rate, bill review, Ready to invoice ----
+  function mk(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function r2(n) { return Math.round((n + 1e-9) * 100) / 100; }
+  // The locked TMG math: customer = trip charge + (labor + 1.10 x materials) / 0.80. Same formula the backend uses.
+  function calcBill(v) {
+    var mats = 0;
+    v.materials.forEach(function (m) { mats += r2((Number(m.quantity) || 0) * (Number(m.unitPrice) || 0)); });
+    var labor = r2((Number(v.hours) || 0) * (Number(v.rate) || 0));
+    var pt = r2((Number(v.tripPay) || 0) + labor + mats);
+    var ct = r2((Number(v.tripCharge) || 0) + (labor + 1.10 * mats) / 0.80);
+    var m = ct > 0 ? r2((ct - pt) / ct * 100) : (pt > 0 ? -100 : 0);
+    return { labor: labor, mats: mats, pt: pt, ct: ct, m: m, cLabor: r2(labor / 0.80), cMat: r2(1.10 * mats / 0.80) };
+  }
+
+  async function loadBillTerms(id) {
+    try {
+      var d = await api('/staff/customers/' + id + '/billing');
+      $('btCharge').value = d.tripCharge == null ? '' : d.tripCharge; $('btPay').value = d.tripPay == null ? '' : d.tripPay;
+      var ro = !isMgr(); $('btCharge').disabled = ro; $('btPay').disabled = ro; $('btSave').hidden = ro;
+    } catch (er) { /* leave blank */ }
+  }
+  $('btForm').onsubmit = async function (e) {
+    e.preventDefault();
+    try { await api('/staff/customers/' + currentCustomer + '/billing', 'POST', { tripCharge: $('btCharge').value, tripPay: $('btPay').value }); flash('Billing terms saved.', true); }
+    catch (er) { flash(er.message, false); }
+  };
+  async function loadProviderRate(id) {
+    try {
+      var d = await api('/staff/providers/' + id + '/rate');
+      $('prRate').value = d.hourlyRate == null ? '' : d.hourlyRate;
+      var ro = !isMgr(); $('prRate').disabled = ro; $('prRateSave').hidden = ro;
+    } catch (er) { /* leave blank */ }
+  }
+  $('rateForm').onsubmit = async function (e) {
+    e.preventDefault();
+    try { await api('/staff/providers/' + currentProvider + '/rate', 'POST', { hourlyRate: $('prRate').value }); flash('Hourly rate saved.', true); }
+    catch (er) { flash(er.message, false); }
+  };
+
+  async function loadInvoiceQueue() {
+    var pn = $('invoicePanel');
+    if (!me || me.role !== 'owner') { pn.hidden = true; return; }
+    try {
+      var d = await api('/staff/ready-to-invoice');
+      var tb = $('invTable').tBodies[0]; clear(tb);
+      pn.hidden = false; $('invEmpty').hidden = d.bills.length > 0;
+      d.bills.forEach(function (b) {
+        var tr = document.createElement('tr');
+        tr.appendChild(td(b.job_number)); tr.appendChild(td(b.customer_name)); tr.appendChild(td(b.business_name));
+        tr.appendChild(td(dollars(b.customer_total))); tr.appendChild(td(b.margin_pct + '%' + (b.margin_exception ? ' (exception)' : ''))); tr.appendChild(td(fmt(b.approved_at)));
+        var c = document.createElement('td'); var inp = mk('input', 'bill-in'); inp.placeholder = 'Invoice #'; inp.maxLength = 60; inp.style.width = '110px'; inp.style.marginRight = '6px';
+        c.appendChild(inp);
+        c.appendChild(btn('Mark invoiced', async function () {
+          if (!inp.value.trim()) return flash('Enter the invoice number first.', false);
+          try { await api('/staff/bills/' + b.id + '/invoiced', 'POST', { invoiceNumber: inp.value }); flash('Marked invoiced.', true); loadInvoiceQueue(); }
+          catch (er) { flash(er.message, false); }
+        }));
+        c.appendChild(btn('Open', function () { openTicket(b.ticket_id); }));
+        tr.appendChild(c); tb.appendChild(tr);
+      });
+    } catch (er) { pn.hidden = true; }
+  }
+
+  async function loadBill(id) {
+    var sec = $('billSection'); sec.hidden = true; clear($('billBody'));
+    try {
+      var d = await api('/staff/tickets/' + id + '/bill');
+      if (currentTicket !== id || !d.bill) return;
+      sec.hidden = false; renderBill(id, d);
+    } catch (er) { /* panel stays hidden */ }
+  }
+
+  function renderBill(id, d) {
+    var b = d.bill, body = $('billBody'); clear(body);
+    var edit = d.canAct;
+    var STAT = { submitted: 'Waiting on review', margin_review: 'Waiting on margin approval', approved: 'Approved, ready to invoice', invoiced: 'Invoiced', returned: 'Returned to provider' };
+    body.appendChild(mk('p', 'small', 'Submitted by ' + b.submitted_by + ' (' + b.business_name + ') on ' + fmt(b.bill_date) + '. Status: ' + (STAT[b.status] || b.status) + '.'));
+    d.prior.forEach(function (p) { body.appendChild(mk('p', 'small', 'Earlier bill returned ' + fmt(p.reviewed_at) + ' by ' + p.reviewed_by + ': ' + p.return_note)); });
+    if (b.status === 'approved' || b.status === 'invoiced') body.appendChild(mk('p', 'small', 'Approved by ' + b.approved_by + ' on ' + fmt(b.approved_at) + (b.margin_exception ? ' as a low-margin exception.' : '.') + (b.invoice_number ? ' Invoice ' + b.invoice_number + ' on ' + fmt(b.invoiced_at) + '.' : '')));
+    if (d.waitingOnManager) body.appendChild(mk('p', 'bill-warn', 'The margin is under ' + d.minMargin + '%. A manager or the Owner has to approve this bill.'));
+
+    var lbl = mk('label', null, 'Work performed'); lbl.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:10px 0 4px';
+    var ta = mk('textarea', 'bill-ta'); ta.rows = 4; ta.value = b.description; ta.disabled = !edit;
+    body.appendChild(lbl); body.appendChild(ta);
+
+    function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
+    var tbl = mk('table', 't'); tbl.style.marginTop = '14px';
+    var hr = tbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Unit price', 'Provider', 'Customer'].forEach(function (h) { hr.appendChild(mk('th', null, h)); });
+    var tb = tbl.createTBody();
+    function row(first, qty, unit, pcell, ccell) {
+      var tr = tb.insertRow(); [first, qty, unit, pcell, ccell].forEach(function (x) { var c = tr.insertCell(); if (x) c.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); }); return tr;
+    }
+    var tripPay = num(b.trip_pay), tripCharge = num(b.trip_charge), hours = num(b.hours, '0.25'), rate = num(b.hourly_rate);
+    var pTrip = mk('span'), cTrip = mk('span'), pLab = mk('span'), cLab = mk('span');
+    row('Initial trip (flat)', '1', '', tripPay, tripCharge);
+    row('Labor', hours, rate, pLab, cLab);
+    var mats = [], matBody = tb;
+    function addMat(m) {
+      var o = { desc: mk('input', 'bill-in'), qty: num(m.quantity), unit: num(m.unit_price), p: mk('span'), c: mk('span') };
+      o.desc.value = m.description || ''; o.desc.disabled = !edit; o.desc.placeholder = 'Material';
+      var first = mk('div'); first.appendChild(o.desc);
+      if (edit) { var rm = btn('Remove', function () { mats.splice(mats.indexOf(o), 1); o.tr.remove(); upd(); }); rm.style.marginTop = '4px'; first.appendChild(rm); }
+      o.tr = row(first, o.qty, o.unit, o.p, o.c); mats.push(o);
+      [o.qty, o.unit, o.desc].forEach(function (i) { i.oninput = upd; });
+    }
+    d.bill.materials.forEach(addMat);
+    body.appendChild(tbl);
+    if (edit) { var add = btn('Add material line', function () { addMat({}); upd(); }); add.style.marginTop = '8px'; body.appendChild(add); }
+
+    var tot = mk('div'); tot.style.marginTop = '14px'; body.appendChild(tot);
+    var warn = mk('div'); body.appendChild(warn);
+    function vals() {
+      return { description: ta.value, tripPay: tripPay.value, tripCharge: tripCharge.value, hours: hours.value, rate: rate.value,
+        materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value }; }) };
+    }
+    var approveBtn = null;
+    function upd() {
+      var v = vals(), c = calcBill(v);
+      pLab.textContent = dollars(c.labor); cLab.textContent = dollars(c.cLabor);
+      mats.forEach(function (o) { var a = r2((Number(o.qty.value) || 0) * (Number(o.unit.value) || 0)); o.p.textContent = dollars(a); o.c.textContent = dollars(r2(1.10 * a / 0.80)); });
+      clear(tot);
+      [['cust', 'Customer total', dollars(c.ct)], ['prov', 'Provider total', dollars(c.pt)], ['mar', 'Margin', c.m + '%']].forEach(function (x) {
+        var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar' && c.m < d.minMargin) sp.style.color = 'var(--red)'; r.appendChild(sp); tot.appendChild(r);
+      });
+      clear(warn);
+      if (c.pt > d.providerNte) warn.appendChild(mk('p', 'bill-warn', 'The provider total is over the Provider NTE (' + dollars(d.providerNte) + ').'));
+      if (c.ct > d.customerNte) warn.appendChild(mk('p', 'bill-warn', 'The customer total is over the Customer NTE (' + dollars(d.customerNte) + ').'));
+      if (c.m < d.minMargin) warn.appendChild(mk('p', 'bill-warn', 'Margin is under ' + d.minMargin + '%.' + (d.isEmployee ? ' This will need a manager or Owner to approve it.' : ' Approving records an exception.')));
+      if (approveBtn) approveBtn.textContent = (d.isEmployee && c.m < d.minMargin) ? 'Send for margin approval' : 'Approve bill';
+    }
+    [ta, tripPay, tripCharge, hours, rate].forEach(function (i) { i.oninput = upd; });
+
+    if (edit) {
+      var note = mk('input', 'bill-in'); note.placeholder = 'Note to provider (required to return the bill)'; note.maxLength = 1000; note.style.marginTop = '14px';
+      body.appendChild(note);
+      var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';
+      var save = async function () { await api('/staff/bills/' + b.id + '/save', 'POST', vals()); };
+      bar.appendChild(btn('Save changes', async function () { try { await save(); flash('Saved.', true); loadBill(id); } catch (er) { flash(er.message, false); } }));
+      bar.appendChild(btn('Return to provider', async function () {
+        if (note.value.trim().length < 3) return flash('Add a note telling the provider what to fix.', false);
+        try { await api('/staff/bills/' + b.id + '/return', 'POST', { note: note.value }); flash('Returned to the provider.', true); openTicket(id); loadAlerts(); }
+        catch (er) { flash(er.message, false); }
+      }));
+      approveBtn = btn('Approve bill', async function () {
+        try {
+          await save();
+          var r = await api('/staff/bills/' + b.id + '/approve', 'POST', {});
+          flash(r.pendingMarginApproval ? 'Sent to a manager or the Owner for margin approval.' : 'Bill approved.', true);
+          openTicket(id); loadAlerts();
+        } catch (er) { flash(er.message, false); }
+      });
+      approveBtn.className = 'btn-sm'; approveBtn.style.cssText = 'background:var(--red);color:#fff;border:0;padding:6px 14px';
+      bar.appendChild(approveBtn); body.appendChild(bar);
+    }
+    upd();
+  }
+
   // ---- browser back/forward: every screen gets its own history entry ----
   var fromPop = false;
   function setHash(h) { if (!fromPop && location.hash !== h) history.pushState(null, '', h); }
@@ -579,6 +759,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       var d = await api('/staff/customers/' + id);
       view('viewCustomer');
       $('cName').textContent = d.customer.name;
+      loadBillTerms(id);
 
       var sb = $('siteTable').tBodies[0]; clear(sb);
       $('siteEmpty').hidden = d.worksites.length > 0;
@@ -674,6 +855,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       fillTickets('tkMine', 'tkMineE', d.mine);
       fillTickets('tkActive', 'tkActiveE', d.active);
       loadAlerts();
+      loadInvoiceQueue();
     } catch (e) { flash(e.message, false); }
   }
   $('backToTickets').onclick = loadTickets;
@@ -714,6 +896,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       loadNte(id, t);
       loadPhotos(id);
       loadCompletion(id);
+      loadBill(id);
       d.history.forEach(function (h) {
         var tr = document.createElement('tr');
         tr.appendChild(td(String(h.changed_at).replace('T', ' ').slice(0, 16)));
@@ -929,6 +1112,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       view('viewProvider');
       var p = d.provider;
       $('pName').textContent = p.business_name + (p.preferred ? ' \u2605 Preferred' : '');
+      loadProviderRate(id);
       $('pMeta').textContent = [p.contact_name, p.email, p.phone, p.primary_trade, 'States: ' + p.service_states, 'Status: ' + p.status.replace(/_/g, ' '), 'Completed jobs: ' + d.completedJobs].filter(Boolean).join(' | ');
       $('pTerms').textContent = p.terms_accepted_at ? 'Terms ' + p.terms_version + ' signed by ' + p.terms_signer_name + ' on ' + fmt(p.terms_accepted_at) : 'Terms not on file.';
       $('pPref').textContent = p.preferred && p.preferred_set_by ? 'Preferred set by ' + p.preferred_set_by + ' on ' + fmt(p.preferred_set_at) : '';
