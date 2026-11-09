@@ -215,10 +215,11 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         </form>
       </div>
       <div class="panel">
-        <h2>Hourly labor rate</h2>
-        <p class="small">Only the Owner sets this rate. The provider only enters hours on their bill. Leave it blank until you have agreed a rate; the provider cannot bill hours without one.</p>
+        <h2>Labor rates</h2>
+        <p class="small">Only the Owner sets these rates. The provider only enters hours on their bill: Lead Tech hours, and up to 2 Helpers. Leave a rate blank until you have agreed it; the provider cannot bill those hours without it.</p>
         <form class="f" id="rateForm">
-          <div><label for="prRate">Hourly rate ($ per hour)</label><input id="prRate" type="number" min="0" step="0.01"></div>
+          <div><label for="prRate">Lead Tech rate ($ per hour)</label><input id="prRate" type="number" min="0" step="0.01"></div>
+          <div><label for="prHelperRate">Helper rate ($ per hour)</label><input id="prHelperRate" type="number" min="0" step="0.01"></div>
           <div><button type="submit" id="prRateSave">Save</button></div>
         </form>
       </div>
@@ -537,6 +538,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var mats = 0;
     v.materials.forEach(function (m) { mats += r2((Number(m.quantity) || 0) * (Number(m.unitPrice) || 0)); });
     var labor = r2((Number(v.hours) || 0) * (Number(v.rate) || 0));
+    (v.helpers || []).forEach(function (h) { labor = r2(labor + r2((Number(h.hours) || 0) * (Number(v.helperRate) || 0))); });
     var pt = r2((Number(v.tripPay) || 0) + labor + mats);
     var ct = r2((Number(v.tripCharge) || 0) + (labor + 1.10 * mats) / 0.80);
     var m = ct > 0 ? r2((ct - pt) / ct * 100) : (pt > 0 ? -100 : 0);
@@ -558,13 +560,13 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   async function loadProviderRate(id) {
     try {
       var d = await api('/staff/providers/' + id + '/rate');
-      $('prRate').value = d.hourlyRate == null ? '' : d.hourlyRate;
-      var ro = !(me && me.role === 'owner'); $('prRate').disabled = ro; $('prRateSave').hidden = ro;
+      $('prRate').value = d.hourlyRate == null ? '' : d.hourlyRate; $('prHelperRate').value = d.helperRate == null ? '' : d.helperRate;
+      var ro = !(me && me.role === 'owner'); $('prRate').disabled = ro; $('prHelperRate').disabled = ro; $('prRateSave').hidden = ro;
     } catch (er) { /* leave blank */ }
   }
   $('rateForm').onsubmit = async function (e) {
     e.preventDefault();
-    try { await api('/staff/providers/' + currentProvider + '/rate', 'POST', { hourlyRate: $('prRate').value }); flash('Hourly rate saved.', true); }
+    try { await api('/staff/providers/' + currentProvider + '/rate', 'POST', { hourlyRate: $('prRate').value, helperRate: $('prHelperRate').value }); flash('Labor rates saved.', true); }
     catch (er) { flash(er.message, false); }
   };
 
@@ -630,8 +632,22 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var hrs = mk('input', 'bill-in'); hrs.type = 'number'; hrs.min = '0'; hrs.step = '0.25'; hrs.placeholder = 'Hours';
     var tripAmt = mk('span'), laborAmt = mk('span');
     var r1 = ltb.insertRow(); r1.insertCell().appendChild(document.createTextNode('Initial trip (flat)')); r1.insertCell().appendChild(document.createTextNode('1')); r1.insertCell().appendChild(tripIn); r1.insertCell().appendChild(tripAmt);
-    var r2_ = ltb.insertRow(); r2_.insertCell().appendChild(document.createTextNode('Labor')); r2_.insertCell().appendChild(hrs); r2_.insertCell().appendChild(rateIn); r2_.insertCell().appendChild(laborAmt);
+    var r2_ = ltb.insertRow(); r2_.insertCell().appendChild(document.createTextNode('Lead Tech')); r2_.insertCell().appendChild(hrs); r2_.insertCell().appendChild(rateIn); r2_.insertCell().appendChild(laborAmt);
+    var mHelpers = [], mHelperRate = f.helperRate == null ? '' : f.helperRate;
+    function addMHelper() {
+      if (mHelpers.length >= 2) return;
+      var o = { hrs: mk('input', 'bill-in'), rate: mk('input', 'bill-in'), amt: mk('span') };
+      o.hrs.type = 'number'; o.hrs.min = '0'; o.hrs.step = '0.25'; o.hrs.placeholder = 'Hours';
+      o.rate.type = 'number'; o.rate.min = '0'; o.rate.step = '0.01'; o.rate.placeholder = 'Rate'; o.rate.value = mHelperRate;
+      var first = mk('div'); first.appendChild(document.createTextNode('Helper ' + (mHelpers.length + 1)));
+      var rm = btn('Remove', function () { mHelpers.splice(mHelpers.indexOf(o), 1); o.tr.remove(); calc(); }, 'btn-sm'); rm.style.marginLeft = '8px'; first.appendChild(rm);
+      var tr = ltb.insertRow(); o.tr = tr;
+      tr.insertCell().appendChild(first); tr.insertCell().appendChild(o.hrs); tr.insertCell().appendChild(o.rate); tr.insertCell().appendChild(o.amt);
+      o.hrs.oninput = calc; o.rate.oninput = function () { mHelperRate = o.rate.value; mHelpers.forEach(function (x) { if (x !== o) x.rate.value = mHelperRate; }); calc(); };
+      mHelpers.push(o); calc();
+    }
     box.appendChild(ltbl);
+    box.appendChild(btn('Add helper', function () { if (mHelpers.length >= 2) return flash('A bill can have up to 2 helpers.', false); addMHelper(); }, 'btn-sm'));
     box.appendChild(mk('p', 'small', 'The trip pay and hourly rate come from the saved terms. Change them here only for this one bill.'));
     box.appendChild(lab('Materials'));
     var tbl = mk('table', 't'), hr0 = tbl.createTHead().insertRow(); ['Material', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(mk('th', null, h)); });
@@ -652,12 +668,14 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var warn = mk('p', 'bill-warn'); box.appendChild(warn);
     function sum() {
       var m = 0; rows.forEach(function (o) { m += r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
-      var trip = r2(Number(tripIn.value) || 0), labor = r2((Number(hrs.value) || 0) * (Number(rateIn.value) || 0));
-      return { m: m, trip: trip, labor: labor, total: r2(trip + labor + m) };
+      var trip = r2(Number(tripIn.value) || 0), lead = r2((Number(hrs.value) || 0) * (Number(rateIn.value) || 0)), help = 0;
+      mHelpers.forEach(function (o) { help = r2(help + r2((Number(o.hrs.value) || 0) * (Number(o.rate.value) || 0))); });
+      return { m: m, trip: trip, lead: lead, labor: r2(lead + help), total: r2(trip + lead + help + m) };
     }
     function calc() {
       var t = sum();
-      tripAmt.textContent = dollars(t.trip); laborAmt.textContent = dollars(t.labor);
+      tripAmt.textContent = dollars(t.trip); laborAmt.textContent = dollars(t.lead);
+      mHelpers.forEach(function (o) { o.amt.textContent = dollars(r2((Number(o.hrs.value) || 0) * (Number(o.rate.value) || 0))); });
       rows.forEach(function (o) { o.a.textContent = dollars(r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0))); });
       totV.textContent = dollars(t.total); totV.style.color = t.total > f.providerNte ? 'var(--red)' : '';
       warn.textContent = t.total > f.providerNte ? 'This is over the Provider NTE. Raise the NTE first.' : '';
@@ -669,7 +687,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       var t = sum(); if (t.total <= 0) return flash('Add hours or materials.', false);
       if (t.total > f.providerNte) return flash('Over the Provider NTE. Raise the NTE first.', false);
       var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
-      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, hours: hrs.value || 0, tripPay: tripIn.value, rate: rateIn.value, materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
+      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, hours: hrs.value || 0, tripPay: tripIn.value, rate: rateIn.value, helperRate: mHelperRate || 0, helpers: mHelpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }), materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
       catch (er) { flash(er.message, false); }
     });
     go.style.marginTop = '12px'; box.appendChild(go);
@@ -698,7 +716,18 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var tripPay = num(b.trip_pay), tripCharge = num(b.trip_charge), hours = num(b.hours, '0.25'), rate = num(b.hourly_rate);
     var pTrip = mk('span'), cTrip = mk('span'), pLab = mk('span'), cLab = mk('span');
     row('Initial trip (flat)', '1', '', tripPay, tripCharge);
-    row('Labor', hours, rate, pLab, cLab);
+    row('Lead Tech', hours, rate, pLab, cLab);
+    var helpers = [], helperRateVal = (b.helpers && b.helpers.length) ? b.helpers[0].rate : '';
+    function syncHelperRate(src) { helperRateVal = src.value; helpers.forEach(function (o) { if (o.rate !== src) o.rate.value = src.value; }); }
+    function addHelper(h) {
+      var o = { hrs: num(h.hours, '0.25'), rate: num(helperRateVal), p: mk('span'), c: mk('span') };
+      var first = mk('div'); first.appendChild(document.createTextNode('Helper ' + (helpers.length + 1)));
+      if (edit) { var rmh = btn('Remove', function () { helpers.splice(helpers.indexOf(o), 1); o.tr.remove(); upd(); }); rmh.style.marginLeft = '8px'; first.appendChild(rmh); }
+      o.tr = row(first, o.hrs, o.rate, o.p, o.c);
+      tb.insertBefore(o.tr, tb.rows[2 + helpers.length] || null);
+      helpers.push(o); o.hrs.oninput = upd; o.rate.oninput = function () { syncHelperRate(o.rate); upd(); };
+    }
+    (b.helpers || []).forEach(addHelper);
     var mats = [], matBody = tb;
     function addMat(m) {
       var o = { desc: mk('input', 'bill-in'), qty: num(m.quantity), unit: num(m.unit_price), p: mk('span'), c: mk('span') };
@@ -710,18 +739,23 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     }
     d.bill.materials.forEach(addMat);
     body.appendChild(tbl);
-    if (edit) { var add = btn('Add material line', function () { addMat({}); upd(); }); add.style.marginTop = '8px'; body.appendChild(add); }
+    if (edit) {
+      var addH = btn('Add helper', function () { if (helpers.length >= 2) return flash('A bill can have up to 2 helpers.', false); addHelper({}); upd(); }); addH.style.cssText = 'margin-top:8px;margin-right:8px'; body.appendChild(addH);
+      var add = btn('Add material line', function () { addMat({}); upd(); }); add.style.marginTop = '8px'; body.appendChild(add);
+    }
 
     var tot = mk('div'); tot.style.marginTop = '14px'; body.appendChild(tot);
     var warn = mk('div'); body.appendChild(warn);
     function vals() {
-      return { description: ta.value, tripPay: tripPay.value, tripCharge: tripCharge.value, hours: hours.value, rate: rate.value,
+      return { description: ta.value, tripPay: tripPay.value, tripCharge: tripCharge.value, hours: hours.value, rate: rate.value, helperRate: helperRateVal || 0,
+        helpers: helpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }),
         materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value }; }) };
     }
     var approveBtn = null;
     function upd() {
       var v = vals(), c = calcBill(v);
-      pLab.textContent = dollars(c.labor); cLab.textContent = dollars(c.cLabor);
+      pLab.textContent = dollars(r2((Number(hours.value) || 0) * (Number(rate.value) || 0))); cLab.textContent = dollars(r2((Number(hours.value) || 0) * (Number(rate.value) || 0) / 0.80));
+      helpers.forEach(function (o) { var a = r2((Number(o.hrs.value) || 0) * (Number(o.rate.value) || 0)); o.p.textContent = dollars(a); o.c.textContent = dollars(r2(a / 0.80)); });
       mats.forEach(function (o) { var a = r2((Number(o.qty.value) || 0) * (Number(o.unit.value) || 0)); o.p.textContent = dollars(a); o.c.textContent = dollars(r2(1.10 * a / 0.80)); });
       clear(tot);
       [['cust', 'Customer total', dollars(c.ct)], ['prov', 'Provider total', dollars(c.pt)], ['mar', 'Margin', c.m + '%']].forEach(function (x) {

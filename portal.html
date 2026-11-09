@@ -216,12 +216,33 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     sh.appendChild(el('label', 'l', 'Labor'));
     if (f.tripPay > 0) sh.appendChild(el('div', 'box', 'Initial trip (flat rate): ' + money(f.tripPay)));
     var hoursRow = el('div'); hoursRow.style.marginTop = '8px';
+    hoursRow.appendChild(el('b', null, 'Lead Tech')); hoursRow.appendChild(document.createElement('br'));
     var hrs = el('input'); hrs.type = 'number'; hrs.min = '0'; hrs.step = '0.25'; hrs.placeholder = 'Hours worked'; hrs.style.width = '160px'; hrs.style.marginRight = '10px';
     hoursRow.appendChild(hrs);
     var laborTxt = el('span');
     hoursRow.appendChild(laborTxt); sh.appendChild(hoursRow);
-    if (f.hourlyRate == null) { hrs.disabled = true; sh.appendChild(el('div', 'bad', 'Your hourly rate has not been set yet. Contact your TMG contact before entering hours.')); }
-    else sh.appendChild(el('div', 'meta', 'Hourly rate: ' + money(f.hourlyRate) + ' per hour (set by TMG).'));
+    if (f.hourlyRate == null) { hrs.disabled = true; sh.appendChild(el('div', 'bad', 'Your Lead Tech rate has not been set yet. Contact your TMG contact before entering hours.')); }
+    else sh.appendChild(el('div', 'meta', 'Lead Tech rate: ' + money(f.hourlyRate) + ' per hour (set by TMG).'));
+    var helperBox = el('div'), helpers = [];
+    sh.appendChild(helperBox);
+    var addHelperBtn = el('button', 'sec', 'Add helper'); addHelperBtn.style.marginTop = '8px';
+    addHelperBtn.onclick = function () {
+      if (f.helperRate == null) return flash('Your helper rate has not been set yet. Contact your TMG contact before adding a helper.', false);
+      if (helpers.length >= 2) return;
+      var w = el('div'); w.style.marginTop = '10px';
+      var n = helpers.length + 1;
+      w.appendChild(el('b', null, 'Helper ' + n)); w.appendChild(document.createElement('br'));
+      var hi = el('input'); hi.type = 'number'; hi.min = '0'; hi.step = '0.25'; hi.placeholder = 'Hours worked'; hi.style.width = '160px'; hi.style.marginRight = '10px';
+      var amt = el('span'), rm = el('button', 'sec', 'Remove'); rm.style.cssText = 'padding:4px 8px;font-size:12px;margin:0 0 0 10px';
+      var o = { hi: hi, amt: amt, w: w };
+      rm.onclick = function () { helpers.splice(helpers.indexOf(o), 1); w.remove(); helpers.forEach(function (x, i) { x.w.firstChild.textContent = 'Helper ' + (i + 1); }); addHelperBtn.hidden = false; calc(); };
+      hi.oninput = calc; w.appendChild(hi); w.appendChild(amt); w.appendChild(rm);
+      w.appendChild(el('div', 'meta', 'Helper rate: ' + money(f.helperRate) + ' per hour (set by TMG).'));
+      helperBox.appendChild(w); helpers.push(o);
+      if (helpers.length >= 2) addHelperBtn.hidden = true;
+      calc();
+    };
+    sh.appendChild(addHelperBtn);
 
     sh.appendChild(el('label', 'l', 'Materials'));
     var tbl = el('table'); var hr0 = tbl.createTHead().insertRow();
@@ -245,11 +266,13 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     function total() {
       var m = 0; rows.forEach(function (o) { m += Math.round((Number(o.q.value) || 0) * (Number(o.u.value) || 0) * 100) / 100; });
       var labor = Math.round((Number(hrs.value) || 0) * (Number(f.hourlyRate) || 0) * 100) / 100;
+      helpers.forEach(function (o) { labor = Math.round((labor + Math.round((Number(o.hi.value) || 0) * (Number(f.helperRate) || 0) * 100) / 100) * 100) / 100; });
       return { labor: labor, mats: m, sum: Math.round((f.tripPay + labor + m) * 100) / 100 };
     }
     function calc() {
       var t = total();
-      laborTxt.textContent = f.hourlyRate == null ? '' : 'Labor: ' + money(t.labor);
+      laborTxt.textContent = f.hourlyRate == null ? '' : 'Amount: ' + money(Math.round((Number(hrs.value) || 0) * (Number(f.hourlyRate) || 0) * 100) / 100);
+      helpers.forEach(function (o) { o.amt.textContent = 'Amount: ' + money(Math.round((Number(o.hi.value) || 0) * (Number(f.helperRate) || 0) * 100) / 100); });
       rows.forEach(function (o) { o.a.textContent = money((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
       totalBox.textContent = 'Your bill total: ' + money(t.sum) + '   (NTE: ' + money(f.providerNte) + ')';
       over.textContent = t.sum > f.providerNte ? 'This is higher than the amount approved for this job. Close this screen and request an increase first.' : '';
@@ -265,7 +288,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       if (t.sum > f.providerNte) return flash('Your bill is higher than the approved amount. Request an increase first.', false);
       var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
       go.disabled = true; go.textContent = 'Sending...';
-      try { await api('/provider/jobs/' + j.id + '/bill', 'POST', { description: ta.value, hours: hrs.value || 0, materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
+      try { await api('/provider/jobs/' + j.id + '/bill', 'POST', { description: ta.value, hours: hrs.value || 0, helpers: helpers.filter(function (o) { return o.hi.value; }).map(function (o) { return { hours: o.hi.value }; }), materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
       catch (e) { flash(e.message, false); go.disabled = false; go.textContent = 'Submit bill'; }
     };
     var cx = el('button', 'sec', 'Cancel'); cx.onclick = close;
