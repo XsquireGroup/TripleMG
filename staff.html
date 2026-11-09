@@ -216,7 +216,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       </div>
       <div class="panel">
         <h2>Hourly labor rate</h2>
-        <p class="small">TMG sets this rate. The provider only enters hours on their bill. Leave it blank until you have agreed a rate; the provider cannot bill hours without one.</p>
+        <p class="small">Only the Owner sets this rate. The provider only enters hours on their bill. Leave it blank until you have agreed a rate; the provider cannot bill hours without one.</p>
         <form class="f" id="rateForm">
           <div><label for="prRate">Hourly rate ($ per hour)</label><input id="prRate" type="number" min="0" step="0.01"></div>
           <div><button type="submit" id="prRateSave">Save</button></div>
@@ -269,7 +269,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       </div>
       <div class="panel">
         <h2>Billing terms (client agreement)</h2>
-        <p class="small">Set from this client's Master Service Agreement. The flat initial trip is preloaded on every bill for this client. The provider is paid for the initial trip only, however many return visits it takes. Providers never see the trip charge.</p>
+        <p class="small">Set from this client's Master Service Agreement. The flat initial trip is preloaded on every bill for this client. The provider is paid for the initial trip only, however many return visits it takes. Providers never see the trip charge. Only the Owner can change these terms.</p>
         <form class="f" id="btForm">
           <div><label for="btCharge">Trip charge billed to customer ($)</label><input id="btCharge" type="number" min="0" step="0.01"></div>
           <div><label for="btPay">Trip pay to provider ($)</label><input id="btPay" type="number" min="0" step="0.01"></div>
@@ -547,7 +547,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     try {
       var d = await api('/staff/customers/' + id + '/billing');
       $('btCharge').value = d.tripCharge == null ? '' : d.tripCharge; $('btPay').value = d.tripPay == null ? '' : d.tripPay;
-      var ro = !isMgr(); $('btCharge').disabled = ro; $('btPay').disabled = ro; $('btSave').hidden = ro;
+      var ro = !(me && me.role === 'owner'); $('btCharge').disabled = ro; $('btPay').disabled = ro; $('btSave').hidden = ro;
     } catch (er) { /* leave blank */ }
   }
   $('btForm').onsubmit = async function (e) {
@@ -559,7 +559,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     try {
       var d = await api('/staff/providers/' + id + '/rate');
       $('prRate').value = d.hourlyRate == null ? '' : d.hourlyRate;
-      var ro = !isMgr(); $('prRate').disabled = ro; $('prRateSave').hidden = ro;
+      var ro = !(me && me.role === 'owner'); $('prRate').disabled = ro; $('prRateSave').hidden = ro;
     } catch (er) { /* leave blank */ }
   }
   $('rateForm').onsubmit = async function (e) {
@@ -596,9 +596,69 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var sec = $('billSection'); sec.hidden = true; clear($('billBody'));
     try {
       var d = await api('/staff/tickets/' + id + '/bill');
-      if (currentTicket !== id || !d.bill) return;
+      if (currentTicket !== id) return;
+      if (!d.bill) { return loadManualBill(id); }
       sec.hidden = false; renderBill(id, d);
+      if (d.bill.status === 'returned') await loadManualBill(id, true);
+      // a returned/earlier bill never blocks this: the manual button only shows while the ticket is awaiting a bill
     } catch (er) { /* panel stays hidden */ }
+  }
+
+
+  // ---- manually submit a provider bill (provider not billing; keeps the job moving) ----
+  async function loadManualBill(id, keep) {
+    var sec = $('billSection'), body = $('billBody');
+    var f;
+    try { f = await api('/staff/tickets/' + id + '/manual-bill-form'); } catch (er) { return; }
+    if (currentTicket !== id || !f.canSubmit) return;
+    sec.hidden = false; if (!keep) clear(body);
+    body.appendChild(mk('p', 'small', 'The work is confirmed complete and no bill has been submitted. If the provider is not billing, you can submit it for them. It goes to the employee inbox like any provider bill and must still be reviewed and approved.'));
+    var openBtn = btn('Manually Submit Provider Bill', function () { openBtn.hidden = true; box.hidden = false; }, 'btn-sm');
+    body.appendChild(openBtn);
+    var box = mk('div'); box.hidden = true; box.style.marginTop = '12px'; body.appendChild(box);
+    function lab(t) { var l = mk('label', null, t); l.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:10px 0 4px'; return l; }
+    box.appendChild(mk('p', 'small', 'Provider: ' + f.providerName + '   |   Ticket: ' + f.jobNumber + '   |   Date: ' + String(f.billDate).slice(0, 10)));
+    box.appendChild(lab('Why are you submitting this for the provider?'));
+    var why = mk('input', 'bill-in'); why.maxLength = 500; why.placeholder = 'e.g. Provider is not responding; entered from their phone call'; why.style.width = '100%'; box.appendChild(why);
+    box.appendChild(lab('Work performed'));
+    var ta = mk('textarea', 'bill-ta'); ta.rows = 4; ta.maxLength = 4000; box.appendChild(ta);
+    box.appendChild(lab('Labor'));
+    box.appendChild(mk('p', 'small', 'Initial trip (flat, provider side): ' + dollars(f.tripPay) + (f.hourlyRate == null ? '. No hourly rate set for this provider yet; hours are disabled.' : '. Hourly rate: ' + dollars(f.hourlyRate) + '.')));
+    var hrs = mk('input', 'bill-in'); hrs.type = 'number'; hrs.min = '0'; hrs.step = '0.25'; hrs.placeholder = 'Hours worked'; hrs.disabled = f.hourlyRate == null; box.appendChild(hrs);
+    box.appendChild(lab('Materials'));
+    var tbl = mk('table', 't'), hr0 = tbl.createTHead().insertRow(); ['Material', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(mk('th', null, h)); });
+    var tb = tbl.createTBody(), rows = [];
+    function addRow() {
+      var o = { d: mk('input', 'bill-in'), q: mk('input', 'bill-in'), u: mk('input', 'bill-in'), a: mk('span') };
+      o.d.placeholder = 'Description'; [o.q, o.u].forEach(function (i) { i.type = 'number'; i.min = '0'; i.step = '0.01'; });
+      var tr = tb.insertRow(); [o.d, o.q, o.u, o.a].forEach(function (x) { tr.insertCell().appendChild(x); });
+      var rm = btn('Remove', function () { rows.splice(rows.indexOf(o), 1); tr.remove(); calc(); }, 'btn-sm'); tr.insertCell().appendChild(rm);
+      [o.d, o.q, o.u].forEach(function (i) { i.oninput = calc; }); rows.push(o);
+    }
+    box.appendChild(tbl); box.appendChild(btn('Add material line', function () { addRow(); }, 'btn-sm'));
+    var tot = mk('p', 'small'); tot.style.marginTop = '12px'; box.appendChild(tot);
+    var warn = mk('p', 'bill-warn'); box.appendChild(warn);
+    function sum() {
+      var m = 0; rows.forEach(function (o) { m += r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
+      return { m: m, total: r2(f.tripPay + r2((Number(hrs.value) || 0) * (Number(f.hourlyRate) || 0)) + m) };
+    }
+    function calc() {
+      var t = sum();
+      rows.forEach(function (o) { o.a.textContent = dollars(r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0))); });
+      tot.textContent = 'Provider total: ' + dollars(t.total) + '   (Provider NTE: ' + dollars(f.providerNte) + ')';
+      warn.textContent = t.total > f.providerNte ? 'This is over the Provider NTE. Raise the NTE first.' : '';
+    }
+    hrs.oninput = calc; addRow(); calc();
+    var go = btn('Submit for the provider', async function () {
+      if (why.value.trim().length < 5) return flash('Say why you are submitting this for the provider.', false);
+      if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
+      var t = sum(); if (t.total <= 0) return flash('Add hours or materials.', false);
+      if (t.total > f.providerNte) return flash('Over the Provider NTE. Raise the NTE first.', false);
+      var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
+      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, hours: hrs.value || 0, materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
+      catch (er) { flash(er.message, false); }
+    });
+    go.style.marginTop = '12px'; box.appendChild(go);
   }
 
   function renderBill(id, d) {
