@@ -644,7 +644,11 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       [o.d, o.q, o.u].forEach(function (i) { i.oninput = calc; }); rows.push(o);
     }
     box.appendChild(tbl); box.appendChild(btn('Add material line', function () { addRow(); }, 'btn-sm'));
-    var tot = mk('p', 'small'); tot.style.marginTop = '12px'; box.appendChild(tot);
+    var totBox = mk('div'); totBox.style.marginTop = '16px';
+    var rowT = mk('div', 'nte prov'), rowN = mk('div', 'nte prov');
+    rowT.appendChild(mk('b', null, 'Provider total')); var totV = mk('span'); rowT.appendChild(totV);
+    rowN.appendChild(mk('b', null, 'Provider NTE')); rowN.appendChild(mk('span', null, dollars(f.providerNte)));
+    totBox.appendChild(rowT); totBox.appendChild(rowN); box.appendChild(totBox);
     var warn = mk('p', 'bill-warn'); box.appendChild(warn);
     function sum() {
       var m = 0; rows.forEach(function (o) { m += r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
@@ -655,7 +659,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       var t = sum();
       tripAmt.textContent = dollars(t.trip); laborAmt.textContent = dollars(t.labor);
       rows.forEach(function (o) { o.a.textContent = dollars(r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0))); });
-      tot.textContent = 'Provider total: ' + dollars(t.total) + '   (Provider NTE: ' + dollars(f.providerNte) + ')';
+      totV.textContent = dollars(t.total); totV.style.color = t.total > f.providerNte ? 'var(--red)' : '';
       warn.textContent = t.total > f.providerNte ? 'This is over the Provider NTE. Raise the NTE first.' : '';
     }
     hrs.oninput = calc; tripIn.oninput = calc; rateIn.oninput = calc; addRow(); calc();
