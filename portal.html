@@ -25,6 +25,19 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
 .job h3 { font-size:18px; margin:0 0 4px; }
 .job .meta { font-size:13px; color:var(--steel); margin-bottom:8px; }
 .job .pay { font-weight:700; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:50; overflow:auto; padding:24px 12px; }
+.modal .sheet { background:var(--paper); max-width:680px; margin:0 auto; padding:26px 28px; border:1px solid var(--border); text-align:left; }
+.modal h2 { margin:0 0 6px; }
+.modal .hdr { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:10px; margin:12px 0; font-size:14px; }
+.modal .hdr b { display:block; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--steel); }
+.modal label.l { display:block; font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin:16px 0 4px; }
+.modal input, .modal textarea { width:100%; padding:9px; border:1px solid var(--border); font:inherit; background:var(--paper); }
+.modal table { width:100%; border-collapse:collapse; margin-top:6px; }
+.modal th { font-size:11px; text-transform:uppercase; text-align:left; padding:4px 6px; border-bottom:2px solid #000; }
+.modal td { padding:5px 6px; vertical-align:top; }
+.modal .box { background:var(--concrete); padding:10px 14px; margin-top:6px; font-size:15px; }
+.modal .bad { color:var(--red); font-weight:600; font-size:13px; margin-top:6px; }
+.modal .row { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
 .job .ph { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
 .job .ph img { width:120px; height:90px; object-fit:cover; border:1px solid var(--border); cursor:pointer; display:block; background:#eee; }
 .job button { cursor:pointer; padding:9px 16px; border:0; background:var(--red); color:var(--paper); font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; margin-top:10px; }
@@ -179,6 +192,87 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
   function money(v) { return '$' + Number(v).toFixed(2); }
 
+
+  // ---- bill form: opens as a pop-up screen ----
+  async function openBillForm(j) {
+    var f;
+    try { f = await api('/provider/jobs/' + j.id + '/bill-form'); } catch (e) { return flash(e.message, false); }
+    var ov = el('div', 'modal'), sh = el('div', 'sheet'); ov.appendChild(sh);
+    var close = function () { ov.remove(); };
+    sh.appendChild(el('h2', null, 'Bill'));
+    var hdr = el('div', 'hdr');
+    [['Provider', f.companyName], ['Date', String(f.billDate).slice(0, 10)], ['Ticket', f.jobNumber]].forEach(function (x) {
+      var c = el('div'); c.appendChild(el('b', null, x[0])); c.appendChild(document.createTextNode(x[1])); hdr.appendChild(c);
+    });
+    sh.appendChild(hdr);
+    var req = el('div', 'box'); req.appendChild(el('b', null, 'Work requested: ')); req.appendChild(document.createTextNode(f.workRequested.title + '. ' + f.workRequested.description));
+    sh.appendChild(req);
+
+    sh.appendChild(el('label', 'l', 'Work performed'));
+    var ta = el('textarea'); ta.rows = 5; ta.maxLength = 4000;
+    ta.placeholder = 'Say what you did, for example: Arrived on [date], inspected the active leak in the men\'s restroom. Identified a faulty flush valve and replaced it.';
+    sh.appendChild(ta);
+
+    sh.appendChild(el('label', 'l', 'Labor'));
+    if (f.tripPay > 0) sh.appendChild(el('div', 'box', 'Initial trip (flat rate): ' + money(f.tripPay)));
+    var hoursRow = el('div'); hoursRow.style.marginTop = '8px';
+    var hrs = el('input'); hrs.type = 'number'; hrs.min = '0'; hrs.step = '0.25'; hrs.placeholder = 'Hours worked'; hrs.style.width = '160px'; hrs.style.marginRight = '10px';
+    hoursRow.appendChild(hrs);
+    var laborTxt = el('span');
+    hoursRow.appendChild(laborTxt); sh.appendChild(hoursRow);
+    if (f.hourlyRate == null) { hrs.disabled = true; sh.appendChild(el('div', 'bad', 'Your hourly rate has not been set yet. Contact your TMG contact before entering hours.')); }
+    else sh.appendChild(el('div', 'meta', 'Hourly rate: ' + money(f.hourlyRate) + ' per hour (set by TMG).'));
+
+    sh.appendChild(el('label', 'l', 'Materials'));
+    var tbl = el('table'); var hr0 = tbl.createTHead().insertRow();
+    ['Material', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(el('th', null, h)); });
+    var tb = tbl.createTBody(), rows = [];
+    function addRow() {
+      var o = { d: el('input'), q: el('input'), u: el('input'), a: el('span') };
+      o.d.placeholder = 'Description'; o.d.maxLength = 300;
+      [o.q, o.u].forEach(function (i) { i.type = 'number'; i.min = '0'; i.step = '0.01'; });
+      o.q.style.width = '80px'; o.u.style.width = '110px';
+      var tr = tb.insertRow(), rm = el('button', 'sec', 'Remove'); rm.style.cssText = 'padding:4px 8px;font-size:12px;margin:0';
+      rm.onclick = function () { rows.splice(rows.indexOf(o), 1); tr.remove(); calc(); };
+      [o.d, o.q, o.u, o.a, rm].forEach(function (x) { tr.insertCell().appendChild(x); });
+      [o.d, o.q, o.u].forEach(function (i) { i.oninput = calc; }); rows.push(o);
+    }
+    sh.appendChild(tbl);
+    var addB = el('button', 'sec', 'Add material line'); addB.style.marginTop = '8px'; addB.onclick = function () { addRow(); }; sh.appendChild(addB);
+
+    var totalBox = el('div', 'box'); totalBox.style.marginTop = '18px'; sh.appendChild(totalBox);
+    var over = el('div', 'bad'); sh.appendChild(over);
+    function total() {
+      var m = 0; rows.forEach(function (o) { m += Math.round((Number(o.q.value) || 0) * (Number(o.u.value) || 0) * 100) / 100; });
+      var labor = Math.round((Number(hrs.value) || 0) * (Number(f.hourlyRate) || 0) * 100) / 100;
+      return { labor: labor, mats: m, sum: Math.round((f.tripPay + labor + m) * 100) / 100 };
+    }
+    function calc() {
+      var t = total();
+      laborTxt.textContent = f.hourlyRate == null ? '' : 'Labor: ' + money(t.labor);
+      rows.forEach(function (o) { o.a.textContent = money((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
+      totalBox.textContent = 'Your bill total: ' + money(t.sum) + '   (approved amount for this job: ' + money(f.providerNte) + ')';
+      over.textContent = t.sum > f.providerNte ? 'This is higher than the amount approved for this job. Close this screen and request an increase first.' : '';
+    }
+    hrs.oninput = calc; addRow(); calc();
+
+    var bar = el('div', 'row');
+    var go = el('button', '', 'Submit bill');
+    go.onclick = async function () {
+      var t = total();
+      if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
+      if (t.sum <= 0) return flash('Add your hours or materials.', false);
+      if (t.sum > f.providerNte) return flash('Your bill is higher than the approved amount. Request an increase first.', false);
+      var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
+      go.disabled = true; go.textContent = 'Sending...';
+      try { await api('/provider/jobs/' + j.id + '/bill', 'POST', { description: ta.value, hours: hrs.value || 0, materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
+      catch (e) { flash(e.message, false); go.disabled = false; go.textContent = 'Submit bill'; }
+    };
+    var cx = el('button', 'sec', 'Cancel'); cx.onclick = close;
+    bar.appendChild(go); bar.appendChild(cx); sh.appendChild(bar);
+    document.body.appendChild(ov);
+  }
+
   function jobCard(j, offer) {
     var d = el('div', 'job');
     var head = el('div'); 
@@ -214,7 +308,14 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
         d.appendChild(rb); d.appendChild(form);
       }
       if (j.status === 'completion_review') d.appendChild(el('div', 'meta', 'You marked this job complete. TMG is reviewing it and will confirm.'));
-      if (j.status === 'completed') d.appendChild(el('div', 'meta', 'TMG confirmed the work is complete. Submitting your bill will open here next.'));
+      if (j.status === 'needs_billing' || j.status === 'margin_review') d.appendChild(el('div', 'meta', 'Your bill is under review at TMG.'));
+      if (j.bill_return_note && j.can_bill) d.appendChild(el('div', 'meta', 'TMG returned your bill: ' + j.bill_return_note));
+      if (j.bill_approved_total != null) d.appendChild(el('div', 'meta', 'Bill approved: ' + money(j.bill_approved_total) + '.'));
+      if (j.can_bill) {
+        var bb = el('button', '', 'Submit your bill'); bb.style.marginLeft = '8px';
+        bb.onclick = function () { openBillForm(j); };
+        d.appendChild(bb);
+      }
       if (j.completion_sent_back_note && j.can_complete) d.appendChild(el('div', 'meta', 'TMG sent your completion back: ' + j.completion_sent_back_note));
       if (j.can_complete) {
         var cb = el('button', '', 'Work complete'); cb.style.marginLeft = '8px';
