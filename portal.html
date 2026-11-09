@@ -131,6 +131,25 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       return data;
     }
   }
+  function shrink(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var k = Math.min(1, 1600 / Math.max(img.width, img.height));
+        var c = document.createElement('canvas'); c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        c.toBlob(function (b) {
+          if (!b) return reject(new Error('Could not read that photo.'));
+          var fr = new FileReader();
+          fr.onload = function () { resolve({ filename: file.name, blob: b, dataBase64: String(fr.result).split(',')[1] }); };
+          fr.readAsDataURL(b);
+        }, 'image/jpeg', 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error(file.name + ' could not be read. Use a JPG or PNG photo.')); };
+      img.src = url;
+    });
+  }
   async function apiBlob(path) {
     for (var attempt = 0; attempt < 2; attempt++) {
       var t = await token(attempt === 1);
@@ -193,6 +212,48 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
         form.appendChild(amt); form.appendChild(why); form.appendChild(go);
         rb.onclick = function () { form.hidden = !form.hidden; };
         d.appendChild(rb); d.appendChild(form);
+      }
+      if (j.status === 'completion_review') d.appendChild(el('div', 'meta', 'You marked this job complete. TMG is reviewing it and will confirm.'));
+      if (j.status === 'completed') d.appendChild(el('div', 'meta', 'TMG confirmed the work is complete. Submitting your bill will open here next.'));
+      if (j.completion_sent_back_note && j.can_complete) d.appendChild(el('div', 'meta', 'TMG sent your completion back: ' + j.completion_sent_back_note));
+      if (j.can_complete) {
+        var cb = el('button', '', 'Work complete'); cb.style.marginLeft = '8px';
+        var cf = el('div'); cf.hidden = true; cf.style.marginTop = '12px';
+        cf.appendChild(el('div', 'meta', 'Add at least 4 photos showing the finished work, plus a note if needed. TMG will review it before you are asked to bill.'));
+        var pick = el('input'); pick.type = 'file'; pick.accept = 'image/*'; pick.multiple = true;
+        var strip = el('div', 'ph');
+        var cnote = el('input'); cnote.placeholder = 'Note for TMG (optional)'; cnote.maxLength = 2000; cnote.style.cssText = 'padding:9px;border:1px solid var(--border);font:inherit;width:100%;margin-top:8px';
+        var sub = el('button', '', 'Submit completion');
+        var chosen = [], urls = [];
+        var draw = function () {
+          urls.forEach(function (u) { URL.revokeObjectURL(u); }); urls = []; strip.textContent = '';
+          chosen.forEach(function (p, i) {
+            var u = URL.createObjectURL(p.blob); urls.push(u);
+            var f = el('div'); var im = el('img'); im.src = u; im.alt = 'Photo'; f.appendChild(im);
+            var rm = el('button', 'sec', 'Remove'); rm.style.cssText = 'display:block;margin:4px 0 0;padding:4px 8px;font-size:12px';
+            rm.onclick = function () { chosen.splice(i, 1); draw(); };
+            f.appendChild(rm); strip.appendChild(f);
+          });
+        };
+        pick.onchange = async function () {
+          var files = Array.prototype.slice.call(pick.files); pick.value = '';
+          for (var i = 0; i < files.length; i++) {
+            if (chosen.length >= 10) { flash('Up to 10 photos.', false); break; }
+            try { chosen.push(await shrink(files[i])); } catch (e) { flash(e.message, false); }
+          }
+          draw();
+        };
+        sub.onclick = async function () {
+          if (chosen.length < 4) return flash('Add at least 4 photos of the finished work.', false);
+          sub.disabled = true; sub.textContent = 'Sending...';
+          try {
+            await api('/provider/jobs/' + j.id + '/complete', 'POST', { note: cnote.value, photos: chosen.map(function (p) { return { filename: p.filename, dataBase64: p.dataBase64 }; }) });
+            flash('Sent to TMG for review.', true); loadBoard();
+          } catch (e) { flash(e.message, false); sub.disabled = false; sub.textContent = 'Submit completion'; }
+        };
+        cf.appendChild(pick); cf.appendChild(strip); cf.appendChild(cnote); cf.appendChild(sub);
+        cb.onclick = function () { cf.hidden = !cf.hidden; };
+        d.appendChild(cb); d.appendChild(cf);
       }
     } else {
       var b = el('button', j.accepted ? 'sec' : '', j.accepted ? 'Withdraw' : 'Accept job');
