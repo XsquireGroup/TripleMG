@@ -251,7 +251,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       var t = total();
       laborTxt.textContent = f.hourlyRate == null ? '' : 'Labor: ' + money(t.labor);
       rows.forEach(function (o) { o.a.textContent = money((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
-      totalBox.textContent = 'Your bill total: ' + money(t.sum) + '   (approved amount for this job: ' + money(f.providerNte) + ')';
+      totalBox.textContent = 'Your bill total: ' + money(t.sum) + '   (NTE: ' + money(f.providerNte) + ')';
       over.textContent = t.sum > f.providerNte ? 'This is higher than the amount approved for this job. Close this screen and request an increase first.' : '';
     }
     hrs.oninput = calc; addRow(); calc();
