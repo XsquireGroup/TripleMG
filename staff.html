@@ -622,9 +622,17 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var why = mk('input', 'bill-in'); why.maxLength = 500; why.placeholder = 'e.g. Provider is not responding; entered from their phone call'; why.style.width = '100%'; box.appendChild(why);
     box.appendChild(lab('Work performed'));
     var ta = mk('textarea', 'bill-ta'); ta.rows = 4; ta.maxLength = 4000; box.appendChild(ta);
-    box.appendChild(lab('Labor'));
-    box.appendChild(mk('p', 'small', 'Initial trip (flat, provider side): ' + dollars(f.tripPay) + (f.hourlyRate == null ? '. No hourly rate set for this provider yet; hours are disabled.' : '. Hourly rate: ' + dollars(f.hourlyRate) + '.')));
-    var hrs = mk('input', 'bill-in'); hrs.type = 'number'; hrs.min = '0'; hrs.step = '0.25'; hrs.placeholder = 'Hours worked'; hrs.disabled = f.hourlyRate == null; box.appendChild(hrs);
+    box.appendChild(lab('Labor (provider side)'));
+    var ltbl = mk('table', 't'), lh = ltbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Rate', 'Amount'].forEach(function (h) { lh.appendChild(mk('th', null, h)); });
+    var ltb = ltbl.createTBody();
+    var tripIn = mk('input', 'bill-in'); tripIn.type = 'number'; tripIn.min = '0'; tripIn.step = '0.01'; tripIn.value = f.tripPay;
+    var rateIn = mk('input', 'bill-in'); rateIn.type = 'number'; rateIn.min = '0'; rateIn.step = '0.01'; rateIn.value = f.hourlyRate == null ? '' : f.hourlyRate; rateIn.placeholder = 'Rate';
+    var hrs = mk('input', 'bill-in'); hrs.type = 'number'; hrs.min = '0'; hrs.step = '0.25'; hrs.placeholder = 'Hours';
+    var tripAmt = mk('span'), laborAmt = mk('span');
+    var r1 = ltb.insertRow(); r1.insertCell().appendChild(document.createTextNode('Initial trip (flat)')); r1.insertCell().appendChild(document.createTextNode('1')); r1.insertCell().appendChild(tripIn); r1.insertCell().appendChild(tripAmt);
+    var r2_ = ltb.insertRow(); r2_.insertCell().appendChild(document.createTextNode('Labor')); r2_.insertCell().appendChild(hrs); r2_.insertCell().appendChild(rateIn); r2_.insertCell().appendChild(laborAmt);
+    box.appendChild(ltbl);
+    box.appendChild(mk('p', 'small', 'The trip pay and hourly rate come from the saved terms. Change them here only for this one bill.'));
     box.appendChild(lab('Materials'));
     var tbl = mk('table', 't'), hr0 = tbl.createTHead().insertRow(); ['Material', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(mk('th', null, h)); });
     var tb = tbl.createTBody(), rows = [];
@@ -640,22 +648,24 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var warn = mk('p', 'bill-warn'); box.appendChild(warn);
     function sum() {
       var m = 0; rows.forEach(function (o) { m += r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
-      return { m: m, total: r2(f.tripPay + r2((Number(hrs.value) || 0) * (Number(f.hourlyRate) || 0)) + m) };
+      var trip = r2(Number(tripIn.value) || 0), labor = r2((Number(hrs.value) || 0) * (Number(rateIn.value) || 0));
+      return { m: m, trip: trip, labor: labor, total: r2(trip + labor + m) };
     }
     function calc() {
       var t = sum();
+      tripAmt.textContent = dollars(t.trip); laborAmt.textContent = dollars(t.labor);
       rows.forEach(function (o) { o.a.textContent = dollars(r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0))); });
       tot.textContent = 'Provider total: ' + dollars(t.total) + '   (Provider NTE: ' + dollars(f.providerNte) + ')';
       warn.textContent = t.total > f.providerNte ? 'This is over the Provider NTE. Raise the NTE first.' : '';
     }
-    hrs.oninput = calc; addRow(); calc();
+    hrs.oninput = calc; tripIn.oninput = calc; rateIn.oninput = calc; addRow(); calc();
     var go = btn('Submit for the provider', async function () {
       if (why.value.trim().length < 5) return flash('Say why you are submitting this for the provider.', false);
       if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
       var t = sum(); if (t.total <= 0) return flash('Add hours or materials.', false);
       if (t.total > f.providerNte) return flash('Over the Provider NTE. Raise the NTE first.', false);
       var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
-      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, hours: hrs.value || 0, materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
+      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, hours: hrs.value || 0, tripPay: tripIn.value, rate: rateIn.value, materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
       catch (er) { flash(er.message, false); }
     });
     go.style.marginTop = '12px'; box.appendChild(go);
