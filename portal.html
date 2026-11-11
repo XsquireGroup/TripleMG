@@ -45,6 +45,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
 .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; background:var(--ink); color:#fff; text-transform:uppercase; margin-right:6px; }
 .tag.urgent { background:#c2410c; } .tag.emergency { background:#b91c1c; } .tag.ok { background:#15803d; }
 .msg { margin:16px 0 0; padding:10px 14px; font-weight:600; } .msg.ok { background:#e8f3ea; color:#1e5a2b; } .msg.bad { background:#fbeaea; color:var(--red); }
+.msg.float { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:100; width:min(92%,640px); margin:0; box-shadow:0 4px 16px rgba(0,0,0,.35); }
 .empty { color:var(--steel); font-size:14px; }
 [hidden] { display:none !important; }
 </style>
@@ -186,7 +187,8 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     } catch (e) { /* no photos is fine */ }
   }
   function flash(text, ok) {
-    var m = $('msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'bad'); m.hidden = false;
+    // When a pop-up is open the message would sit hidden behind it, so float it on top.
+    var m = $('msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'bad') + (document.querySelector('.modal') ? ' float' : ''); m.hidden = false;
     clearTimeout(flash.t); flash.t = setTimeout(function () { m.hidden = true; }, ok ? 4000 : 9000);
   }
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
