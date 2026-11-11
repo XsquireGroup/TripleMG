@@ -57,6 +57,12 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
 .tag.urgent { background:#c2410c; } .tag.emergency { background:#b91c1c; } .tag.ok { background:#15803d; }
 .msg { margin:16px 0 0; padding:10px 14px; font-weight:600; } .msg.ok { background:#e8f3ea; color:#1e5a2b; } .msg.bad { background:#fbeaea; color:var(--red); }
 .msg.float { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:100; width:min(92%,640px); margin:0; box-shadow:0 4px 16px rgba(0,0,0,.35); }
+.sms-box { background:var(--paper); border:1px solid var(--border); padding:16px 18px; margin:16px 0 4px; }
+.sms-box h3 { font-size:18px; margin:0 0 6px; }
+.sms-box label.consent { display:flex; gap:10px; align-items:flex-start; font-size:14px; line-height:1.45; margin:10px 0; }
+.sms-box label.consent input { margin-top:3px; width:20px; height:20px; flex:none; }
+.sms-box input.ph { width:100%; max-width:320px; padding:10px; border:1px solid var(--border); font:inherit; font-size:16px; }
+.sms-box .small { font-size:13px; color:var(--steel); }
 .empty { color:var(--steel); font-size:14px; }
 [hidden] { display:none !important; }
 .modal .row button.b { margin-top:0; }
@@ -107,6 +113,7 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     <span class="role" id="role2"></span>
     <h1 id="welcome2" style="font-size:28px;margin:0"></h1>
     <div id="msg" class="msg" hidden></div>
+    <div id="smsCard" class="sms-box" hidden></div>
     <h2>Open jobs</h2>
     <p class="empty" id="offersEmpty" hidden>No open jobs right now. New jobs appear here as soon as they are posted.</p>
     <div id="offers"></div>
@@ -453,6 +460,39 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     } catch (e) { flash(e.message, false); }
   }
 
+  // ---- text alerts: the box only shows once TMG has switched texting on ----
+  var SMS_WORDING = 'Yes, text me job alerts from Triple Maintenance Group at this number. Message frequency varies with job activity. Message and data rates may apply. Reply STOP to opt out or HELP for help. Consent is not a condition of working with TMG. See the ';
+  async function loadSms() {
+    var box = $('smsCard'); box.hidden = true; box.textContent = '';
+    var d; try { d = await api('/provider/sms'); } catch (e) { return; }
+    if (!d.available) return;
+    box.hidden = false;
+    box.appendChild(el('h3', null, 'Text alerts'));
+    if (d.optedIn) {
+      box.appendChild(el('p', 'small', 'Job alerts are on for ' + d.phoneMasked + '. Reply STOP to any text to stop them.'));
+      var off = el('button', 'b b-red-o', 'Turn off text alerts');
+      off.onclick = async function () { off.disabled = true; try { await api('/provider/sms/stop', 'POST'); flash('Text alerts are off. You will still get email alerts.', true); } catch (e) { flash(e.message, false); } loadSms(); };
+      box.appendChild(off); return;
+    }
+    box.appendChild(el('p', 'small', 'Get a short text when a job opens in your area or when TMG needs something from you. Texts never include prices. Email alerts continue either way.'));
+    var ph = el('input', 'ph'); ph.type = 'tel'; ph.placeholder = 'Mobile number'; ph.autocomplete = 'tel'; ph.maxLength = 20; box.appendChild(ph);
+    var lab = el('label', 'consent'); var cb = el('input'); cb.type = 'checkbox'; lab.appendChild(cb);
+    var sp = el('span', null, SMS_WORDING);
+    var a1 = el('a', null, 'Text Message Terms'); a1.href = 'sms-terms.html'; a1.target = '_blank'; a1.rel = 'noopener';
+    var a2 = el('a', null, 'Privacy Policy'); a2.href = 'privacy-policy.html'; a2.target = '_blank'; a2.rel = 'noopener';
+    sp.appendChild(a1); sp.appendChild(document.createTextNode(' and ')); sp.appendChild(a2); sp.appendChild(document.createTextNode('.'));
+    lab.appendChild(sp); box.appendChild(lab);
+    var go = el('button', 'b b-green', 'Turn on text alerts');
+    go.onclick = async function () {
+      if (!cb.checked) return flash('Check the box to agree to receive text messages.', false);
+      go.disabled = true;
+      try { await api('/provider/sms', 'POST', { phone: ph.value, agree: true }); flash('Done. We sent a confirmation text to your phone.', true); }
+      catch (e) { flash(e.message, false); }
+      loadSms();
+    };
+    box.appendChild(go);
+  }
+
   async function enter(account) {
     acct = account;
     show('loading');
@@ -461,7 +501,7 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
       if (data.kind === 'provider') {
         $('welcome2').textContent = 'Welcome, ' + data.name;
         $('role2').textContent = 'Provider';
-        show('board'); loadBoard();
+        show('board'); loadBoard(); loadSms();
         return;
       }
       $('welcome').textContent = 'Welcome, ' + data.name;
