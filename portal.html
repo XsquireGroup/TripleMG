@@ -227,7 +227,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
         aiBox.appendChild(el('b', null, 'Draft (review and edit):'));
         var dr = el('textarea'); dr.rows = 5; dr.maxLength = 4000; dr.value = res.draft; dr.style.marginTop = '6px';
         aiBox.appendChild(dr);
-        aiBox.appendChild(el('div', 'meta', 'Written by AI from your notes. Check that every detail is accurate, and fill in anything in [brackets], before you use it.'));
+        aiBox.appendChild(el('div', 'meta', 'Written by AI from your notes. Check that every detail is accurate before you use it.'));
         var useB = el('button', '', 'Use this draft'); useB.style.marginRight = '8px';
         useB.onclick = function () { ta.value = dr.value; aiBox.innerHTML = ''; aiBox.className = ''; };
         var noB = el('button', 'sec', 'Discard'); noB.onclick = function () { aiBox.innerHTML = ''; aiBox.className = ''; };
