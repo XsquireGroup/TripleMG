@@ -45,6 +45,8 @@ form.f label { display:block; font-size:12px; font-weight:600; color:var(--steel
 form.f input { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 form.f button { padding:11px 16px; background:var(--red); color:var(--paper); border:0; font-family:'Oswald',sans-serif; letter-spacing:0.06em; text-transform:uppercase; font-weight:600; cursor:pointer; }
 .msg { max-width:980px; margin:16px auto 0; padding:10px 14px; font-weight:600; }
+.msg.float { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:100; width:calc(100% - 24px); max-width:980px; margin:0; box-shadow:0 4px 14px rgba(0,0,0,.2); }
+.step-sum { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:#e8f3ea; border:1px solid #b8d9bf; color:#1e5a2b; padding:10px 14px; font-weight:600; }
 .msg.ok { background:#e8f3ea; color:#1e5a2b; border:1px solid #b8d9bf; }
 .msg.bad { background:#fbeaea; color:var(--red); border:1px solid #e5b8b8; }
 .back { background:none; border:0; color:var(--steel); text-decoration:underline; cursor:pointer; font-size:14px; padding:0; margin:28px auto 0; display:block; max-width:980px; width:100%; text-align:left; }
@@ -153,8 +155,8 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
           <div id="cmpBackRow" style="margin-top:10px"></div>
         </div>
       </div>
-      <div class="panel" id="billSection" hidden><h2>Bill</h2><div id="billBody"></div></div>
-      <div class="panel" id="custSection" hidden><h2>Customer bill</h2><div id="custBody"></div></div>
+      <div class="panel" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
+      <div class="panel" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
       <div class="panel"><h2>Money</h2><div id="tkMoney"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p>
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Jobs done</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
@@ -379,7 +381,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   function flash(text, ok) {
     var m = $('msg');
     m.textContent = text;
-    m.className = 'msg ' + (ok ? 'ok' : 'bad');
+    m.className = 'msg float ' + (ok ? 'ok' : 'bad');
     m.hidden = false;
     clearTimeout(flash.t);
     flash.t = setTimeout(function () { m.hidden = true; }, ok ? 4000 : 9000);
@@ -602,13 +604,22 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   }
 
   async function loadBill(id) {
-    var sec = $('billSection'); sec.hidden = true; clear($('billBody')); $('custSection').hidden = true; clear($('custBody'));
+    var sec = $('billSection'); sec.hidden = true; clear($('billBody')); $('billBody').hidden = false; $('billTitle').textContent = 'Bill'; $('custSection').hidden = true; clear($('custBody'));
+    var oldSum = $('billSummary'); if (oldSum) oldSum.remove();
     try {
       var d = await api('/staff/tickets/' + id + '/bill');
       if (currentTicket !== id) return;
       if (!d.bill) { return loadManualBill(id); }
       sec.hidden = false; renderBill(id, d);
-      if (['provider_approved', 'customer_review', 'approved', 'invoiced'].indexOf(d.bill.status) >= 0) await loadCustomerBill(id, d.bill.id);
+      if (['provider_approved', 'customer_review', 'approved', 'invoiced'].indexOf(d.bill.status) >= 0) {
+        // Page 2: the provider bill folds into one line and the customer bill takes over.
+        $('billBody').hidden = true; $('billTitle').textContent = 'Step 1 of 2: Provider bill';
+        var sum = mk('div', 'step-sum'); sum.id = 'billSummary';
+        sum.appendChild(mk('span', null, 'Step 1 done: provider bill approved and locked, ' + dollars(d.bill.provider_total) + '.'));
+        var tg = btn('View provider bill', function () { var hid = $('billBody').hidden; $('billBody').hidden = !hid; tg.textContent = hid ? 'Hide provider bill' : 'View provider bill'; }, 'ai-btn');
+        sum.appendChild(tg); $('billBody').parentNode.insertBefore(sum, $('billBody'));
+        await loadCustomerBill(id, d.bill.id);
+      } else { $('billTitle').textContent = 'Step 1 of 2: Provider bill'; }
       if (d.bill.status === 'returned') await loadManualBill(id, true);
       // a returned/earlier bill never blocks this: the manual button only shows while the ticket is awaiting a bill
     } catch (er) { /* panel stays hidden */ }
