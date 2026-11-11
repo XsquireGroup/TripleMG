@@ -154,6 +154,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         </div>
       </div>
       <div class="panel" id="billSection" hidden><h2>Bill</h2><div id="billBody"></div></div>
+      <div class="panel" id="custSection" hidden><h2>Customer bill</h2><div id="custBody"></div></div>
       <div class="panel"><h2>Money</h2><div id="tkMoney"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p>
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Jobs done</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
@@ -601,12 +602,13 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   }
 
   async function loadBill(id) {
-    var sec = $('billSection'); sec.hidden = true; clear($('billBody'));
+    var sec = $('billSection'); sec.hidden = true; clear($('billBody')); $('custSection').hidden = true; clear($('custBody'));
     try {
       var d = await api('/staff/tickets/' + id + '/bill');
       if (currentTicket !== id) return;
       if (!d.bill) { return loadManualBill(id); }
       sec.hidden = false; renderBill(id, d);
+      if (['provider_approved', 'customer_review', 'approved', 'invoiced'].indexOf(d.bill.status) >= 0) await loadCustomerBill(id, d.bill.id);
       if (d.bill.status === 'returned') await loadManualBill(id, true);
       // a returned/earlier bill never blocks this: the manual button only shows while the ticket is awaiting a bill
     } catch (er) { /* panel stays hidden */ }
@@ -702,11 +704,11 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   function renderBill(id, d) {
     var b = d.bill, body = $('billBody'); clear(body);
     var edit = d.canAct;
-    var STAT = { submitted: 'Waiting on review', margin_review: 'Waiting on margin approval', approved: 'Approved, ready to invoice', invoiced: 'Invoiced', returned: 'Returned to provider' };
+    var STAT = { submitted: 'Waiting on review', provider_approved: 'Provider bill approved and locked', customer_review: 'Customer bill waiting on the Owner', approved: 'Approved, ready to invoice', invoiced: 'Invoiced', returned: 'Returned to provider' };
     body.appendChild(mk('p', 'small', 'Submitted by ' + b.submitted_by + ' (' + b.business_name + ') on ' + fmt(b.bill_date) + '. Status: ' + (STAT[b.status] || b.status) + '.'));
     d.prior.forEach(function (p) { body.appendChild(mk('p', 'small', 'Earlier bill returned ' + fmt(p.reviewed_at) + ' by ' + p.reviewed_by + ': ' + p.return_note)); });
     if (b.status === 'approved' || b.status === 'invoiced') body.appendChild(mk('p', 'small', 'Approved by ' + b.approved_by + ' on ' + fmt(b.approved_at) + (b.margin_exception ? ' as a low-margin exception.' : '.') + (b.invoice_number ? ' Invoice ' + b.invoice_number + ' on ' + fmt(b.invoiced_at) + '.' : '')));
-    if (d.waitingOnManager) body.appendChild(mk('p', 'bill-warn', 'The margin is under ' + d.minMargin + '%. A manager or the Owner has to approve this bill.'));
+    if (b.status !== 'submitted' && b.status !== 'returned') body.appendChild(mk('p', 'small', 'Step 1 is done: the provider bill is approved and locked' + (b.reviewed_by ? ' (by ' + b.reviewed_by + ')' : '') + '. The provider is paid this total and only sees this total.'));
 
     var lbl = mk('label', null, 'Work performed'); lbl.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:10px 0 4px';
     var ta = mk('textarea', 'bill-ta'); ta.rows = 4; ta.value = b.description; ta.disabled = !edit;
@@ -749,10 +751,10 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 
     function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
     var tbl = mk('table', 't'); tbl.style.marginTop = '14px';
-    var hr = tbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Unit price', 'Provider', 'Customer'].forEach(function (h) { hr.appendChild(mk('th', null, h)); });
+    var hr = tbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Unit price', 'Provider amount'].forEach(function (h) { hr.appendChild(mk('th', null, h)); });
     var tb = tbl.createTBody();
     function row(first, qty, unit, pcell, ccell) {
-      var tr = tb.insertRow(); [first, qty, unit, pcell, ccell].forEach(function (x) { var c = tr.insertCell(); if (x) c.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); }); return tr;
+      var tr = tb.insertRow(); [first, qty, unit, pcell].forEach(function (x) { var c = tr.insertCell(); if (x) c.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); }); return tr;
     }
     var tripPay = num(b.trip_pay), tripCharge = num(b.trip_charge), hours = num(b.hours, '0.25'), rate = num(b.hourly_rate);
     var pTrip = mk('span'), cTrip = mk('span'), pLab = mk('span'), cLab = mk('span');
@@ -799,14 +801,11 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       helpers.forEach(function (o) { var a = r2((Number(o.hrs.value) || 0) * (Number(o.rate.value) || 0)); o.p.textContent = dollars(a); o.c.textContent = dollars(r2(a / 0.80)); });
       mats.forEach(function (o) { var a = r2((Number(o.qty.value) || 0) * (Number(o.unit.value) || 0)); o.p.textContent = dollars(a); o.c.textContent = dollars(r2(1.10 * a / 0.80)); });
       clear(tot);
-      [['cust', 'Customer total', dollars(c.ct)], ['prov', 'Provider total', dollars(c.pt)], ['mar', 'Margin', c.m + '%']].forEach(function (x) {
-        var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar' && c.m < d.minMargin) sp.style.color = 'var(--red)'; r.appendChild(sp); tot.appendChild(r);
+      [['prov', 'Provider total', dollars(c.pt)]].forEach(function (x) {
+        var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); r.appendChild(sp); tot.appendChild(r);
       });
       clear(warn);
       if (c.pt > d.providerNte) warn.appendChild(mk('p', 'bill-warn', 'The provider total is over the Provider NTE (' + dollars(d.providerNte) + ').'));
-      if (c.ct > d.customerNte) warn.appendChild(mk('p', 'bill-warn', 'The customer total is over the Customer NTE (' + dollars(d.customerNte) + ').'));
-      if (c.m < d.minMargin) warn.appendChild(mk('p', 'bill-warn', 'Margin is under ' + d.minMargin + '%.' + (d.isEmployee ? ' This will need a manager or Owner to approve it.' : ' Approving records an exception.')));
-      if (approveBtn) approveBtn.textContent = (d.isEmployee && c.m < d.minMargin) ? 'Send for margin approval' : 'Approve bill';
     }
     [ta, tripPay, tripCharge, hours, rate].forEach(function (i) { i.oninput = upd; });
 
@@ -815,24 +814,116 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       body.appendChild(note);
       var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';
       var save = async function () { await api('/staff/bills/' + b.id + '/save', 'POST', vals()); };
-      bar.appendChild(btn('Save changes', async function () { try { await save(); flash('Saved.', true); loadBill(id); } catch (er) { flash(er.message, false); } }));
+      bar.appendChild(btn('Save changes', async function () { try { await save(); flash('Saved.', true); loadBill(id); } catch (er) { flash(er.message, false); } }, 'ai-btn'));
       bar.appendChild(btn('Return to provider', async function () {
         if (note.value.trim().length < 3) return flash('Add a note telling the provider what to fix.', false);
         try { await api('/staff/bills/' + b.id + '/return', 'POST', { note: note.value }); flash('Returned to the provider.', true); openTicket(id); loadAlerts(); }
         catch (er) { flash(er.message, false); }
-      }));
-      approveBtn = btn('Approve bill', async function () {
+      }, 'ai-no'));
+      approveBtn = btn('Approve provider bill', async function () {
         try {
           await save();
-          var r = await api('/staff/bills/' + b.id + '/approve', 'POST', {});
-          flash(r.pendingMarginApproval ? 'Sent to a manager or the Owner for margin approval.' : 'Bill approved.', true);
-          openTicket(id); loadAlerts();
+          await api('/staff/bills/' + b.id + '/approve', 'POST', {});
+          flash('Provider bill approved and locked. Now review the customer bill below.', true);
+          loadAlerts(); await loadBill(id);
+          var cs = $('custSection'); if (cs && !cs.hidden && cs.scrollIntoView) cs.scrollIntoView({ behavior: 'smooth', block: 'start' });
         } catch (er) { flash(er.message, false); }
-      });
-      approveBtn.className = 'btn-sm'; approveBtn.style.cssText = 'background:var(--red);color:#fff;border:0;padding:6px 14px';
+      }, 'ai-go');
       bar.appendChild(approveBtn); body.appendChild(bar);
     }
     upd();
+  }
+
+  // ---- step 2: the customer bill (staff prepare it, the Owner approves it). The provider never sees this. ----
+  async function loadCustomerBill(id, billId) {
+    var sec = $('custSection'), body = $('custBody'); clear(body);
+    var d;
+    try { d = await api('/staff/bills/' + billId + '/customer'); } catch (er) { return; }
+    if (currentTicket !== id) return;
+    sec.hidden = false;
+    var cs = d.side, edit = d.canEdit;
+    var STATC = { provider_approved: 'Ready for you to review and send to the Owner', customer_review: 'Waiting on the Owner', approved: 'Approved, ready to invoice', invoiced: 'Invoiced' };
+    body.appendChild(mk('p', 'small', 'Step 2. ' + (STATC[d.status] || '') + '. The provider is paid ' + dollars(d.providerTotal) + ' no matter what you change here, and never sees this screen.'));
+    if (d.returnNote && d.status === 'provider_approved') body.appendChild(mk('p', 'bill-warn', 'Sent back by the Owner: ' + d.returnNote));
+    if (d.submittedBy && d.status === 'customer_review') body.appendChild(mk('p', 'small', 'Prepared by ' + d.submittedBy + '.'));
+    function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
+    var tbl = mk('table', 't'); tbl.style.marginTop = '10px';
+    var hr = tbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Unit price', 'Customer amount'].forEach(function (h) { hr.appendChild(mk('th', null, h)); });
+    var tb = tbl.createTBody();
+    function row(first, qty, unit, amt) {
+      var tr = tb.insertRow(); [first, qty, unit, amt].forEach(function (x) { var c = tr.insertCell(); if (x) c.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); }); return tr;
+    }
+    var trip = num(cs.tripCharge), tripAmt = mk('span');
+    row('Initial trip (flat, billed to customer)', '1', trip, tripAmt);
+    var hours = num(cs.hours, '0.25'), labAmt = mk('span');
+    row('Lead Tech', hours, 'Rate ' + dollars(d.rate), labAmt);
+    var helpers = [];
+    function addHelper(h) {
+      var o = { hrs: num(h, '0.25'), a: mk('span') };
+      var first = mk('div'); first.appendChild(document.createTextNode('Helper ' + (helpers.length + 1)));
+      if (edit) { var rm = btn('Remove', function () { helpers.splice(helpers.indexOf(o), 1); o.tr.remove(); upd(); }, 'ai-no'); rm.style.cssText += ';margin-left:8px;min-height:30px;padding:4px 10px'; first.appendChild(rm); }
+      o.tr = row(first, o.hrs, 'Rate ' + dollars(d.helperRate), o.a);
+      tb.insertBefore(o.tr, tb.rows[2 + helpers.length] || null);
+      helpers.push(o); o.hrs.oninput = upd;
+    }
+    cs.helpers.forEach(addHelper);
+    var mats = [];
+    function addMat(m) {
+      var o = { desc: mk('input', 'bill-in'), qty: num(m.quantity), unit: num(m.unitPrice), a: mk('span') };
+      o.desc.value = m.description || ''; o.desc.disabled = !edit; o.desc.placeholder = 'Material';
+      var first = mk('div'); first.appendChild(o.desc);
+      if (edit) { var rm = btn('Remove', function () { mats.splice(mats.indexOf(o), 1); o.tr.remove(); upd(); }, 'ai-no'); rm.style.cssText += ';margin-top:4px;min-height:30px;padding:4px 10px'; first.appendChild(rm); }
+      o.tr = row(first, o.qty, o.unit, o.a); mats.push(o);
+      [o.desc, o.qty, o.unit].forEach(function (i) { i.oninput = upd; });
+    }
+    cs.materials.forEach(addMat);
+    body.appendChild(tbl);
+    if (edit) {
+      var addH = btn('Add helper', function () { if (helpers.length >= 2) return flash('A bill can have up to 2 helpers.', false); addHelper(0); upd(); }, 'ai-btn'); addH.style.cssText += ';margin:8px 8px 0 0';
+      var addM = btn('Add material line', function () { addMat({}); upd(); }, 'ai-btn'); addM.style.marginTop = '8px';
+      body.appendChild(addH); body.appendChild(addM);
+    }
+    var tot = mk('div'); tot.style.marginTop = '14px'; body.appendChild(tot);
+    var warn = mk('div'); body.appendChild(warn);
+    function vals() {
+      return { tripCharge: trip.value, hours: hours.value || 0,
+        helpers: helpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }),
+        materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value }; }) };
+    }
+    function upd() {
+      var labor = r2((Number(hours.value) || 0) * d.rate), mt = 0;
+      tripAmt.textContent = dollars(Number(trip.value) || 0);
+      labAmt.textContent = dollars(r2(labor / 0.80));
+      helpers.forEach(function (o) { var a = r2((Number(o.hrs.value) || 0) * d.helperRate); labor = r2(labor + a); o.a.textContent = dollars(r2(a / 0.80)); });
+      mats.forEach(function (o) { var a = r2((Number(o.qty.value) || 0) * (Number(o.unit.value) || 0)); mt += a; o.a.textContent = dollars(r2(1.10 * a / 0.80)); });
+      var ct = r2((Number(trip.value) || 0) + (labor + 1.10 * mt) / 0.80);
+      var m = ct > 0 ? r2((ct - d.providerTotal) / ct * 100) : (d.providerTotal > 0 ? -100 : 0);
+      clear(tot);
+      [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total (locked)', dollars(d.providerTotal)], ['mar', 'Margin', m + '%']].forEach(function (x) {
+        var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar' && m < d.minMargin) sp.style.color = 'var(--red)'; r.appendChild(sp); tot.appendChild(r);
+      });
+      clear(warn);
+      if (ct > d.customerNte) warn.appendChild(mk('p', 'bill-warn', 'The customer total is over the Customer NTE (' + dollars(d.customerNte) + ').'));
+      if (m < d.minMargin) warn.appendChild(mk('p', 'bill-warn', 'Margin is under ' + d.minMargin + '%. The Owner will see this flag.'));
+    }
+    [trip, hours].forEach(function (i) { i.oninput = upd; });
+    upd();
+    var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';
+    var saveIt = async function () { await api('/staff/bills/' + billId + '/customer-save', 'POST', vals()); };
+    var note = null;
+    if (d.canDecide && d.status === 'customer_review') { note = mk('input', 'bill-in'); note.placeholder = 'Note to the employee (required to send it back)'; note.maxLength = 1000; note.style.marginTop = '14px'; body.appendChild(note); }
+    if (edit) bar.appendChild(btn('Save changes', async function () { try { await saveIt(); flash('Saved.', true); loadCustomerBill(id, billId); } catch (er) { flash(er.message, false); } }, 'ai-btn'));
+    if (d.canSubmit && !d.isOwner) bar.appendChild(btn('Submit to Owner', async function () {
+      try { await api('/staff/bills/' + billId + '/customer-submit', 'POST', vals()); flash('Sent to the Owner for approval.', true); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
+    }, 'ai-go'));
+    if (d.canDecide) bar.appendChild(btn('Approve customer bill', async function () {
+      try { if (edit) await saveIt(); await api('/staff/bills/' + billId + '/customer-approve', 'POST', {}); flash('Customer bill approved. It is now in Ready to invoice.', true); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
+    }, 'ai-go'));
+    if (note) bar.appendChild(btn('Return to employee', async function () {
+      if (note.value.trim().length < 3) return flash('Add a note telling the employee what to fix.', false);
+      try { await api('/staff/bills/' + billId + '/customer-return', 'POST', { note: note.value }); flash('Sent back to the employee.', true); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
+    }, 'ai-no'));
+    body.appendChild(bar);
   }
 
   // ---- browser back/forward: every screen gets its own history entry ----
