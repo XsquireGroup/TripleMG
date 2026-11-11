@@ -37,17 +37,47 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
 .modal td { padding:5px 6px; vertical-align:top; }
 .modal .box { background:var(--concrete); padding:10px 14px; margin-top:6px; font-size:15px; }
 .modal .bad { color:var(--red); font-weight:600; font-size:13px; margin-top:6px; }
-.modal .row { display:flex; gap:10px; margin-top:18px; flex-wrap:wrap; }
+.modal .row { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; position:sticky; bottom:0; background:var(--paper); padding:12px 0; border-top:1px solid var(--border); }
 .job .ph { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
 .job .ph img { width:120px; height:90px; object-fit:cover; border:1px solid var(--border); cursor:pointer; display:block; background:#eee; }
 .job button { cursor:pointer; padding:9px 16px; border:0; background:var(--red); color:var(--paper); font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; margin-top:10px; }
 .job button.sec { background:none; color:var(--ink); border:1px solid var(--steel); }
+/* Button colors: green = go / accept, red = stop / discard, blue = AI and add actions */
+button.b { cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; line-height:1.2; padding:12px 18px; min-height:44px; border:2px solid transparent; margin-top:10px; }
+button.b-sm { padding:8px 12px; min-height:40px; font-size:12px; margin:0; }
+button.b:disabled { opacity:.55; cursor:default; }
+button.b:not(:disabled):hover { filter:brightness(.92); }
+button.b-green { background:#15803d; border-color:#15803d; color:#fff; }
+button.b-red { background:var(--red); border-color:var(--red); color:#fff; }
+button.b-blue { background:#1d4ed8; border-color:#1d4ed8; color:#fff; }
+button.b-red-o { background:#fff; border-color:var(--red); color:var(--red); }
+button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
+.job input { max-width:100%; }
 .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; background:var(--ink); color:#fff; text-transform:uppercase; margin-right:6px; }
 .tag.urgent { background:#c2410c; } .tag.emergency { background:#b91c1c; } .tag.ok { background:#15803d; }
 .msg { margin:16px 0 0; padding:10px 14px; font-weight:600; } .msg.ok { background:#e8f3ea; color:#1e5a2b; } .msg.bad { background:#fbeaea; color:var(--red); }
 .msg.float { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:100; width:min(92%,640px); margin:0; box-shadow:0 4px 16px rgba(0,0,0,.35); }
 .empty { color:var(--steel); font-size:14px; }
 [hidden] { display:none !important; }
+.modal .row button.b { margin-top:0; }
+/* Phones */
+@media (max-width:640px) {
+  .card { margin:28px auto; padding:28px 18px; }
+  .board { margin:18px auto; }
+  .job { padding:16px 14px; }
+  .job > button.b { display:block; width:100%; margin:10px 0 0 !important; }
+  .job input { width:100% !important; margin-right:0 !important; font-size:16px; }
+  .modal { padding:0; }
+  .modal .sheet { border:0; min-height:100%; padding:18px 14px 8px; }
+  .modal input, .modal textarea { font-size:16px; }
+  .modal .row button.b { flex:1; }
+  .modal table, .modal tbody, .modal tr, .modal td { display:block; }
+  .modal thead { display:none; }
+  .modal tr { display:grid; grid-template-columns:1fr 1fr; gap:8px; border:1px solid var(--border); padding:10px; margin-bottom:10px; }
+  .modal tr td { padding:0; }
+  .modal tr td:nth-child(1) { grid-column:1 / 3; }
+  .modal tr td:nth-child(5) { text-align:right; }
+}
 </style>
 </head>
 <body>
@@ -187,8 +217,8 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     } catch (e) { /* no photos is fine */ }
   }
   function flash(text, ok) {
-    // When a pop-up is open the message would sit hidden behind it, so float it on top.
-    var m = $('msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'bad') + (document.querySelector('.modal') ? ' float' : ''); m.hidden = false;
+    // Always float the message on top, so it is seen over pop-ups and when the page is scrolled (phones).
+    var m = $('msg'); m.textContent = text; m.className = 'msg ' + (ok ? 'ok' : 'bad') + ' float'; m.hidden = false;
     clearTimeout(flash.t); flash.t = setTimeout(function () { m.hidden = true; }, ok ? 4000 : 9000);
   }
   function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
@@ -216,7 +246,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     sh.appendChild(ta);
 
     // "Write it up": turns the provider's rough notes into a clean draft. Shown in its own box so nothing they typed is overwritten.
-    var aiBtn = el('button', 'sec', 'Write it up for me'); aiBtn.style.marginTop = '8px';
+    var aiBtn = el('button', 'b b-blue', 'Write it up for me'); aiBtn.style.marginTop = '8px';
     var aiBox = el('div');
     aiBtn.onclick = async function () {
       if (ta.value.trim().length < 10) return flash('Type a few rough notes about what you did first, then click Write it up.', false);
@@ -228,9 +258,9 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
         var dr = el('textarea'); dr.rows = 5; dr.maxLength = 4000; dr.value = res.draft; dr.style.marginTop = '6px';
         aiBox.appendChild(dr);
         aiBox.appendChild(el('div', 'meta', 'Written by TMG AI from your notes. Check details for accuracy.'));
-        var useB = el('button', '', 'Use this draft'); useB.style.marginRight = '8px';
+        var useB = el('button', 'b b-green', 'Use this draft'); useB.style.marginRight = '8px';
         useB.onclick = function () { ta.value = dr.value; aiBox.innerHTML = ''; aiBox.className = ''; };
-        var noB = el('button', 'sec', 'Discard'); noB.onclick = function () { aiBox.innerHTML = ''; aiBox.className = ''; };
+        var noB = el('button', 'b b-red', 'Discard'); noB.onclick = function () { aiBox.innerHTML = ''; aiBox.className = ''; };
         aiBox.appendChild(useB); aiBox.appendChild(noB);
       } catch (e) { flash(e.message, false); }
       aiBtn.disabled = false; aiBtn.textContent = 'Write it up for me';
@@ -249,7 +279,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     else sh.appendChild(el('div', 'meta', 'Lead Tech rate: ' + money(f.hourlyRate) + ' per hour (set by TMG).'));
     var helperBox = el('div'), helpers = [];
     sh.appendChild(helperBox);
-    var addHelperBtn = el('button', 'sec', 'Add helper'); addHelperBtn.style.marginTop = '8px';
+    var addHelperBtn = el('button', 'b b-blue-o', 'Add helper'); addHelperBtn.style.marginTop = '8px';
     addHelperBtn.onclick = function () {
       if (f.helperRate == null) return flash('Your helper rate has not been set yet. Contact your TMG contact before adding a helper.', false);
       if (helpers.length >= 2) return;
@@ -257,7 +287,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       var n = helpers.length + 1;
       w.appendChild(el('b', null, 'Helper ' + n)); w.appendChild(document.createElement('br'));
       var hi = el('input'); hi.type = 'number'; hi.min = '0'; hi.step = '0.25'; hi.placeholder = 'Hours worked'; hi.style.width = '160px'; hi.style.marginRight = '10px';
-      var amt = el('span'), rm = el('button', 'sec', 'Remove'); rm.style.cssText = 'padding:4px 8px;font-size:12px;margin:0 0 0 10px';
+      var amt = el('span'), rm = el('button', 'b b-red-o b-sm', 'Remove'); rm.style.marginLeft = '10px';
       var o = { hi: hi, amt: amt, w: w };
       rm.onclick = function () { helpers.splice(helpers.indexOf(o), 1); w.remove(); helpers.forEach(function (x, i) { x.w.firstChild.textContent = 'Helper ' + (i + 1); }); addHelperBtn.hidden = false; calc(); };
       hi.oninput = calc; w.appendChild(hi); w.appendChild(amt); w.appendChild(rm);
@@ -274,16 +304,16 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     var tb = tbl.createTBody(), rows = [];
     function addRow() {
       var o = { d: el('input'), q: el('input'), u: el('input'), a: el('span') };
-      o.d.placeholder = 'Description'; o.d.maxLength = 300;
+      o.d.placeholder = 'Description'; o.d.maxLength = 300; o.q.placeholder = 'Qty'; o.u.placeholder = 'Price per unit';
       [o.q, o.u].forEach(function (i) { i.type = 'number'; i.min = '0'; i.step = '0.01'; });
       o.q.style.width = '80px'; o.u.style.width = '110px';
-      var tr = tb.insertRow(), rm = el('button', 'sec', 'Remove'); rm.style.cssText = 'padding:4px 8px;font-size:12px;margin:0';
+      var tr = tb.insertRow(), rm = el('button', 'b b-red-o b-sm', 'Remove');
       rm.onclick = function () { rows.splice(rows.indexOf(o), 1); tr.remove(); calc(); };
       [o.d, o.q, o.u, o.a, rm].forEach(function (x) { tr.insertCell().appendChild(x); });
       [o.d, o.q, o.u].forEach(function (i) { i.oninput = calc; }); rows.push(o);
     }
     sh.appendChild(tbl);
-    var addB = el('button', 'sec', 'Add material line'); addB.style.marginTop = '8px'; addB.onclick = function () { addRow(); }; sh.appendChild(addB);
+    var addB = el('button', 'b b-blue-o', 'Add material line'); addB.style.marginTop = '8px'; addB.onclick = function () { addRow(); }; sh.appendChild(addB);
 
     var totalBox = el('div', 'box'); totalBox.style.marginTop = '18px'; sh.appendChild(totalBox);
     var over = el('div', 'bad'); sh.appendChild(over);
@@ -304,7 +334,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     hrs.oninput = calc; addRow(); calc();
 
     var bar = el('div', 'row');
-    var go = el('button', '', 'Submit bill');
+    var go = el('button', 'b b-green', 'Submit bill');
     go.onclick = async function () {
       var t = total();
       if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
@@ -315,7 +345,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       try { await api('/provider/jobs/' + j.id + '/bill', 'POST', { description: ta.value, hours: hrs.value || 0, helpers: helpers.filter(function (o) { return o.hi.value; }).map(function (o) { return { hours: o.hi.value }; }), materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
       catch (e) { flash(e.message, false); go.disabled = false; go.textContent = 'Submit bill'; }
     };
-    var cx = el('button', 'sec', 'Cancel'); cx.onclick = close;
+    var cx = el('button', 'b b-red-o', 'Cancel'); cx.onclick = close;
     bar.appendChild(go); bar.appendChild(cx); sh.appendChild(bar);
     document.body.appendChild(ov);
   }
@@ -340,12 +370,12 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       else if (j.change_pending) d.appendChild(el('div', 'meta', 'Your increase is being reviewed. You will see the new amount once it is approved.'));
       else if (j.last_denied) d.appendChild(el('div', 'meta', 'Your last increase request was not approved.'));
       if (j.can_request) {
-        var rb = el('button', 'sec', 'Request an increase');
+        var rb = el('button', 'b b-blue-o', 'Request an increase');
         var form = el('div'); form.hidden = true; form.style.marginTop = '10px';
         var amt = el('input'); amt.type = 'number'; amt.min = '1'; amt.step = '0.01'; amt.placeholder = 'New total Provider NTE, e.g. ' + (Number(j.pay) + 100).toFixed(2);
         amt.style.cssText = 'padding:9px;border:1px solid var(--border);font:inherit;margin-right:8px;width:260px';
         var why = el('input'); why.placeholder = 'Why is more needed?'; why.maxLength = 500; why.style.cssText = 'padding:9px;border:1px solid var(--border);font:inherit;margin-right:8px;width:260px;margin-top:6px';
-        var go = el('button', '', 'Send request');
+        var go = el('button', 'b b-green', 'Send request');
         go.onclick = async function () {
           try { await api('/provider/jobs/' + j.id + '/nte-request', 'POST', { amount: amt.value, reason: why.value }); flash('Request sent. Your TMG contact has been alerted.', true); loadBoard(); }
           catch (e) { flash(e.message, false); }
@@ -359,26 +389,26 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
       if (j.bill_return_note && j.can_bill) d.appendChild(el('div', 'meta', 'TMG returned your bill: ' + j.bill_return_note));
       if (j.bill_approved_total != null) d.appendChild(el('div', 'meta', 'Bill approved: ' + money(j.bill_approved_total) + '.'));
       if (j.can_bill) {
-        var bb = el('button', '', 'Submit your bill'); bb.style.marginLeft = '8px';
+        var bb = el('button', 'b b-green', 'Submit your bill'); bb.style.marginLeft = '8px';
         bb.onclick = function () { openBillForm(j); };
         d.appendChild(bb);
       }
       if (j.completion_sent_back_note && j.can_complete) d.appendChild(el('div', 'meta', 'TMG sent your completion back: ' + j.completion_sent_back_note));
       if (j.can_complete) {
-        var cb = el('button', '', 'Work complete'); cb.style.marginLeft = '8px';
+        var cb = el('button', 'b b-green', 'Work complete'); cb.style.marginLeft = '8px';
         var cf = el('div'); cf.hidden = true; cf.style.marginTop = '12px';
         cf.appendChild(el('div', 'meta', 'Add at least 4 photos showing the finished work, plus a note if needed. TMG will review it before you are asked to bill.'));
         var pick = el('input'); pick.type = 'file'; pick.accept = 'image/*'; pick.multiple = true;
         var strip = el('div', 'ph');
         var cnote = el('input'); cnote.placeholder = 'Note for TMG (optional)'; cnote.maxLength = 2000; cnote.style.cssText = 'padding:9px;border:1px solid var(--border);font:inherit;width:100%;margin-top:8px';
-        var sub = el('button', '', 'Submit completion');
+        var sub = el('button', 'b b-green', 'Submit completion');
         var chosen = [], urls = [];
         var draw = function () {
           urls.forEach(function (u) { URL.revokeObjectURL(u); }); urls = []; strip.textContent = '';
           chosen.forEach(function (p, i) {
             var u = URL.createObjectURL(p.blob); urls.push(u);
             var f = el('div'); var im = el('img'); im.src = u; im.alt = 'Photo'; f.appendChild(im);
-            var rm = el('button', 'sec', 'Remove'); rm.style.cssText = 'display:block;margin:4px 0 0;padding:4px 8px;font-size:12px';
+            var rm = el('button', 'b b-red-o b-sm', 'Remove'); rm.style.cssText = 'display:block;margin:4px 0 0';
             rm.onclick = function () { chosen.splice(i, 1); draw(); };
             f.appendChild(rm); strip.appendChild(f);
           });
@@ -404,7 +434,7 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
         d.appendChild(cb); d.appendChild(cf);
       }
     } else {
-      var b = el('button', j.accepted ? 'sec' : '', j.accepted ? 'Withdraw' : 'Accept job');
+      var b = el('button', j.accepted ? 'b b-red-o' : 'b b-green', j.accepted ? 'Withdraw' : 'Accept job');
       b.onclick = async function () {
         try { await api('/provider/jobs/' + j.id + (j.accepted ? '/withdraw' : '/accept'), 'POST'); flash(j.accepted ? 'Withdrawn.' : 'Accepted. TMG will confirm if you are selected.', true); loadBoard(); }
         catch (e) { flash(e.message, false); loadBoard(); }
