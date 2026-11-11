@@ -72,6 +72,12 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .st.completed,.st.needs_billing { background:#334155; } .st.completion_review { background:#a16207; } .st.billed { background:#0f766e; }
 .bill-in { width:100%; padding:7px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .bill-ta { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
+.ai-btn,.ai-go,.ai-no { cursor:pointer; font:inherit; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:9px 14px; min-height:40px; border:2px solid; }
+.ai-btn { background:#1d4ed8; border-color:#1d4ed8; color:#fff; } .ai-go { background:#15803d; border-color:#15803d; color:#fff; } .ai-no { background:#fff; border-color:#950606; color:#950606; }
+.ai-panel { border:1px solid var(--border); background:var(--concrete); padding:12px; margin:10px 0; } .ai-panel label { display:block; font-size:12px; font-weight:600; text-transform:uppercase; margin:10px 0 3px; }
+.ai-panel select,.ai-panel input,.ai-panel textarea { width:100%; max-width:100%; padding:8px; border:1px solid var(--border); font:inherit; background:var(--paper); }
+.ai-flag { color:#9a3412; font-size:13px; margin:4px 0; } .ai-note { font-size:12px; color:var(--steel); margin:6px 0; }
+@media (max-width:640px) { .ai-panel select,.ai-panel input,.ai-panel textarea { font-size:16px; } .ai-btn,.ai-go,.ai-no { flex:1; min-height:44px; } }
 .bill-warn { color:var(--red); font-weight:600; font-size:13px; margin:6px 0; } .st.margin_review { background:#9d174d; } .st.on_hold { background:#6b7280; }
 .st.emergency { background:#b91c1c; } .st.urgent { background:#c2410c; }
 .steps { display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap; } .steps span { font-size:12px; padding:3px 8px; background:var(--concrete); border:1px solid var(--border); }
@@ -705,6 +711,41 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var lbl = mk('label', null, 'Work performed'); lbl.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:10px 0 4px';
     var ta = mk('textarea', 'bill-ta'); ta.rows = 4; ta.value = b.description; ta.disabled = !edit;
     body.appendChild(lbl); body.appendChild(ta);
+
+    if (edit) {
+      var aiBtn = btn('Draft final description', function () { aiPanel.hidden = !aiPanel.hidden; }, 'ai-btn'); aiBtn.style.marginTop = '8px';
+      var aiPanel = mk('div', 'ai-panel'); aiPanel.hidden = true;
+      function sel(label, opts) {
+        aiPanel.appendChild(mk('label', null, label)); var s = mk('select');
+        opts.forEach(function (o) { var op = mk('option', null, o[1]); op.value = o[0]; s.appendChild(op); }); aiPanel.appendChild(s); return s;
+      }
+      var qV = sel('How many visits did it take?', [['unknown', 'Unknown, ask the provider'], ['one', 'One visit'], ['multiple', 'More than one visit']]);
+      var qC = sel('Was the cause diagnosed?', [['unknown', 'Unknown, ask the provider'], ['yes', 'Yes'], ['no', 'No']]);
+      var qR = sel('Was the issue resolved?', [['unknown', 'Unknown, ask the provider'], ['yes', 'Yes'], ['partly', 'Partly'], ['no', 'No']]);
+      var qF = sel('Is a follow-up needed?', [['unknown', 'Unknown, ask the provider'], ['no', 'No'], ['yes', 'Yes']]);
+      aiPanel.appendChild(mk('label', null, 'Other notes (optional)'));
+      var qN = mk('input'); qN.maxLength = 1000; qN.placeholder = 'Anything else the description should say'; aiPanel.appendChild(qN);
+      var aiRow = mk('div'); aiRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';
+      var aiOut = mk('div'); aiOut.hidden = true;
+      var goBtn = btn('Write draft', async function () {
+        goBtn.disabled = true; var old = goBtn.textContent; goBtn.textContent = 'Writing...';
+        try {
+          var r = await api('/staff/bills/' + b.id + '/draft-final', 'POST', { visits: qV.value, cause: qC.value, resolved: qR.value, followup: qF.value, notes: qN.value });
+          clear(aiOut); aiOut.hidden = false;
+          var dt = mk('textarea'); dt.rows = 5; dt.value = r.draft; aiOut.appendChild(mk('label', null, 'Draft')); aiOut.appendChild(dt);
+          aiOut.appendChild(mk('p', 'ai-note', 'Written by TMG AI. Check details for accuracy.'));
+          if (r.flags && r.flags.length) { aiOut.appendChild(mk('label', null, 'Worth a look')); r.flags.forEach(function (f) { aiOut.appendChild(mk('p', 'ai-flag', f)); }); }
+          var orow = mk('div'); orow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:8px';
+          orow.appendChild(btn('Use this draft', function () { ta.value = dt.value; upd(); aiOut.hidden = true; aiPanel.hidden = true; flash('Draft placed in Work performed. Review it, then save.', true); }, 'ai-go'));
+          orow.appendChild(btn('Discard', function () { aiOut.hidden = true; }, 'ai-no'));
+          aiOut.appendChild(orow);
+        } catch (er) { flash(er.message, false); }
+        goBtn.disabled = false; goBtn.textContent = old;
+      }, 'ai-btn');
+      aiRow.appendChild(goBtn); aiRow.appendChild(btn('Close', function () { aiPanel.hidden = true; }, 'ai-no'));
+      aiPanel.appendChild(aiRow); aiPanel.appendChild(aiOut);
+      body.appendChild(aiBtn); body.appendChild(aiPanel);
+    }
 
     function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
     var tbl = mk('table', 't'); tbl.style.marginTop = '14px';
