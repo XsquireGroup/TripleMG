@@ -213,6 +213,28 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
     ta.placeholder = 'Say what you did, for example: Arrived on [date], inspected the active leak in the men\'s restroom. Identified a faulty flush valve and replaced it.';
     sh.appendChild(ta);
 
+    // "Write it up": turns the provider's rough notes into a clean draft. Shown in its own box so nothing they typed is overwritten.
+    var aiBtn = el('button', 'sec', 'Write it up for me'); aiBtn.style.marginTop = '8px';
+    var aiBox = el('div');
+    aiBtn.onclick = async function () {
+      if (ta.value.trim().length < 10) return flash('Type a few rough notes about what you did first, then click Write it up.', false);
+      aiBtn.disabled = true; aiBtn.textContent = 'Writing...';
+      try {
+        var res = await api('/provider/jobs/' + j.id + '/draft-description', 'POST', { notes: ta.value });
+        aiBox.innerHTML = ''; aiBox.className = 'box'; aiBox.style.marginTop = '8px';
+        aiBox.appendChild(el('b', null, 'Draft (review and edit):'));
+        var dr = el('textarea'); dr.rows = 5; dr.maxLength = 4000; dr.value = res.draft; dr.style.marginTop = '6px';
+        aiBox.appendChild(dr);
+        aiBox.appendChild(el('div', 'meta', 'Written by AI from your notes. Check that every detail is accurate, and fill in anything in [brackets], before you use it.'));
+        var useB = el('button', '', 'Use this draft'); useB.style.marginRight = '8px';
+        useB.onclick = function () { ta.value = dr.value; aiBox.innerHTML = ''; aiBox.className = ''; };
+        var noB = el('button', 'sec', 'Discard'); noB.onclick = function () { aiBox.innerHTML = ''; aiBox.className = ''; };
+        aiBox.appendChild(useB); aiBox.appendChild(noB);
+      } catch (e) { flash(e.message, false); }
+      aiBtn.disabled = false; aiBtn.textContent = 'Write it up for me';
+    };
+    sh.appendChild(aiBtn); sh.appendChild(aiBox);
+
     sh.appendChild(el('label', 'l', 'Labor'));
     if (f.tripPay > 0) sh.appendChild(el('div', 'box', 'Initial trip (flat rate): ' + money(f.tripPay)));
     var hoursRow = el('div'); hoursRow.style.marginTop = '8px';
