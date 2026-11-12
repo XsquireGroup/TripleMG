@@ -158,6 +158,13 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       <div class="panel" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
       <div class="panel" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
       <div class="panel"><h2>Money</h2><div id="tkMoney"></div></div>
+      <div class="panel" id="reviewPanel" hidden><h2>Customer request: review and release</h2>
+        <p class="small">The customer sent this from their portal. Providers cannot see it until you release it. Check the details, set the provider NTE, and release.</p>
+        <form class="f" id="releaseForm">
+          <div><label for="rlCust">Customer NTE ($)</label><input id="rlCust" inputmode="decimal"></div>
+          <div><label for="rlProv">Provider NTE ($)</label><input id="rlProv" inputmode="decimal" placeholder="What TMG will pay the provider"></div>
+          <div><button type="submit" style="background:#15803d;border-color:#15803d">Release to providers</button></div>
+        </form></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p>
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Jobs done</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
@@ -187,6 +194,13 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         </div>
         <table class="t" id="nteHist" hidden><thead><tr><th>Date</th><th>Customer</th><th>Provider</th><th>Margin</th><th>Result</th></tr></thead><tbody></tbody></table>
       </div>
+      <div class="panel" id="notesPanel"><h2>Notes</h2>
+        <div id="notesList"></div>
+        <form class="f" id="noteAddForm">
+          <div style="flex:1 1 100%"><label for="ntBody">Add a note</label><textarea id="ntBody" maxlength="2000" style="width:100%;min-height:70px;padding:10px;border:1px solid var(--border);font:inherit"></textarea></div>
+          <div><label for="ntVis">Who can see it</label><select id="ntVis" style="padding:10px;border:1px solid var(--border);font:inherit"><option value="internal">Internal only (staff)</option><option value="customer">Customer can see it</option></select></div>
+          <div><button type="submit">Add note</button></div>
+        </form></div>
       <div class="panel"><h2>History</h2><table class="t" id="tkHist"><thead><tr><th>When</th><th>Change</th><th>By</th></tr></thead><tbody></tbody></table></div>
     </div>
 
@@ -1136,6 +1150,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       d.providers.forEach(function (p) { opt(sel2, p.id, p.business_name + (p.preferred ? ' \u2605' : '') + ' - ' + p.primary_trade + (p.covers_state ? '' : ' (not in this state)')); });
       var mm = $('tkMoney'); clear(mm);
       if (t.customer_nte == null) { mm.textContent = 'No pricing yet.'; }
+      else if (t.status === 'new') { mm.textContent = 'Customer NTE: $' + Number(t.customer_nte).toFixed(2) + '. Set the provider NTE above to release this request.'; }
       else {
         [['cust', 'Customer NTE', '$' + Number(t.customer_nte).toFixed(2)], ['prov', 'Provider NTE', '$' + Number(t.provider_nte).toFixed(2)], ['mar', 'Margin', t.margin_pct + '%']].forEach(function (x) {
           var r = document.createElement('div'); r.className = 'nte ' + x[0];
@@ -1148,6 +1163,10 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       loadPhotos(id);
       loadCompletion(id);
       loadBill(id);
+      loadNotes(id);
+      var isNew = t.status === 'new';
+      $('reviewPanel').hidden = !isNew;
+      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); $('rlProv').value = ''; }
       d.history.forEach(function (h) {
         var tr = document.createElement('tr');
         tr.appendChild(td(String(h.changed_at).replace('T', ' ').slice(0, 16)));
@@ -1167,6 +1186,36 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     ev.preventDefault();
     if (!$('asSel').value) return flash('Choose a provider.', false);
     doAssign($('asSel').value, sel('asSel').replace(/ \u2605.*| - .*/, ''));
+  };
+
+  // ---- notes (customer replies show here too) ----
+  async function loadNotes(id) {
+    var box = $('notesList'); clear(box);
+    try {
+      var d = await api('/staff/tickets/' + id + '/notes');
+      if (!d.notes.length) { var e = document.createElement('p'); e.className = 'small'; e.textContent = 'No notes yet.'; box.appendChild(e); }
+      d.notes.forEach(function (n) {
+        var r = document.createElement('div');
+        var fromCust = n.author_kind === 'customer';
+        r.style.cssText = 'padding:10px 14px;margin:8px 0;border:1px solid var(--border);border-left:6px solid ' + (fromCust ? '#1d4ed8' : n.visibility === 'customer' ? '#15803d' : '#9a9890') + ';background:' + (fromCust ? '#eff6ff' : '#fff');
+        var h = document.createElement('div'); h.className = 'small';
+        h.textContent = (fromCust ? 'Customer: ' : '') + (n.author || 'Staff') + ' \u00b7 ' + String(n.created_at).replace('T', ' ').slice(0, 16) + ' \u00b7 ' + (fromCust ? 'from the customer portal' : n.visibility === 'customer' ? 'customer can see' : 'internal only');
+        var b = document.createElement('div'); b.style.whiteSpace = 'pre-wrap'; b.textContent = n.body;
+        r.appendChild(h); r.appendChild(b); box.appendChild(r);
+      });
+    } catch (e) { /* notes are a convenience */ }
+  }
+  $('noteAddForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    if (!$('ntBody').value.trim()) return flash('Write a note first.', false);
+    try { await api('/staff/tickets/' + currentTicket + '/notes', 'POST', { body: $('ntBody').value, visibility: $('ntVis').value }); $('ntBody').value = ''; flash('Note added.', true); loadNotes(currentTicket); }
+    catch (e) { flash(e.message, false); }
+  };
+  $('releaseForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    if (!window.confirm('Release this request to providers? Providers will be alerted.')) return;
+    try { await api('/staff/tickets/' + currentTicket + '/release', 'POST', { providerNte: $('rlProv').value, customerNte: $('rlCust').value }); flash('Released. Providers in the job\u2019s state have been alerted.', true); openTicket(currentTicket); }
+    catch (e) { flash(e.message, false); }
   };
 
   // ---- alerts ----

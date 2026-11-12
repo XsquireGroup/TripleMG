@@ -84,6 +84,39 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
   .modal tr td:nth-child(1) { grid-column:1 / 3; }
   .modal tr td:nth-child(5) { text-align:right; }
 }
+
+/* Customer portal */
+.cwrap { max-width:880px; margin:20px auto; }
+.cbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:14px 0; }
+.cbar input, .cbar select { padding:11px; border:1px solid var(--border); font:inherit; font-size:16px; background:#fff; min-height:44px; }
+.cbar input { flex:1; min-width:180px; }
+.bigbtn { cursor:pointer; background:var(--red); color:#fff; border:0; font-family:'Oswald',sans-serif; letter-spacing:.05em; text-transform:uppercase; font-weight:600; font-size:16px; padding:13px 22px; min-height:48px; }
+.bigbtn.green { background:#15803d; } .bigbtn.blue { background:#1d4ed8; } .bigbtn.gray { background:#4a4a48; }
+.jcard { background:var(--paper); border:1px solid var(--border); padding:14px 16px; margin-bottom:10px; cursor:pointer; display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+.jcard:hover { border-color:#9a9890; }
+.jcard h3 { font-size:17px; margin:0 0 4px; } .jcard .meta { color:var(--steel); font-size:13px; }
+.chip { display:inline-block; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.06em; font-size:12px; font-weight:600; color:#fff; background:#1d4ed8; padding:6px 11px; white-space:nowrap; }
+.chip.done { background:#15803d; } .chip.wait { background:#c2410c; } .chip.off { background:#4a4a48; }
+.dot { display:inline-block; background:#c2410c; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; margin-left:6px; }
+.cpanel { background:var(--paper); border:1px solid var(--border); padding:18px 20px; margin-bottom:14px; }
+.cpanel h2 { font-size:18px; margin:0 0 12px; }
+.prog { display:flex; margin:16px 0 4px; font-size:12px; color:var(--steel); }
+.prog div { flex:1; text-align:center; position:relative; padding-top:18px; }
+.prog div:before { content:""; position:absolute; top:4px; left:0; right:0; height:4px; background:#dedcd5; }
+.prog div.on:before { background:#15803d; } .prog div.on { color:#0a0a0a; font-weight:600; }
+.ntebox { background:#eff6ff; border-left:5px solid #1d4ed8; padding:10px 14px; margin-top:14px; font-size:14px; }
+.ntebox b { font-size:22px; display:block; }
+.action { background:#fff7ed; border:2px solid #c2410c; padding:14px 16px; margin-bottom:14px; }
+.cph { display:flex; gap:8px; flex-wrap:wrap; } .cph img { width:96px; height:72px; object-fit:cover; border:1px solid var(--border); cursor:pointer; }
+.cmsg { padding:10px 14px; margin-bottom:10px; max-width:82%; font-size:14px; white-space:pre-wrap; }
+.cmsg small { display:block; color:var(--steel); font-size:11px; margin-bottom:3px; }
+.cmsg.tmg { background:#f2f1ee; border:1px solid var(--border); } .cmsg.me { background:#eff6ff; border:1px solid #bfdbfe; margin-left:auto; }
+.cform label { display:block; font-weight:600; font-size:14px; margin:14px 0 4px; }
+.cform input, .cform select, .cform textarea { width:100%; box-sizing:border-box; padding:11px; border:1px solid #9a9890; font:inherit; font-size:16px; background:#fff; }
+.cform textarea { min-height:110px; }
+.crow { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
+.back { font-size:14px; color:var(--steel); cursor:pointer; background:none; border:0; padding:6px 0; text-decoration:underline; }
+@media (max-width:640px) { .prog { font-size:10px; } .cmsg { max-width:94%; } .jcard { flex-direction:column; } .crow .bigbtn { flex:1; } }
 </style>
 </head>
 <body>
@@ -122,6 +155,43 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     <div id="mine"></div>
   </div>
 
+  <div class="cwrap" id="custBoard" hidden>
+    <span class="role" id="role3"></span>
+    <h1 id="welcome3" style="font-size:28px;margin:0"></h1>
+    <div id="msg3" class="msg" hidden></div>
+    <div class="cbar">
+      <input id="cSearch" type="search" placeholder="Search by job number or site" aria-label="Search jobs">
+      <select id="cSite" aria-label="Filter by site"><option value="">All sites</option></select>
+      <button class="bigbtn" id="cNew">Request service</button>
+    </div>
+    <h2>Open jobs</h2><p class="empty" id="cOpenEmpty" hidden>No open jobs.</p><div id="cOpen"></div>
+    <h2 id="cClosedHead" hidden>Completed and closed</h2><div id="cClosed"></div>
+  </div>
+
+  <div class="cwrap" id="custJob" hidden>
+    <button class="back" id="cJobBack">&larr; All jobs</button>
+    <div id="msg4" class="msg" hidden></div>
+    <div id="cJobBody"></div>
+  </div>
+
+  <div class="cwrap" id="custNew" hidden>
+    <button class="back" id="cNewBack">&larr; All jobs</button>
+    <div class="cpanel cform">
+      <h2>Request service</h2>
+      <div id="msg5" class="msg" hidden></div>
+      <label for="nSite">Site</label><select id="nSite"></select>
+      <label for="nTrade">Type of work</label><select id="nTrade"></select>
+      <label for="nTitle">Short title</label><input id="nTitle" maxlength="200" placeholder="Example: Leak in men's restroom">
+      <label for="nDesc">What is happening?</label><textarea id="nDesc" maxlength="4000" placeholder="Where it is, what you see, anything we should know before we arrive."></textarea>
+      <label for="nPri">How urgent?</label>
+      <select id="nPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select>
+      <label for="nNte">Your not-to-exceed amount ($)</label><input id="nNte" inputmode="decimal" placeholder="Example: 850">
+      <label>Photos (optional, up to 5)</label>
+      <input id="nFiles" type="file" accept="image/*" multiple>
+      <div class="crow"><span class="small" style="font-size:13px;color:var(--steel)">TMG reviews every request, then schedules a provider.</span><button class="bigbtn green" id="nGo">Send request</button></div>
+    </div>
+  </div>
+
   <div class="card" id="problem" hidden>
     <h1>We could not sign you in</h1>
     <p class="err" id="problemText"></p>
@@ -139,10 +209,10 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
   var SCOPES = ['openid', 'profile', 'email'];
 
   function show(id) {
-    ['signedOut', 'loading', 'home', 'board', 'problem'].forEach(function (x) {
+    ['signedOut', 'loading', 'home', 'board', 'custBoard', 'custJob', 'custNew', 'problem'].forEach(function (x) {
       document.getElementById(x).hidden = (x !== id);
     });
-    document.getElementById('signOut').hidden = (id !== 'home' && id !== 'board');
+    document.getElementById('signOut').hidden = (id !== 'home' && id !== 'board' && id.indexOf('cust') !== 0);
   }
   function problem(msg) {
     document.getElementById('problemText').textContent = msg;
@@ -493,6 +563,141 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     box.appendChild(go);
   }
 
+
+  // ===================== Customer portal =====================
+  var cJobs = [], cSites = [], cOpenId = null;
+  function cflash(boxId, text, ok) {
+    var m = $(boxId); m.textContent = text; m.className = 'msg float ' + (ok ? 'ok' : 'bad'); m.hidden = false;
+    window.scrollTo(0, 0); clearTimeout(m._t); m._t = setTimeout(function () { m.hidden = true; }, 8000);
+  }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+  function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function when(v) { var d = new Date(String(v).indexOf('Z') < 0 && String(v).indexOf('+') < 0 ? v + 'Z' : v); return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  function chipFor(status, needsAction) {
+    var c = el('span', 'chip' + (status === 'Complete' || status === 'Invoice ready' ? ' done' : (needsAction || status === 'Awaiting your approval') ? ' wait' : (status === 'Closed' || status === 'Canceled' || status === 'On hold') ? ' off' : ''), status);
+    return c;
+  }
+  async function loadCustBoard() {
+    show('custBoard');
+    try {
+      var d = await api('/customer/jobs');
+      cJobs = d.jobs;
+      $('welcome3').textContent = d.company ? d.company : 'Welcome, ' + d.name;
+      var sel = $('cSite'), keep = sel.value; while (sel.options.length > 1) sel.remove(1);
+      var seen = {}; cJobs.forEach(function (j) { if (!seen[j.site]) { seen[j.site] = 1; var o = el('option', '', j.site); o.value = j.site; sel.appendChild(o); } });
+      sel.value = keep;
+      renderCust();
+    } catch (e) { cflash('msg3', e.message, false); }
+  }
+  function renderCust() {
+    var q = $('cSearch').value.trim().toLowerCase(), site = $('cSite').value;
+    var list = cJobs.filter(function (j) { return (!site || j.site === site) && (!q || (j.jobNumber + ' ' + j.site + ' ' + j.title).toLowerCase().indexOf(q) >= 0); });
+    var open = $('cOpen'), closed = $('cClosed'); open.textContent = ''; closed.textContent = '';
+    var o = list.filter(function (j) { return !j.closed; }), c = list.filter(function (j) { return j.closed; });
+    $('cOpenEmpty').hidden = o.length > 0; $('cClosedHead').hidden = c.length === 0;
+    function card(j) {
+      var r = el('div', 'jcard'); r.tabIndex = 0;
+      var left = el('div'); var h = el('h3', '', j.jobNumber + ' · ' + j.title);
+      if (j.recentUpdates) h.appendChild(el('span', 'dot', 'NEW UPDATE'));
+      left.appendChild(h); left.appendChild(el('div', 'meta', j.site + ' · ' + (j.trade || '') + ' · Requested ' + when(j.createdAt).split(',')[0]));
+      r.appendChild(left); r.appendChild(chipFor(j.status, j.needsAction));
+      var go = function () { openCustJob(j.id); }; r.onclick = go; r.onkeydown = function (e) { if (e.key === 'Enter') go(); };
+      return r;
+    }
+    o.forEach(function (j) { open.appendChild(card(j)); }); c.forEach(function (j) { closed.appendChild(card(j)); });
+  }
+  async function openCustJob(id) {
+    cOpenId = id; show('custJob'); history.pushState({ v: 'job' }, '');
+    var box = $('cJobBody'); box.textContent = 'Loading…'; window.scrollTo(0, 0);
+    try {
+      var j = await api('/customer/jobs/' + id); box.textContent = '';
+      var head = el('div', 'cpanel');
+      var top = el('div'); top.style.cssText = 'display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start';
+      var tl = el('div'); tl.appendChild(el('h1', '', j.jobNumber + ' · ' + j.title)); tl.lastChild.style.cssText = 'font-size:24px;margin:0 0 4px';
+      tl.appendChild(el('div', 'meta', j.site.number + ' – ' + j.site.name + ' · ' + j.site.address + ', ' + j.site.city + ', ' + j.site.state + ' · ' + (j.trade || '') + ' · Requested ' + when(j.createdAt)));
+      tl.lastChild.style.cssText = 'color:var(--steel);font-size:14px';
+      top.appendChild(tl); top.appendChild(chipFor(j.status, j.pendingIncrease != null)); head.appendChild(top);
+      if (!j.canceled) {
+        var steps = ['Received', 'Provider assigned', 'Dispatched', 'In progress', 'Complete'], pr = el('div', 'prog');
+        steps.forEach(function (n, i) { pr.appendChild(el('div', i < j.step ? 'on' : '', n)); }); head.appendChild(pr);
+      }
+      if (j.expectedArrival) { var ea = el('p', '', 'Expected arrival: ' + when(j.expectedArrival)); ea.style.marginTop = '12px'; head.appendChild(ea); }
+      var dp = el('p', '', j.description); dp.style.cssText = 'margin-top:12px;white-space:pre-wrap;font-size:14px'; head.appendChild(dp);
+      if (j.nte != null) { var nb = el('div', 'ntebox', 'Your not-to-exceed (NTE)'); nb.appendChild(el('b', '', money(j.nte))); head.appendChild(nb); }
+      box.appendChild(head);
+      if (j.pendingIncrease != null) {
+        var ac = el('div', 'action'); var b = el('b', '', 'TMG has asked to raise your NTE to ' + money(j.pendingIncrease) + '.'); b.style.display = 'block';
+        ac.appendChild(b); ac.appendChild(el('span', '', 'Your TMG coordinator will contact you to confirm. Nothing changes until you approve.')); box.appendChild(ac);
+      }
+      var ph = el('div', 'cpanel'); ph.appendChild(el('h2', '', 'Photos'));
+      var strip = el('div', 'cph'); ph.appendChild(strip);
+      if (!j.photos.length) strip.appendChild(el('span', 'empty', 'No photos yet.'));
+      j.photos.forEach(async function (pid) {
+        try { var blob = await apiBlob('/customer/photos/' + pid); var u = URL.createObjectURL(blob); var im = new Image(); im.src = u; im.alt = 'Job photo'; im.onclick = function () { window.open(u, '_blank'); };
+          if (strip.firstChild && strip.firstChild.className === 'empty') strip.textContent = ''; strip.appendChild(im); } catch (e) { /* skip */ }
+      });
+      if (j.canAddPhotos && j.photos.length < j.maxPhotos) {
+        var fi = el('input'); fi.type = 'file'; fi.accept = 'image/*'; fi.multiple = true; fi.hidden = true;
+        var ab = el('button', 'bigbtn gray', '+ Add photos'); ab.style.marginTop = '12px';
+        ab.onclick = function () { fi.click(); };
+        fi.onchange = async function () {
+          if (!fi.files.length) return; ab.disabled = true; ab.textContent = 'Uploading…';
+          try { var arr = await Promise.all(Array.prototype.slice.call(fi.files, 0, 5).map(shrink));
+            await api('/customer/jobs/' + id + '/photos', 'POST', { photos: arr.map(function (a) { return { filename: a.filename, dataBase64: a.dataBase64 }; }) });
+            cflash('msg4', 'Photos added.', true); openCustJob(id); } catch (e) { cflash('msg4', e.message, false); ab.disabled = false; ab.textContent = '+ Add photos'; }
+        };
+        ph.appendChild(fi); ph.appendChild(ab);
+      }
+      box.appendChild(ph);
+      var np = el('div', 'cpanel'); np.appendChild(el('h2', '', 'Notes & updates'));
+      if (!j.notes.length) np.appendChild(el('p', 'empty', 'No messages yet. TMG updates and your replies appear here.'));
+      j.notes.forEach(function (n) {
+        var me = n.author_kind === 'customer', m = el('div', 'cmsg ' + (me ? 'me' : 'tmg'));
+        m.appendChild(el('small', '', (me ? 'You' : 'TMG') + ' · ' + when(n.created_at))); m.appendChild(document.createTextNode(n.body)); np.appendChild(m);
+      });
+      if (j.canReply) {
+        var ta = el('textarea'); ta.placeholder = 'Write a reply or add a note for this job…'; ta.maxLength = 2000; ta.style.cssText = 'width:100%;box-sizing:border-box;border:1px solid #9a9890;padding:10px;font:inherit;font-size:16px;height:84px;margin-top:6px';
+        var row = el('div', 'crow'); row.appendChild(el('span', '', 'Goes to your TMG coordinator')); row.lastChild.style.cssText = 'font-size:12px;color:var(--steel)';
+        var sb = el('button', 'bigbtn blue', 'Send reply');
+        sb.onclick = async function () {
+          if (!ta.value.trim()) return cflash('msg4', 'Write a message first.', false);
+          sb.disabled = true;
+          try { await api('/customer/jobs/' + id + '/notes', 'POST', { body: ta.value }); cflash('msg4', 'Sent to TMG.', true); openCustJob(id); }
+          catch (e) { cflash('msg4', e.message, false); sb.disabled = false; }
+        };
+        row.appendChild(sb); np.appendChild(ta); np.appendChild(row);
+      }
+      box.appendChild(np);
+    } catch (e) { box.textContent = ''; cflash('msg4', e.message, false); }
+  }
+  async function openCustNew() {
+    show('custNew'); history.pushState({ v: 'new' }, ''); window.scrollTo(0, 0);
+    try {
+      var d = await api('/customer/sites'); cSites = d.sites;
+      var s = $('nSite'); s.textContent = ''; d.sites.forEach(function (x) { var o = el('option', '', x.site_number + ' – ' + x.name + ' (' + x.city + ', ' + x.state + ')'); o.value = x.id; s.appendChild(o); });
+      var t = $('nTrade'); t.textContent = ''; var p = el('option', '', 'Choose…'); p.value = ''; t.appendChild(p); d.trades.forEach(function (x) { var o = el('option', '', x); o.value = x; t.appendChild(o); });
+      if (!d.sites.length) cflash('msg5', 'No sites are set up for your company yet. Please call TMG.', false);
+    } catch (e) { cflash('msg5', e.message, false); }
+  }
+  $('cSearch').oninput = renderCust; $('cSite').onchange = renderCust;
+  $('cNew').onclick = openCustNew;
+  $('cJobBack').onclick = function () { loadCustBoard(); };
+  $('cNewBack').onclick = function () { loadCustBoard(); };
+  window.addEventListener('popstate', function () { if (!$('custJob').hidden || !$('custNew').hidden) loadCustBoard(); });
+  $('nGo').onclick = async function () {
+    var b = $('nGo'); b.disabled = true; b.textContent = 'Sending…';
+    try {
+      var files = Array.prototype.slice.call($('nFiles').files, 0, 5);
+      var arr = await Promise.all(files.map(shrink));
+      var r = await api('/customer/jobs', 'POST', { siteId: $('nSite').value, trade: $('nTrade').value, title: $('nTitle').value, description: $('nDesc').value,
+        priority: $('nPri').value, nte: $('nNte').value, photos: arr.map(function (a) { return { filename: a.filename, dataBase64: a.dataBase64 }; }) });
+      ['nTitle', 'nDesc', 'nNte', 'nFiles'].forEach(function (i) { $(i).value = ''; });
+      await loadCustBoard();
+      cflash('msg3', 'Request ' + r.jobNumber + ' sent. TMG will review it and schedule a provider.' + (r.photosSaved < r.photosSent ? ' Some photos did not upload; add them from the job page.' : ''), true);
+    } catch (e) { cflash('msg5', e.message, false); }
+    b.disabled = false; b.textContent = 'Send request';
+  };
+
   async function enter(account) {
     acct = account;
     show('loading');
@@ -502,6 +707,11 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
         $('welcome2').textContent = 'Welcome, ' + data.name;
         $('role2').textContent = 'Provider';
         show('board'); loadBoard(); loadSms();
+        return;
+      }
+      if (data.kind === 'customer') {
+        $('role3').textContent = 'Customer';
+        loadCustBoard();
         return;
       }
       $('welcome').textContent = 'Welcome, ' + data.name;
