@@ -567,8 +567,9 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
   // ===================== Customer portal =====================
   var cJobs = [], cSites = [], cOpenId = null;
   function cflash(boxId, text, ok) {
-    var m = $(boxId); m.textContent = text; m.className = 'msg float ' + (ok ? 'ok' : 'bad'); m.hidden = false;
-    window.scrollTo(0, 0); clearTimeout(m._t); m._t = setTimeout(function () { m.hidden = true; }, 8000);
+    var m = $(boxId); m.textContent = text + '  (tap to close)'; m.className = 'msg float ' + (ok ? 'ok' : 'bad'); m.hidden = false; m.style.cursor = 'pointer';
+    m.onclick = function () { m.hidden = true; };
+    window.scrollTo(0, 0); clearTimeout(m._t); m._t = setTimeout(function () { m.hidden = true; }, 15000);
   }
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
