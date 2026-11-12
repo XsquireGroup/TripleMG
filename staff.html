@@ -134,7 +134,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><label for="wPhotos">Photos (optional, up to 10)</label><input id="wPhotos" type="file" accept="image/*" multiple><div class="ph" id="wPhotoList"></div><p class="small">Every provider who can take the job sees these before it is assigned, so show the whole problem. The paste-an-email helper comes in a later step.</p></div>
         <div id="w5" hidden><label for="wPri">5. Priority</label><select id="wPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
         <div id="w6" hidden><label for="wCN">6. Customer NTE ($)</label><input id="wCN" type="number" min="1" step="0.01"><label for="wPN">Initial provider NTE ($)</label><input id="wPN" type="number" min="1" step="0.01"><p class="small" id="wMargin"></p></div>
-        <div id="w7" hidden><label>7. Review</label><dl id="wReview"></dl></div>
+        <div id="w7" hidden><label>7. Review</label><dl id="wReview"></dl><label style="display:flex;gap:10px;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)"><input type="checkbox" id="wMine" checked style="width:20px;height:20px;margin-top:2px;flex:none"> Assign this ticket to me. Uncheck it to let the automatic workload rotation choose an employee.</label></div>
         <div class="nav"><button class="sec" id="wBack">Back</button><button id="wNext">Next</button></div>
       </div>
     </div>
@@ -193,6 +193,10 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
           </form>
         </div>
         <table class="t" id="nteHist" hidden><thead><tr><th>Date</th><th>Customer</th><th>Provider</th><th>Margin</th><th>Result</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="panel" id="handlerPanel" hidden><h2>Handled by</h2>
+        <p class="small" id="handlerNow"></p>
+        <form class="f" id="handlerForm"><div><label for="hdSel">Hand this ticket to</label><select id="hdSel" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"></select></div><div><button type="submit">Reassign</button></div></form>
       </div>
       <div class="panel" id="notesPanel"><h2>Notes</h2>
         <div id="notesList"></div>
@@ -1164,6 +1168,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       loadCompletion(id);
       loadBill(id);
       loadNotes(id);
+      loadHandler(t);
       var isNew = t.status === 'new';
       $('reviewPanel').hidden = !isNew;
       if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); $('rlProv').value = ''; }
@@ -1186,6 +1191,25 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     ev.preventDefault();
     if (!$('asSel').value) return flash('Choose a provider.', false);
     doAssign($('asSel').value, sel('asSel').replace(/ \u2605.*| - .*/, ''));
+  };
+
+  // ---- reassign (managers and Owner) ----
+  async function loadHandler(t) {
+    var pnl = $('handlerPanel'); pnl.hidden = true;
+    if (!isMgr() || ['closed', 'canceled', 'billed'].indexOf(t.status) >= 0) return;
+    try {
+      var d = await api('/staff/assignees');
+      $('handlerNow').textContent = 'Currently: ' + (t.staff_name || 'nobody') + '. Open tickets per person are shown so you can balance the load.';
+      var sel = $('hdSel'); clear(sel); opt(sel, '', 'Choose an employee...');
+      d.staff.forEach(function (x) { opt(sel, x.id, x.display_name + ' (' + x.role + ') - ' + x.open_tickets + ' open' + (x.available ? '' : ' - marked unavailable')); });
+      pnl.hidden = false;
+    } catch (e) { /* panel stays hidden */ }
+  }
+  $('handlerForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    if (!$('hdSel').value) return flash('Choose an employee.', false);
+    try { await api('/staff/tickets/' + currentTicket + '/reassign', 'POST', { staffId: $('hdSel').value }); flash('Reassigned. They have been alerted and emailed.', true); openTicket(currentTicket); }
+    catch (e) { flash(e.message, false); }
   };
 
   // ---- notes (customer replies show here too) ----
@@ -1318,6 +1342,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   var wz = { step: 1, lookups: null };
   var STEPS = ['Customer', 'Worksite', 'Trade', 'Details', 'Priority', 'Money', 'Review'];
   function wizDraw() {
+    if (wz.step === 1 && $('wMine')) $('wMine').checked = true;
     for (var i = 1; i <= 7; i++) $('w' + i).hidden = (i !== wz.step);
     var sp = $('wizSteps'); clear(sp);
     STEPS.forEach(function (n, i) { var x = document.createElement('span'); x.textContent = (i + 1) + ' ' + n; if (i + 1 === wz.step) x.className = 'on'; sp.appendChild(x); });
@@ -1367,7 +1392,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     }
     if (st === 7) {
       try {
-        var res = await api('/staff/tickets', 'POST', { customerId: $('wCust').value, worksiteId: $('wSite').value, trade: $('wTrade').value, title: $('wTitle').value, description: $('wDesc').value, priority: $('wPri').value, customerNte: $('wCN').value, providerNte: $('wPN').value });
+        var res = await api('/staff/tickets', 'POST', { customerId: $('wCust').value, worksiteId: $('wSite').value, trade: $('wTrade').value, title: $('wTitle').value, description: $('wDesc').value, priority: $('wPri').value, assignToMe: $('wMine').checked, customerNte: $('wCN').value, providerNte: $('wPN').value });
         var failedPh = 0;
         for (var pi = 0; pi < wzPhotos.length; pi++) {
           try { await api('/staff/tickets/' + res.id + '/photos', 'POST', { filename: wzPhotos[pi].filename, dataBase64: wzPhotos[pi].dataBase64 }); } catch (pe) { failedPh++; }
