@@ -491,8 +491,16 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
   };
 
   async function token(force) {
-    var r = await app.acquireTokenSilent({ scopes: SCOPES, account: account, forceRefresh: !!force });
-    return r.idToken;
+    try {
+      var r = await app.acquireTokenSilent({ scopes: SCOPES, account: account, forceRefresh: !!force });
+      return r.idToken;
+    } catch (e) {
+      if (e && /interaction_required|login_required|consent_required|no_tokens_found|invalid_grant|AADSTS160021/i.test((e.errorCode || '') + ' ' + (e.message || ''))) {
+        app.loginRedirect({ scopes: SCOPES });
+        await new Promise(function () {});
+      }
+      throw e;
+    }
   }
 
   // Calls the TMG backend. Retries once with a fresh token if the first one was rejected.

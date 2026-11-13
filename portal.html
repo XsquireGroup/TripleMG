@@ -242,8 +242,17 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
   var acct = null;
   var $ = function (id) { return document.getElementById(id); };
   async function token(force) {
-    var r = await app.acquireTokenSilent({ scopes: SCOPES, account: acct, forceRefresh: !!force });
-    return r.idToken;
+    try {
+      var r = await app.acquireTokenSilent({ scopes: SCOPES, account: acct, forceRefresh: !!force });
+      return r.idToken;
+    } catch (e) {
+      // the sign-in session ran out: send them back through sign-in instead of showing a code
+      if (e && /interaction_required|login_required|consent_required|no_tokens_found|invalid_grant|AADSTS160021/i.test((e.errorCode || '') + ' ' + (e.message || ''))) {
+        app.loginRedirect({ scopes: SCOPES });
+        await new Promise(function () {});
+      }
+      throw e;
+    }
   }
   async function api(path, method, body) {
     for (var i = 0; i < 2; i++) {
@@ -601,7 +610,8 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     $('cOpenEmpty').hidden = o.length > 0; $('cClosedHead').hidden = c.length === 0;
     function card(j) {
       var r = el('div', 'jcard'); r.tabIndex = 0;
-      var left = el('div'); var h = el('h3', '', j.jobNumber + ' · ' + j.title);
+      var snum = String(j.site).split(' – ')[0]; r.style.borderLeft = '6px solid ' + siteColor(snum);
+      var left = el('div'); var h = el('h3', '', j.jobNumber + ' · ' + j.title); h.insertBefore(siteChip(snum), h.firstChild);
       if (j.recentUpdates) h.appendChild(el('span', 'dot', 'NEW UPDATE'));
       left.appendChild(h); left.appendChild(el('div', 'meta', j.site + ' · ' + (j.trade || '') + ' · Requested ' + when(j.createdAt).split(',')[0]));
       r.appendChild(left); r.appendChild(chipFor(j.status, j.needsAction));
@@ -610,6 +620,9 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     }
     o.forEach(function (j) { open.appendChild(card(j)); }); c.forEach(function (j) { closed.appendChild(card(j)); });
   }
+  var SITE_COLORS = ['#1d4ed8', '#c2410c', '#15803d', '#7e22ce', '#be123c', '#0f766e', '#a16207', '#4338ca', '#0369a1', '#9d174d', '#4d7c0f', '#b45309'];
+  function siteColor(num) { var n = String(num).trim(), v = /^\d+$/.test(n) ? parseInt(n, 10) : n.split('').reduce(function (a, ch) { return a * 31 + ch.charCodeAt(0); }, 7); return SITE_COLORS[Math.abs(v) % SITE_COLORS.length]; }
+  function siteChip(num) { var c = el('span', '', 'Site ' + num); c.style.cssText = 'display:inline-block;background:' + siteColor(num) + ';color:#fff;font-family:Oswald,sans-serif;letter-spacing:.05em;font-size:13px;padding:2px 9px;margin-right:8px;vertical-align:middle;text-transform:uppercase'; return c; }
   async function openCustJob(id) {
     cOpenId = id; show('custJob'); history.pushState({ v: 'job' }, '');
     var box = $('cJobBody'); box.textContent = 'Loading…'; window.scrollTo(0, 0);
@@ -617,7 +630,7 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
       var j = await api('/customer/jobs/' + id); box.textContent = '';
       var head = el('div', 'cpanel');
       var top = el('div'); top.style.cssText = 'display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start';
-      var tl = el('div'); tl.appendChild(el('h1', '', j.jobNumber + ' · ' + j.title)); tl.lastChild.style.cssText = 'font-size:24px;margin:0 0 4px';
+      var tl = el('div'); tl.appendChild(el('h1', '', j.jobNumber + ' · ' + j.title)); tl.lastChild.insertBefore(siteChip(j.site.number), tl.lastChild.firstChild); head.style.borderLeft = '6px solid ' + siteColor(j.site.number); tl.lastChild.style.cssText = 'font-size:24px;margin:0 0 4px';
       tl.appendChild(el('div', 'meta', j.site.number + ' – ' + j.site.name + ' · ' + j.site.address + ', ' + j.site.city + ', ' + j.site.state + ' · ' + (j.trade || '') + ' · Requested ' + when(j.createdAt)));
       tl.lastChild.style.cssText = 'color:var(--steel);font-size:14px';
       top.appendChild(tl); top.appendChild(chipFor(j.status, j.pendingIncrease != null)); head.appendChild(top);
