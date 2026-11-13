@@ -1365,7 +1365,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
   }
 
   var curTicket = null, curHistory = [];
-  function pill(ic, label, node, extra) {
+  function infoPill(ic, label, node, extra) {
     var p = document.createElement('div'); p.className = 'pl' + (extra ? ' ' + extra : '');
     var i = document.createElement('span'); i.className = 'ic'; if (typeof ic === 'string') i.textContent = ic; else i.appendChild(ic);
     var t = document.createElement('div'); t.className = 'tx'; t.appendChild(mk('small', '', label));
@@ -1386,24 +1386,24 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     var box = $('tkMeta'); clear(box);
     var r1 = document.createElement('div'); r1.className = 'pills r1';
     var site = [t.site_name, t.site_number ? 'Store #' + t.site_number : '', t.on_site_contact_name ? 'Contact: ' + t.on_site_contact_name + (t.on_site_contact_phone ? ' ' + t.on_site_contact_phone : '') : ''].filter(Boolean).join(' \u00b7 ');
-    r1.appendChild(pill('\ud83c\udfe2', 'Customer', t.customer_name || '-'));
-    r1.appendChild(pill('\ud83c\udfea', 'Site', site || '-', 'wrapt'));
+    r1.appendChild(infoPill('\ud83c\udfe2', 'Customer', t.customer_name || '-'));
+    r1.appendChild(infoPill('\ud83c\udfea', 'Site', site || '-', 'wrapt'));
     var addr = [t.address1, t.city, t.state, t.zip].filter(Boolean).join(', ');
     var al = document.createElement('a'); al.textContent = addr || '-'; al.target = '_blank'; al.rel = 'noopener';
     al.href = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr); al.style.cssText = 'color:#1d4ed8;text-decoration:underline'; al.title = 'Open in Google Maps and search nearby';
-    var ap = pill('\ud83d\udccd', 'Address', al, 'wrapt'); r1.appendChild(ap);
+    var ap = infoPill('\ud83d\udccd', 'Address', al, 'wrapt'); r1.appendChild(ap);
     var r2 = document.createElement('div'); r2.className = 'pills r2';
     var dot = document.createElement('span'); dot.className = 'dot ' + t.priority;
-    r2.appendChild(pill(dot, 'Priority', t.priority.charAt(0).toUpperCase() + t.priority.slice(1)));
-    r2.appendChild(pill('\ud83d\udd27', 'Trade', t.trade || '-'));
+    r2.appendChild(infoPill(dot, 'Priority', t.priority.charAt(0).toUpperCase() + t.priority.slice(1)));
+    r2.appendChild(infoPill('\ud83d\udd27', 'Trade', t.trade || '-'));
     var st = document.createElement('span'); st.className = 'stp ' + t.status; st.textContent = t.status.replace(/_/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); });
-    r2.appendChild(pill('\u25cf', 'Status', st));
-    r2.appendChild(pill('\ud83d\udc64', 'TMG Rep', t.staff_name || 'Unassigned'));
-    if (t.provider_name) r2.appendChild(pill('\ud83d\udee0', 'Provider', t.provider_name));
+    r2.appendChild(infoPill('\u25cf', 'Status', st));
+    r2.appendChild(infoPill('\ud83d\udc64', 'TMG Rep', t.staff_name || 'Unassigned'));
+    if (t.provider_name) r2.appendChild(infoPill('\ud83d\udee0', 'Provider', t.provider_name));
     var r3 = document.createElement('div'); r3.className = 'pills r2';
     var came = new Date(t.created_at);
-    r3.appendChild(pill('\ud83d\udcc5', 'Came in', came.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })));
-    var ag = document.createElement('span'); ag.id = 'ageVal'; r3.appendChild(pill('\u23f1', 'Ticket age', ag));
+    r3.appendChild(infoPill('\ud83d\udcc5', 'Came in', came.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })));
+    var ag = document.createElement('span'); ag.id = 'ageVal'; r3.appendChild(infoPill('\u23f1', 'Ticket age', ag));
     box.appendChild(r1); box.appendChild(r2); box.appendChild(r3); tickAge();
     var closed = ['closed', 'canceled', 'billed'].indexOf(t.status) >= 0;
     $('qEdit').hidden = closed;
