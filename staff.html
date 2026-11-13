@@ -130,7 +130,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
         <h2>New ticket</h2><div class="steps" id="wizSteps"></div>
         <div id="w1"><label for="wCust">1. Customer</label><select id="wCust"></select></div>
         <div id="w2" hidden><label for="wSite">2. Worksite</label><select id="wSite"></select></div>
-        <div id="w3" hidden><label for="wTrade">3. Trade</label><select id="wTrade"><option value="">Choose...</option><option>Building maintenance (general)</option><option>Plumbing</option><option>Electrical</option><option>HVAC</option><option>Grounds &amp; landscaping</option><option>Janitorial</option><option>Painting &amp; finishes</option><option>Roofing</option><option>Other</option></select></div>
+        <div id="w3" hidden><label for="wTrade">3. Trade</label><select id="wTrade"><option value="">Choose...</option></select></div>
         <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><label for="wPhotos">Photos (optional, up to 10)</label><input id="wPhotos" type="file" accept="image/*" multiple><div class="ph" id="wPhotoList"></div><p class="small">Every provider who can take the job sees these before it is assigned, so show the whole problem. The paste-an-email helper comes in a later step.</p></div>
         <div id="w5" hidden><label for="wPri">5. Priority</label><select id="wPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
         <div id="w6" hidden><label for="wCN">6. Customer NTE ($)</label><input id="wCN" type="number" min="1" step="0.01"><label for="wPN">Initial provider NTE ($)</label><input id="wPN" type="number" min="1" step="0.01"><p class="small" id="wMargin"></p></div>
@@ -158,9 +158,16 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       <div class="panel" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
       <div class="panel" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
       <div class="panel"><h2>Money</h2><div id="tkMoney"></div></div>
+      <div class="panel" id="tradePanel" hidden><h2>Trade</h2>
+        <p class="small">The trade decides which labor rates apply to this job's bill. You can change it until a bill exists.</p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><select id="tdSel"></select>
+          <button type="button" class="btn-sm" id="tdSave">Save trade</button><button type="button" class="ai-btn" id="tdCheck">Check trade with AI</button></div>
+        <div id="tdOut"></div></div>
       <div class="panel" id="reviewPanel" hidden><h2>Customer request: review and release</h2>
         <p class="small">The customer sent this from their portal. Providers cannot see it until you release it. Check the details, set the provider NTE, and release.</p>
         <form class="f" id="releaseForm">
+          <div><label for="rlTrade">Trade (confirm it: the trade decides the rates)</label><select id="rlTrade"></select>
+            <button type="button" class="ai-btn" id="rlCheck" style="margin-top:8px">Check trade with AI</button><div id="rlCheckOut"></div></div>
           <div><label for="rlCust">Customer NTE ($)</label><input id="rlCust" inputmode="decimal"></div>
           <div><label for="rlProv">Provider NTE ($)</label><input id="rlProv" inputmode="decimal" placeholder="What TMG will pay the provider"></div>
           <div><button type="submit" style="background:#15803d;border-color:#15803d">Release to providers</button></div>
@@ -249,6 +256,9 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
           <div><label for="prHelperRate">Helper rate ($ per hour)</label><input id="prHelperRate" type="number" min="0" step="0.01"></div>
           <div><button type="submit" id="prRateSave">Save</button></div>
         </form>
+        <h3 style="font-size:14px;margin:18px 0 6px;text-transform:uppercase">Rates by trade</h3>
+        <p class="small">Optional. A rate here replaces the default above for that trade only. Leave a trade blank to use the default. Only the Owner can change these.</p>
+        <table class="t" id="prTradeTbl"><thead><tr><th>Trade</th><th>Lead Tech $/hr</th><th>Helper $/hr</th></tr></thead><tbody></tbody></table>
       </div>
       <div class="panel">
         <h2>Documents</h2>
@@ -303,6 +313,9 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
           <div><label for="btPay">Trip pay to provider ($)</label><input id="btPay" type="number" min="0" step="0.01"></div>
           <div><button type="submit" id="btSave">Save</button></div>
         </form>
+        <h3 style="font-size:14px;margin:18px 0 6px;text-transform:uppercase">Hourly rates billed to this customer, by trade</h3>
+        <p class="small">Optional. The rate for a trade is what this customer is billed per hour and is shown on their invoice. Leave a trade blank to use the standard formula. The first row is this customer's default for any trade without its own rate. Only the Owner can change these. The Save button above saves this list too.</p>
+        <table class="t" id="btTradeTbl"><thead><tr><th>Trade</th><th>Lead Tech $/hr</th><th>Helper $/hr</th></tr></thead><tbody></tbody></table>
       </div>
       <div class="panel">
         <h2>Worksites</h2>
@@ -572,16 +585,37 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     return { labor: labor, mats: mats, pt: pt, ct: ct, m: m, cLabor: r2(labor / 0.80), cMat: r2(1.10 * mats / 0.80) };
   }
 
+  var TRADES = ["Building maintenance (general)", "Handyman", "Plumbing", "Electrical", "HVAC", "Fire life safety", "Roofing", "Carpentry", "Flooring", "Painting & finishes", "Locksmith / doors", "Grounds & landscaping", "Irrigation repair", "Lot sweeping", "Snow removal", "Pressure washing", "Janitorial", "Capital projects", "Other"];
+  function fillTradeSelect(sel, keep) { clear(sel); TRADES.forEach(function (t) { opt(sel, t, t); }); if (keep) sel.value = keep; }
+  fillTradeSelect($('wTrade')); $('wTrade').insertBefore(Object.assign(document.createElement('option'), { value: '', textContent: 'Choose...' }), $('wTrade').firstChild); $('wTrade').value = '';
+  var rateInputs = { pr: {}, bt: {} };
+  function buildRateTable(tblId, key, rows, withDefault, ro) {
+    var tb = $(tblId).tBodies[0]; clear(tb); rateInputs[key] = {};
+    var list = (withDefault ? ['*'] : []).concat(TRADES);
+    list.forEach(function (tr) {
+      var r = tb.insertRow(); r.insertCell().textContent = tr === '*' ? 'Default (any trade without its own rate)' : tr;
+      var a = document.createElement('input'), b = document.createElement('input');
+      [a, b].forEach(function (i) { i.type = 'number'; i.min = '0'; i.step = '0.01'; i.className = 'bill-in'; i.disabled = ro; });
+      var f = (rows || []).filter(function (x) { return x.trade === tr; })[0];
+      a.value = f && f.hourlyRate != null ? f.hourlyRate : ''; b.value = f && f.helperRate != null ? f.helperRate : '';
+      r.insertCell().appendChild(a); r.insertCell().appendChild(b); rateInputs[key][tr] = [a, b];
+    });
+  }
+  function readRateTable(key) {
+    return Object.keys(rateInputs[key]).map(function (tr) { var p = rateInputs[key][tr]; return { trade: tr, hourlyRate: p[0].value, helperRate: p[1].value }; })
+      .filter(function (x) { return x.hourlyRate !== '' || x.helperRate !== ''; });
+  }
   async function loadBillTerms(id) {
     try {
       var d = await api('/staff/customers/' + id + '/billing');
       $('btCharge').value = d.tripCharge == null ? '' : d.tripCharge; $('btPay').value = d.tripPay == null ? '' : d.tripPay;
       var ro = !(me && me.role === 'owner'); $('btCharge').disabled = ro; $('btPay').disabled = ro; $('btSave').hidden = ro;
+      buildRateTable('btTradeTbl', 'bt', d.rates, true, ro);
     } catch (er) { /* leave blank */ }
   }
   $('btForm').onsubmit = async function (e) {
     e.preventDefault();
-    try { await api('/staff/customers/' + currentCustomer + '/billing', 'POST', { tripCharge: $('btCharge').value, tripPay: $('btPay').value }); flash('Billing terms saved.', true); }
+    try { await api('/staff/customers/' + currentCustomer + '/billing', 'POST', { tripCharge: $('btCharge').value, tripPay: $('btPay').value, rates: readRateTable('bt') }); flash('Billing terms and customer rates saved.', true); }
     catch (er) { flash(er.message, false); }
   };
   async function loadProviderRate(id) {
@@ -589,11 +623,12 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       var d = await api('/staff/providers/' + id + '/rate');
       $('prRate').value = d.hourlyRate == null ? '' : d.hourlyRate; $('prHelperRate').value = d.helperRate == null ? '' : d.helperRate;
       var ro = !(me && me.role === 'owner'); $('prRate').disabled = ro; $('prHelperRate').disabled = ro; $('prRateSave').hidden = ro;
+      buildRateTable('prTradeTbl', 'pr', d.tradeRates, false, ro);
     } catch (er) { /* leave blank */ }
   }
   $('rateForm').onsubmit = async function (e) {
     e.preventDefault();
-    try { await api('/staff/providers/' + currentProvider + '/rate', 'POST', { hourlyRate: $('prRate').value, helperRate: $('prHelperRate').value }); flash('Labor rates saved.', true); }
+    try { await api('/staff/providers/' + currentProvider + '/rate', 'POST', { hourlyRate: $('prRate').value, helperRate: $('prHelperRate').value, tradeRates: readRateTable('pr') }); flash('Labor rates saved.', true); }
     catch (er) { flash(er.message, false); }
   };
 
@@ -737,6 +772,15 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     body.appendChild(mk('p', 'small', 'Submitted by ' + b.submitted_by + ' (' + b.business_name + ') on ' + fmt(b.bill_date) + '. Status: ' + (STAT[b.status] || b.status) + '.'));
     d.prior.forEach(function (p) { body.appendChild(mk('p', 'small', 'Earlier bill returned ' + fmt(p.reviewed_at) + ' by ' + p.reviewed_by + ': ' + p.return_note)); });
     if (b.status === 'approved' || b.status === 'invoiced') body.appendChild(mk('p', 'small', 'Approved by ' + b.approved_by + ' on ' + fmt(b.approved_at) + (b.margin_exception ? ' as a low-margin exception.' : '.') + (b.invoice_number ? ' Invoice ' + b.invoice_number + ' on ' + fmt(b.invoiced_at) + '.' : '')));
+    if (b.status === 'invoiced' && b.customer_decision) {
+      body.appendChild(mk('p', 'small', (b.customer_decision === 'approved' ? 'Customer APPROVED this invoice' : 'Customer DISPUTED this invoice') + ' (' + (b.customer_decided_by || 'customer') + ', ' + fmt(b.customer_decided_at) + ').' + (b.customer_dispute_note ? ' Reason: ' + b.customer_dispute_note : '')));
+      if (b.customer_decision === 'disputed' && me && me.role === 'owner') {
+        body.appendChild(btn('Dispute resolved: let the customer answer again', async function () {
+          try { await api('/staff/bills/' + b.id + '/reopen-invoice', 'POST', {}); flash('Reopened. The customer can approve the invoice now.', true); openTicket(id); }
+          catch (er) { flash(er.message, false); }
+        }));
+      }
+    } else if (b.status === 'invoiced') body.appendChild(mk('p', 'small', 'Waiting on the customer to approve the invoice in their portal.'));
     if (b.status !== 'submitted' && b.status !== 'returned') body.appendChild(mk('p', 'small', 'Step 1 is done: the provider bill is approved and locked' + (b.reviewed_by ? ' (by ' + b.reviewed_by + ')' : '') + '. The provider is paid this total and only sees this total.'));
 
     var lbl = mk('label', null, 'Work performed'); lbl.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:10px 0 4px';
@@ -885,13 +929,13 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
     var trip = num(cs.tripCharge), tripAmt = mk('span');
     row('Initial trip (flat, billed to customer)', '1', trip, tripAmt);
     var hours = num(cs.hours, '0.25'), labAmt = mk('span');
-    row('Lead Tech', hours, 'Rate ' + dollars(d.rate), labAmt);
+    row('Lead Tech', hours, 'Provider pays ' + dollars(d.rate) + '/hr', labAmt);
     var helpers = [];
     function addHelper(h) {
       var o = { hrs: num(h, '0.25'), a: mk('span') };
       var first = mk('div'); first.appendChild(document.createTextNode('Helper ' + (helpers.length + 1)));
       if (edit) { var rm = btn('Remove', function () { helpers.splice(helpers.indexOf(o), 1); o.tr.remove(); upd(); }, 'ai-no'); rm.style.cssText += ';margin-left:8px;min-height:30px;padding:4px 10px'; first.appendChild(rm); }
-      o.tr = row(first, o.hrs, 'Rate ' + dollars(d.helperRate), o.a);
+      o.tr = row(first, o.hrs, 'Provider pays ' + dollars(d.helperRate) + '/hr', o.a);
       tb.insertBefore(o.tr, tb.rows[2 + helpers.length] || null);
       helpers.push(o); o.hrs.oninput = upd;
     }
@@ -912,20 +956,31 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       var addM = btn('Add material line', function () { addMat({}); upd(); }, 'ai-btn'); addM.style.marginTop = '8px';
       body.appendChild(addH); body.appendChild(addM);
     }
+    var rb = mk('div'); rb.style.cssText = 'display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;align-items:flex-end';
+    function rateIn(label, val, formula) {
+      var w = mk('div'); w.appendChild(mk('label', null, label)); var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = '0.01';
+      i.value = val == null ? '' : val; i.placeholder = 'Formula ' + dollars(formula); i.disabled = !edit; w.appendChild(i); rb.appendChild(w); return i;
+    }
+    var cRate = rateIn('Customer rate: Lead Tech ($/hr' + (d.trade ? ', ' + d.trade : '') + ')', cs.rate, d.formulaRate);
+    var cHelp = rateIn('Customer rate: Helper ($/hr)', cs.helperRate, d.formulaHelperRate);
+    rb.appendChild(mk('p', 'small', 'This is the hourly rate the customer sees. Leave a rate blank to use the standard formula (provider rate divided by 0.80).'));
+    body.appendChild(rb);
     var tot = mk('div'); tot.style.marginTop = '14px'; body.appendChild(tot);
     var warn = mk('div'); body.appendChild(warn);
     function vals() {
-      return { tripCharge: trip.value, hours: hours.value || 0,
+      return { tripCharge: trip.value, hours: hours.value || 0, rate: cRate.value, helperRate: cHelp.value,
         helpers: helpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }),
         materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value }; }) };
     }
     function upd() {
-      var labor = r2((Number(hours.value) || 0) * d.rate), mt = 0;
+      var mt = 0, custLabor = 0;
       tripAmt.textContent = dollars(Number(trip.value) || 0);
-      labAmt.textContent = dollars(r2(labor / 0.80));
-      helpers.forEach(function (o) { var a = r2((Number(o.hrs.value) || 0) * d.helperRate); labor = r2(labor + a); o.a.textContent = dollars(r2(a / 0.80)); });
+      var lead = r2((Number(hours.value) || 0) * d.rate);
+      var leadC = cRate.value !== '' ? r2((Number(hours.value) || 0) * Number(cRate.value)) : r2(lead / 0.80);
+      labAmt.textContent = dollars(leadC); custLabor = leadC;
+      helpers.forEach(function (o) { var a = r2((Number(o.hrs.value) || 0) * d.helperRate); var c = cHelp.value !== '' ? r2((Number(o.hrs.value) || 0) * Number(cHelp.value)) : r2(a / 0.80); custLabor = r2(custLabor + c); o.a.textContent = dollars(c); });
       mats.forEach(function (o) { var a = r2((Number(o.qty.value) || 0) * (Number(o.unit.value) || 0)); mt += a; o.a.textContent = dollars(r2(1.10 * a / 0.80)); });
-      var ct = r2((Number(trip.value) || 0) + (labor + 1.10 * mt) / 0.80);
+      var ct = r2((Number(trip.value) || 0) + custLabor + (1.10 * mt) / 0.80);
       var m = ct > 0 ? r2((ct - d.providerTotal) / ct * 100) : (d.providerTotal > 0 ? -100 : 0);
       clear(tot);
       [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total (locked)', dollars(d.providerTotal)], ['mar', 'Margin', m + '%']].forEach(function (x) {
@@ -935,7 +990,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       if (ct > d.customerNte) warn.appendChild(mk('p', 'bill-warn', 'The customer total is over the Customer NTE (' + dollars(d.customerNte) + ').'));
       if (m < d.minMargin) warn.appendChild(mk('p', 'bill-warn', 'Margin is under ' + d.minMargin + '%. The Owner will see this flag.'));
     }
-    [trip, hours].forEach(function (i) { i.oninput = upd; });
+    [trip, hours, cRate, cHelp].forEach(function (i) { i.oninput = upd; });
     upd();
     var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';
     var saveIt = async function () { await api('/staff/bills/' + billId + '/customer-save', 'POST', vals()); };
@@ -1171,7 +1226,8 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
       loadHandler(t);
       var isNew = t.status === 'new';
       $('reviewPanel').hidden = !isNew;
-      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); $('rlProv').value = ''; }
+      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); $('rlProv').value = ''; fillTradeSelect($('rlTrade')); $('rlTrade').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('rlCheckOut')); }
+      var tp = $('tradePanel'); tp.hidden = isNew || ['closed', 'canceled', 'billed'].indexOf(t.status) >= 0; fillTradeSelect($('tdSel')); $('tdSel').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('tdOut'));
       d.history.forEach(function (h) {
         var tr = document.createElement('tr');
         tr.appendChild(td(String(h.changed_at).replace('T', ' ').slice(0, 16)));
@@ -1238,7 +1294,31 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
   $('releaseForm').onsubmit = async function (ev) {
     ev.preventDefault();
     if (!window.confirm('Release this request to providers? Providers will be alerted.')) return;
-    try { await api('/staff/tickets/' + currentTicket + '/release', 'POST', { providerNte: $('rlProv').value, customerNte: $('rlCust').value }); flash('Released. Providers in the job\u2019s state have been alerted.', true); openTicket(currentTicket); }
+    try { await api('/staff/tickets/' + currentTicket + '/release', 'POST', { providerNte: $('rlProv').value, customerNte: $('rlCust').value, trade: $('rlTrade').value }); flash('Released. Providers in the job\u2019s state have been alerted.', true); openTicket(currentTicket); }
+    catch (e) { flash(e.message, false); }
+  };
+
+  function showTradeCheck(out, r, sel) {
+    clear(out);
+    var cls = r.fit === 'good' ? 'small' : 'bill-warn';
+    var msg = r.fit === 'good' ? 'AI check: the trade looks right for this description.' : (r.fit === 'unsure' ? 'AI check: not sure the trade fits.' : 'AI check: the description may not match this trade.');
+    var p = mk('p', cls, msg + (r.note ? ' ' + r.note : '')); p.style.marginTop = '8px'; out.appendChild(p);
+    if (r.suggested) {
+      var useBtn = btn('Use ' + r.suggested, function () { sel.value = r.suggested; flash('Trade set to ' + r.suggested + '. Save or release to keep it.', true); }, 'ai-btn');
+      useBtn.type = 'button'; out.appendChild(useBtn);
+    }
+    out.appendChild(mk('p', 'small', 'This is advice only. You decide the trade.'));
+  }
+  async function runTradeCheck(btnEl, out, sel) {
+    btnEl.disabled = true; clear(out);
+    try { var r = await api('/staff/tickets/' + currentTicket + '/trade-check', 'POST', { trade: sel.value }); showTradeCheck(out, r, sel); }
+    catch (e) { flash(e.message, false); }
+    btnEl.disabled = false;
+  }
+  $('rlCheck').onclick = function () { runTradeCheck($('rlCheck'), $('rlCheckOut'), $('rlTrade')); };
+  $('tdCheck').onclick = function () { runTradeCheck($('tdCheck'), $('tdOut'), $('tdSel')); };
+  $('tdSave').onclick = async function () {
+    try { await api('/staff/tickets/' + currentTicket + '/trade', 'POST', { trade: $('tdSel').value }); flash('Trade saved.', true); openTicket(currentTicket); }
     catch (e) { flash(e.message, false); }
   };
 

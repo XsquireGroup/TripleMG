@@ -106,6 +106,9 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
 .prog div.on:before { background:#15803d; } .prog div.on { color:#0a0a0a; font-weight:600; }
 .ntebox { background:#eff6ff; border-left:5px solid #1d4ed8; padding:10px 14px; margin-top:14px; font-size:14px; }
 .ntebox b { font-size:22px; display:block; }
+.invtable { width:100%; border-collapse:collapse; font-size:15px; } .invtable td { padding:8px 0; border-bottom:1px solid var(--border); } .invtable td.amt { text-align:right; white-space:nowrap; }
+.invtable .invtotal td { font-weight:800; font-size:19px; border-bottom:0; padding-top:14px; }
+@media print { body * { visibility:hidden; } .invoice, .invoice * { visibility:visible; } .invoice { position:absolute; left:0; top:0; width:100%; border:0; } }
 .action { background:#fff7ed; border:2px solid #c2410c; padding:14px 16px; margin-bottom:14px; }
 .cph { display:flex; gap:8px; flex-wrap:wrap; } .cph img { width:96px; height:72px; object-fit:cover; border:1px solid var(--border); cursor:pointer; }
 .cmsg { padding:10px 14px; margin-bottom:10px; max-width:82%; font-size:14px; white-space:pre-wrap; }
@@ -575,7 +578,7 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
   function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function when(v) { var d = new Date(String(v).indexOf('Z') < 0 && String(v).indexOf('+') < 0 ? v + 'Z' : v); return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
   function chipFor(status, needsAction) {
-    var c = el('span', 'chip' + (status === 'Complete' || status === 'Invoice ready' ? ' done' : (needsAction || status === 'Awaiting your approval') ? ' wait' : (status === 'Closed' || status === 'Canceled' || status === 'On hold') ? ' off' : ''), status);
+    var c = el('span', 'chip' + (status === 'Complete' || status === 'Invoice approved' ? ' done' : (needsAction || status === 'Awaiting your approval' || status === 'Invoice ready' || status === 'Invoice disputed') ? ' wait' : (status === 'Closed' || status === 'Canceled' || status === 'On hold') ? ' off' : ''), status);
     return c;
   }
   async function loadCustBoard() {
@@ -628,7 +631,56 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
       box.appendChild(head);
       if (j.pendingIncrease != null) {
         var ac = el('div', 'action'); var b = el('b', '', 'TMG has asked to raise your NTE to ' + money(j.pendingIncrease) + '.'); b.style.display = 'block';
-        ac.appendChild(b); ac.appendChild(el('span', '', 'Your TMG coordinator will contact you to confirm. Nothing changes until you approve.')); box.appendChild(ac);
+        ac.appendChild(b); ac.appendChild(el('span', '', 'Nothing changes until you approve. Your current NTE stays at ' + money(j.nte) + ' if you say no.'));
+        var row = el('div'); row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:10px';
+        function answerNte(yes) {
+          if (!confirm(yes ? 'Approve a new NTE of ' + money(j.pendingIncrease) + '?' : 'Keep your NTE at ' + money(j.nte) + ' and decline the increase?')) return;
+          yb.disabled = nb2.disabled = true;
+          api('/customer/jobs/' + id + '/nte', 'POST', { approve: yes }).then(function () { cflash('msg4', yes ? 'Approved. Thank you.' : 'Declined. Your NTE is unchanged.', true); openCustJob(id); })
+            .catch(function (e) { cflash('msg4', e.message, false); yb.disabled = nb2.disabled = false; });
+        }
+        var yb = el('button', 'bigbtn green', 'Yes, approve ' + money(j.pendingIncrease)); yb.onclick = function () { answerNte(true); };
+        var nb2 = el('button', 'bigbtn', 'No, keep ' + money(j.nte)); nb2.onclick = function () { answerNte(false); };
+        row.appendChild(yb); row.appendChild(nb2); ac.appendChild(row); box.appendChild(ac);
+      }
+      if (j.invoice) {
+        var iv = j.invoice, ip = el('div', 'cpanel invoice'); ip.appendChild(el('h2', '', 'Invoice ' + (iv.number || '')));
+        var tb = el('table', 'invtable');
+        iv.lines.forEach(function (l) { var tr = el('tr'); var lc = el('td', '', l.label); if (l.detail) { var dd = el('div', 'meta', l.detail); dd.style.fontSize = '13px'; lc.appendChild(dd); } tr.appendChild(lc); tr.appendChild(el('td', 'amt', money(l.amount))); tb.appendChild(tr); });
+        var tt = el('tr', 'invtotal'); tt.appendChild(el('td', '', 'Total due')); tt.appendChild(el('td', 'amt', money(iv.total))); tb.appendChild(tt);
+        ip.appendChild(tb);
+        ip.appendChild(el('p', 'meta', 'Invoice date ' + when(iv.date).split(',')[0]));
+        box.appendChild(ip);
+        if (!iv.decision) {
+          var ia = el('div', 'action'); var ib = el('b', '', 'Action needed: approve this invoice?'); ib.style.display = 'block'; ia.appendChild(ib);
+          ia.appendChild(el('span', '', 'If we do not hear from you within 28 days of the invoice date, the invoice is treated as approved.'));
+          var ir = el('div'); ir.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:10px';
+          var ab2 = el('button', 'bigbtn green', 'Approve invoice');
+          var db = el('button', 'bigbtn', 'Question or dispute');
+          var pb = el('button', 'bigbtn blue', 'Print / save PDF'); pb.onclick = function () { window.print(); };
+          ab2.onclick = function () {
+            if (!confirm('Approve this invoice for ' + money(iv.total) + '?')) return;
+            ab2.disabled = db.disabled = true;
+            api('/customer/jobs/' + id + '/invoice', 'POST', { decision: 'approve' }).then(function () { cflash('msg4', 'Invoice approved. Thank you.', true); openCustJob(id); })
+              .catch(function (e) { cflash('msg4', e.message, false); ab2.disabled = db.disabled = false; });
+          };
+          var dbox = el('div'); dbox.hidden = true; dbox.style.marginTop = '10px';
+          var dta = el('textarea'); dta.rows = 3; dta.maxLength = 1000; dta.placeholder = 'What looks wrong or what would you like to ask?'; dta.style.cssText = 'width:100%;box-sizing:border-box';
+          var dgo = el('button', 'bigbtn', 'Send dispute to TMG'); dgo.style.marginTop = '8px';
+          dgo.onclick = function () {
+            if (dta.value.trim().length < 5) return cflash('msg4', 'Tell us what looks wrong on the invoice.', false);
+            dgo.disabled = true;
+            api('/customer/jobs/' + id + '/invoice', 'POST', { decision: 'dispute', note: dta.value }).then(function () { cflash('msg4', 'Sent to TMG. We will follow up.', true); openCustJob(id); })
+              .catch(function (e) { cflash('msg4', e.message, false); dgo.disabled = false; });
+          };
+          dbox.appendChild(dta); dbox.appendChild(dgo);
+          db.onclick = function () { dbox.hidden = !dbox.hidden; };
+          ir.appendChild(ab2); ir.appendChild(db); ir.appendChild(pb); ia.appendChild(ir); ia.appendChild(dbox); box.appendChild(ia);
+        } else {
+          var done = el('p', 'meta', iv.decision === 'approved' ? 'You approved this invoice on ' + when(iv.decidedAt).split(',')[0] + '.' : 'You disputed this invoice on ' + when(iv.decidedAt).split(',')[0] + '. TMG will follow up in the messages below.');
+          done.style.cssText = 'font-weight:700;margin:0 0 14px'; box.appendChild(done);
+          var pb2 = el('button', 'bigbtn blue', 'Print / save PDF'); pb2.onclick = function () { window.print(); }; pb2.style.marginBottom = '14px'; box.appendChild(pb2);
+        }
       }
       var ph = el('div', 'cpanel'); ph.appendChild(el('h2', '', 'Photos'));
       var strip = el('div', 'cph'); ph.appendChild(strip);
