@@ -194,6 +194,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       <div class="panel" id="alertsPanel" hidden><h2>Alerts</h2><div id="alertsList"></div></div>
       <div class="panel"><button class="btn-sm" id="newTicket" style="font-size:14px;padding:9px 16px;background:var(--red);color:#fff;border:0">+ New ticket</button></div>
       <div class="panel" id="invoicePanel" hidden><h2>Ready to invoice</h2><table class="t" id="invTable"><thead><tr><th>Job #</th><th>Customer</th><th>Provider</th><th>Customer total</th><th>Margin</th><th>Approved</th><th>Invoice #</th></tr></thead><tbody></tbody></table><p class="small" id="invEmpty">Nothing waiting to be invoiced.</p></div>
+      <div class="panel" id="billingPanel" hidden><h2>Billing</h2><table class="t" id="tkBilling"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkBillingE" hidden>Nothing to bill.</p></div>
       <div class="panel"><h2>Waiting assignment</h2><table class="t" id="tkWaiting"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkWaitingE" hidden>Nothing waiting.</p></div>
       <div class="panel"><h2>My tickets</h2><table class="t" id="tkMine"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkMineE" hidden>No tickets assigned to you yet.</p></div>
       <div class="panel"><h2>All active tickets</h2><table class="t" id="tkActive"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkActiveE" hidden>No active tickets yet.</p></div>
@@ -1025,7 +1026,8 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     sec.hidden = false;
     var cs = d.side, edit = d.canEdit;
     var STATC = { provider_approved: 'Ready for you to review and send to the Owner', customer_review: 'Waiting on the Owner', approved: 'Approved, ready to invoice', invoiced: 'Invoiced' };
-    body.appendChild(mk('p', 'small', 'Step 2. ' + (STATC[d.status] || '') + '. The provider is paid ' + dollars(d.providerTotal) + ' no matter what you change here, and never sees this screen.'));
+    body.appendChild(mk('p', '', 'Review Provider bill for final submission.')).style.cssText = 'font-size:17px;color:var(--ink);margin:6px 0 4px';
+    body.appendChild(mk('p', '', 'Provider total: ' + dollars(d.providerTotal))).style.cssText = 'font-size:22px;font-weight:700;color:#15803d;margin:0 0 10px';
     if (d.returnNote && d.status === 'provider_approved') body.appendChild(mk('p', 'bill-warn', 'Sent back by the Owner: ' + d.returnNote));
     if (d.submittedBy && d.status === 'customer_review') body.appendChild(mk('p', 'small', 'Prepared by ' + d.submittedBy + '.'));
     function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
@@ -1072,7 +1074,6 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     }
     var cRate = rateIn('Customer rate: Lead Tech ($/hr' + (d.trade ? ', ' + d.trade : '') + ')', cs.rate, d.formulaRate);
     var cHelp = rateIn('Customer rate: Helper ($/hr)', cs.helperRate, d.formulaHelperRate);
-    rb.appendChild(mk('p', 'small', 'This is the hourly rate the customer sees. Leave a rate blank to use the standard formula (provider rate divided by 0.80).'));
     body.appendChild(rb);
     var tot = mk('div'); tot.style.marginTop = '14px'; body.appendChild(tot);
     var warn = mk('div'); body.appendChild(warn);
@@ -1286,9 +1287,12 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     view('viewTickets');
     try {
       var d = await api('/staff/tickets');
-      fillTickets('tkWaiting', 'tkWaitingE', d.waiting);
-      fillTickets('tkMine', 'tkMineE', d.mine);
-      fillTickets('tkActive', 'tkActiveE', d.active);
+      var isB = function (t) { return t.status === 'needs_billing'; }, seen = {}, bill = [];
+      (d.mine || []).concat(d.active || [], d.waiting || []).forEach(function (t) { if (isB(t) && !seen[t.id]) { seen[t.id] = 1; bill.push(t); } });
+      $('billingPanel').hidden = !bill.length; fillTickets('tkBilling', 'tkBillingE', bill);
+      fillTickets('tkWaiting', 'tkWaitingE', d.waiting.filter(function (t) { return !isB(t); }));
+      fillTickets('tkMine', 'tkMineE', d.mine.filter(function (t) { return !isB(t); }));
+      fillTickets('tkActive', 'tkActiveE', d.active.filter(function (t) { return !isB(t); }));
       loadAlerts();
       loadInvoiceQueue();
     } catch (e) { flash(e.message, false); }
