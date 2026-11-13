@@ -757,11 +757,13 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       var d = await api('/staff/ready-to-invoice');
       var tb = $('invTable').tBodies[0]; clear(tb);
       pn.hidden = false; $('invEmpty').hidden = d.bills.length > 0;
-      d.bills.forEach(function (b) {
+      var nextNo = Number(d.nextInvoiceNumber) || 1001;
+      d.bills.forEach(function (b, bi) {
         var tr = document.createElement('tr');
         tr.appendChild(td(b.job_number)); tr.appendChild(td(b.customer_name)); tr.appendChild(td(b.business_name));
-        tr.appendChild(td(dollars(b.customer_total))); tr.appendChild(td(b.margin_pct + '%' + (b.margin_exception ? ' (exception)' : ''))); tr.appendChild(td(fmt(b.approved_at)));
-        var c = document.createElement('td'); var inp = mk('input', 'bill-in'); inp.placeholder = 'Invoice #'; inp.maxLength = 60; inp.style.width = '110px'; inp.style.marginRight = '6px';
+        var ct = td(dollars(b.customer_total)); ct.style.cssText = 'color:#1d4ed8;font-weight:700;background:#e8efff'; tr.appendChild(ct);
+        var mg = td(b.margin_pct + '%' + (b.margin_exception ? ' (exception)' : '')); var mp = Number(b.margin_pct); mg.style.cssText = 'font-weight:700;' + (mp >= 20 ? 'color:#166534;background:#dcfce7' : mp >= 5 ? 'color:#92400e;background:#fef3c7' : 'color:#991b1b;background:#fee2e2'); tr.appendChild(mg); tr.appendChild(td(fmt(b.approved_at)));
+        var c = document.createElement('td'); var inp = mk('input', 'bill-in'); inp.placeholder = 'Invoice #'; inp.value = 'INV-' + (nextNo + bi); inp.maxLength = 60; inp.style.width = '110px'; inp.style.marginRight = '6px';
         c.appendChild(inp);
         c.appendChild(btn('Mark invoiced', async function () {
           if (!inp.value.trim()) return flash('Enter the invoice number first.', false);
@@ -1102,7 +1104,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       var m = ct > 0 ? r2((ct - d.providerTotal) / ct * 100) : (d.providerTotal > 0 ? -100 : 0);
       clear(tot);
       [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total (locked)', dollars(d.providerTotal)], ['mar', 'Margin', m + '%']].forEach(function (x) {
-        var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar' && m < d.minMargin) sp.style.color = 'var(--red)'; r.appendChild(sp); tot.appendChild(r);
+        var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= d.minMargin ? ['#fef3c7', '#b45309', '#92400e'] : ['#fee2e2', '#b91c1c', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; } r.appendChild(sp); tot.appendChild(r);
       });
       clear(warn);
       if (ct > d.customerNte) warn.appendChild(mk('p', 'bill-warn', 'The customer total is over the Customer NTE (' + dollars(d.customerNte) + ').'));
