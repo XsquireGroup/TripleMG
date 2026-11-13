@@ -721,6 +721,24 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
         row.appendChild(sb); np.appendChild(ta); np.appendChild(row);
       }
       box.appendChild(np);
+      if (j.cancelRequested) {
+        var cr = el('div', 'cpanel'); cr.appendChild(el('h2', '', 'Cancellation requested')); cr.appendChild(el('p', 'empty', 'TMG has your request to cancel this job and will confirm shortly. Call us if anything changes.')); box.appendChild(cr);
+      } else if (j.canCancel) {
+        var cp = el('div', 'cpanel'); cp.appendChild(el('h2', '', 'Need to cancel?'));
+        var cb = el('button', 'bigbtn', 'Cancel this job'); cb.style.cssText = 'background:#fff;color:#950606;border:2px solid #950606';
+        var cw = el('div'); cw.hidden = true;
+        var cta = el('textarea'); cta.placeholder = 'Why are you canceling?'; cta.maxLength = 1000; cta.style.cssText = 'width:100%;box-sizing:border-box;border:1px solid #9a9890;padding:10px;font:inherit;font-size:16px;height:84px;margin-top:8px';
+        var crow = el('div', 'crow'); var cs = el('button', 'bigbtn', 'Send cancellation'); cs.style.cssText = 'background:#950606;color:#fff'; var ck = el('button', 'bigbtn', 'Keep this job'); ck.style.cssText = 'background:#fff;color:#1a1a1a;border:2px solid #555';
+        cb.onclick = function () { cb.hidden = true; cw.hidden = false; cta.focus(); };
+        ck.onclick = function () { cw.hidden = true; cb.hidden = false; };
+        cs.onclick = async function () {
+          if (cta.value.trim().length < 3) return cflash('msg4', 'Please tell us briefly why you are canceling.', false);
+          cs.disabled = true;
+          try { var r = await api('/customer/jobs/' + id + '/cancel', 'POST', { reason: cta.value }); cflash('msg4', r.canceled ? 'Your job has been canceled.' : 'Cancellation requested. TMG will confirm shortly.', true); openCustJob(id); }
+          catch (e) { cflash('msg4', e.message, false); cs.disabled = false; }
+        };
+        crow.appendChild(cs); crow.appendChild(ck); cw.appendChild(cta); cw.appendChild(crow); cp.appendChild(cb); cp.appendChild(cw); box.appendChild(cp);
+      }
     } catch (e) { box.textContent = ''; cflash('msg4', e.message, false); }
   }
   async function openCustNew() {
