@@ -777,13 +777,13 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       var d = await api('/staff/ready-to-invoice');
       var tb = $('invTable').tBodies[0]; clear(tb);
       pn.hidden = false; $('invEmpty').hidden = d.bills.length > 0;
-      var nextNo = Number(d.nextInvoiceNumber) || 1001;
+      var nextNo = Number(d.nextInvoiceNumber) || 1001, fresh = 0;
       d.bills.forEach(function (b, bi) {
         var tr = document.createElement('tr');
         tr.appendChild(td(b.job_number)); tr.appendChild(td(b.customer_name)); tr.appendChild(td(b.business_name));
         var ct = td(dollars(b.customer_total)); ct.style.cssText = 'color:#1d4ed8;font-weight:700;background:#e8efff'; tr.appendChild(ct);
         var mg = td(b.margin_pct + '%' + (b.margin_exception ? ' (exception)' : '')); var mp = Number(b.margin_pct); mg.style.cssText = 'font-weight:700;' + (mp >= 20 ? 'color:#166534;background:#dcfce7' : mp >= 5 ? 'color:#92400e;background:#fef3c7' : 'color:#991b1b;background:#fee2e2'); tr.appendChild(mg); tr.appendChild(td(fmt(b.approved_at)));
-        var c = document.createElement('td'); var inp = mk('input', 'bill-in'); inp.placeholder = 'Invoice #'; inp.value = 'INV-' + (nextNo + bi); inp.maxLength = 60; inp.style.width = '110px'; inp.style.marginRight = '6px';
+        var c = document.createElement('td'); var inp = mk('input', 'bill-in'); inp.placeholder = 'Invoice #'; inp.value = b.invoice_number ? b.invoice_number : 'INV-' + (nextNo + (fresh++)); inp.maxLength = 60; inp.style.width = '110px'; inp.style.marginRight = '6px';
         c.appendChild(inp);
         c.appendChild(btn('Mark invoiced', async function () {
           if (!inp.value.trim()) return flash('Enter the invoice number first.', false);
@@ -1072,6 +1072,21 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     var STATC = { provider_approved: 'Ready for you to review and send to the Owner', customer_review: 'Waiting on the Owner', approved: 'Approved, ready to invoice', invoiced: 'Invoiced' };
     body.appendChild(mk('p', '', 'Review Provider bill for final submission.')).style.cssText = 'font-size:17px;color:var(--ink);margin:6px 0 4px';
     body.appendChild(mk('p', '', 'Provider total: ' + dollars(d.providerTotal))).style.cssText = 'font-size:22px;font-weight:700;color:#15803d;margin:0 0 10px';
+    if (me && d.isOwner && (d.status === 'approved' || d.status === 'invoiced')) {
+      var eb = btn('Edit and resubmit to customer', function () {
+        var ta2 = document.createElement('textarea'); ta2.maxLength = 1000; ta2.placeholder = 'What needs to change, and why?';
+        var acts = mk('div', 'acts'), close;
+        acts.appendChild(mbtn('Reopen the bill', 'red', async function () {
+          if (ta2.value.trim().length < 5) return flash('Enter a reason (at least a few words).', false);
+          try { await api('/staff/bills/' + billId + '/reopen-for-edit', 'POST', { reason: ta2.value }); close(); flash('Bill reopened. Edit the customer bill below, then approve it and invoice it again.', true); await openTicket(id); loadAlerts(); loadInvoiceQueue();
+            setTimeout(function () { var cs2 = $('custSection'); if (cs2 && !cs2.hidden) goTo('custSection'); }, 400); }
+          catch (er) { flash(er.message, false); }
+        }));
+        acts.appendChild(mbtn('Leave it as is', '', function () { close(); }));
+        close = openModal('Edit this bill?', [mk('p', '', 'The customer bill goes back to editing. ' + (d.status === 'invoiced' ? 'The customer will not see the invoice until you invoice it again. ' : '') + 'The provider bill and provider pay do not change.'), ta2, acts]); ta2.focus();
+      }, 'ai-btn'); eb.style.cssText += ';margin:8px 0';
+      body.appendChild(eb);
+    }
     if (d.returnNote && d.status === 'provider_approved') body.appendChild(mk('p', 'bill-warn', 'Sent back by the Owner: ' + d.returnNote));
     if (d.submittedBy && d.status === 'customer_review') body.appendChild(mk('p', 'small', 'Prepared by ' + d.submittedBy + '.'));
     function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
