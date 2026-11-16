@@ -209,7 +209,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
         <div id="w3" hidden><label for="wTrade">3. Trade</label><select id="wTrade"><option value="">Choose...</option></select></div>
         <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><label for="wPhotos">Photos (optional, up to 10)</label><input id="wPhotos" type="file" accept="image/*" multiple><div class="ph" id="wPhotoList"></div><p class="small">Every provider who can take the job sees these before it is assigned, so show the whole problem. The paste-an-email helper comes in a later step.</p></div>
         <div id="w5" hidden><label for="wPri">5. Priority</label><select id="wPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
-        <div id="w6" hidden><label for="wCN">6. Customer NTE ($)</label><input id="wCN" type="number" min="1" step="0.01"><label for="wPN">Initial provider NTE ($)</label><input id="wPN" type="number" min="1" step="0.01"><p class="small" id="wMargin"></p></div>
+        <div id="w6" hidden><label for="wCN">6. Customer NTE ($)</label><input id="wCN" type="number" min="1" step="0.01"><label for="wPrice">Pricing</label><select id="wPrice"><option value="hourly">Hourly (hours and materials)</option><option value="flat">Flat price (one price for the job)</option></select><label for="wPN">Initial provider NTE ($)</label><input id="wPN" type="number" min="1" step="0.01"><p class="small" id="wMargin"></p></div>
         <div id="w7" hidden><label>7. Review</label><dl id="wReview"></dl><label style="display:flex;gap:10px;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)"><input type="checkbox" id="wMine" checked style="width:20px;height:20px;margin-top:2px;flex:none"> Assign this ticket to me. Uncheck it to let the automatic workload rotation choose an employee.</label></div>
         <div class="nav"><button class="sec" id="wBack">Back</button><button id="wNext">Next</button></div>
       </div>
@@ -1791,13 +1791,13 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       if (!(c > 0) || !(p > 0)) return flash('Enter both NTE amounts.', false);
       if (p > c) return flash('Provider NTE cannot be higher than the customer NTE.', false);
       var r = $('wReview'); clear(r);
-      [['Customer', sel('wCust')], ['Worksite', sel('wSite')], ['Trade', $('wTrade').value], ['Title', $('wTitle').value], ['Details', $('wDesc').value], ['Priority', $('wPri').value], ['Customer NTE', '$' + c.toFixed(2)], ['Provider NTE', '$' + p.toFixed(2)], ['Margin', (((c - p) / c) * 100).toFixed(1) + '%']].forEach(function (x) {
+      [['Customer', sel('wCust')], ['Worksite', sel('wSite')], ['Trade', $('wTrade').value], ['Title', $('wTitle').value], ['Details', $('wDesc').value], ['Priority', $('wPri').value], ['Pricing', $('wPrice').value === 'flat' ? 'Flat price' : 'Hourly'], ['Customer NTE', '$' + c.toFixed(2)], ['Provider NTE', '$' + p.toFixed(2)], ['Margin', (((c - p) / c) * 100).toFixed(1) + '%']].forEach(function (x) {
         var dt = document.createElement('dt'); dt.textContent = x[0]; var dd = document.createElement('dd'); dd.textContent = x[1]; r.appendChild(dt); r.appendChild(dd);
       });
     }
     if (st === 7) {
       try {
-        var res = await api('/staff/tickets', 'POST', { customerId: $('wCust').value, worksiteId: $('wSite').value, trade: $('wTrade').value, title: $('wTitle').value, description: $('wDesc').value, priority: $('wPri').value, assignToMe: $('wMine').checked, customerNte: $('wCN').value, providerNte: $('wPN').value });
+        var res = await api('/staff/tickets', 'POST', { customerId: $('wCust').value, worksiteId: $('wSite').value, trade: $('wTrade').value, title: $('wTitle').value, description: $('wDesc').value, priority: $('wPri').value, assignToMe: $('wMine').checked, customerNte: $('wCN').value, providerNte: $('wPN').value, pricingMode: $('wPrice').value });
         var failedPh = 0;
         for (var pi = 0; pi < wzPhotos.length; pi++) {
           try { await api('/staff/tickets/' + res.id + '/photos', 'POST', { filename: wzPhotos[pi].filename, dataBase64: wzPhotos[pi].dataBase64 }); } catch (pe) { failedPh++; }
