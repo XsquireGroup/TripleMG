@@ -207,7 +207,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
         <div id="w1"><label for="wCust">1. Customer</label><select id="wCust"></select></div>
         <div id="w2" hidden><label for="wSite">2. Worksite</label><select id="wSite"></select></div>
         <div id="w3" hidden><label for="wTrade">3. Trade</label><select id="wTrade"><option value="">Choose...</option></select></div>
-        <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><label for="wPhotos">Photos (optional, up to 10)</label><input id="wPhotos" type="file" accept="image/*" multiple><div class="ph" id="wPhotoList"></div><p class="small">Every provider who can take the job sees these before it is assigned, so show the whole problem. The paste-an-email helper comes in a later step.</p></div>
+        <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><label for="wPhotos">Photos (optional, up to 10)</label><input id="wPhotos" type="file" accept="image/*" multiple><div class="ph" id="wPhotoList"></div><div style="margin-top:14px"><button type="button" class="ai-btn" id="wArch" title="Automated Routing &amp; Cost Handler">A.R.C.H.</button></div><div id="wArchOut"></div></div>
         <div id="w5" hidden><label for="wPri">5. Priority</label><select id="wPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
         <div id="w6" hidden><label for="wCN">6. Customer NTE ($)</label><input id="wCN" type="number" min="1" step="0.01"><label for="wPrice">Pricing</label><select id="wPrice"><option value="hourly">Hourly (hours and materials)</option><option value="flat">Flat price (one price for the job)</option></select><label for="wPN">Initial provider NTE ($)</label><input id="wPN" type="number" min="1" step="0.01"><p class="small" id="wMargin"></p></div>
         <div id="w7" hidden><label>7. Review</label><dl id="wReview"></dl><label style="display:flex;gap:10px;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)"><input type="checkbox" id="wMine" checked style="width:20px;height:20px;margin-top:2px;flex:none"> Assign this ticket to me. Uncheck it to let the automatic workload rotation choose an employee.</label></div>
@@ -1767,6 +1767,27 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     } catch (e) { flash(e.message, false); }
   }
   $('wizCancel').onclick = loadTickets;
+  $('wArch').onclick = async function () {
+    var out = $('wArchOut'), bt = $('wArch'); clear(out);
+    if ($('wDesc').value.trim().length < 5) return flash('Type the problem details first, then use A.R.C.H.', false);
+    bt.disabled = true; var old = bt.textContent; bt.textContent = 'A.R.C.H. is reading...';
+    try {
+      var r = await api('/staff/ai/clean-request', 'POST', { title: $('wTitle').value, description: $('wDesc').value });
+      var box = document.createElement('div'); box.style.cssText = 'margin-top:12px;border-left:4px solid #1d4ed8;padding:4px 0 4px 14px';
+      var l1 = document.createElement('b'); l1.textContent = 'A.R.C.H. suggests'; box.appendChild(l1);
+      var t1 = document.createElement('p'); t1.style.cssText = 'font-weight:700;margin:8px 0 4px'; t1.textContent = r.title; box.appendChild(t1);
+      var d1 = document.createElement('p'); d1.style.cssText = 'margin:0 0 8px;white-space:pre-wrap'; d1.textContent = r.description; box.appendChild(d1);
+      if (r.questions && r.questions.length) {
+        var qh = document.createElement('p'); qh.style.cssText = 'margin:8px 0 2px;font-weight:600;color:#c2410c'; qh.textContent = 'Worth asking the customer:'; box.appendChild(qh);
+        r.questions.forEach(function (q) { var qp = document.createElement('p'); qp.style.cssText = 'margin:0;color:#c2410c'; qp.textContent = '\u2022 ' + q; box.appendChild(qp); });
+      }
+      var row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px;margin-top:10px';
+      row.appendChild(btn('Use this', function () { $('wTitle').value = r.title; $('wDesc').value = r.description; clear(out); flash('A.R.C.H. edits applied. Review them, then continue.', true); }, 'ai-go'));
+      row.appendChild(btn('Discard', function () { clear(out); }, 'ai-no'));
+      box.appendChild(row); out.appendChild(box);
+    } catch (e) { flash(e.message, false); }
+    bt.disabled = false; bt.textContent = old;
+  };
   $('wBack').onclick = function () { if (wz.step > 1) { wz.step--; wizDraw(); } };
   function marginText() {
     var c = Number($('wCN').value), p = Number($('wPN').value);
