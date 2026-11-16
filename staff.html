@@ -322,6 +322,10 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     <div id="viewReports" hidden>
       <div class="panel">
         <h2>Reports</h2>
+        <div id="askBox" style="border:1px solid #1d4ed8;border-left-width:4px;padding:12px 14px;margin:8px 0 14px">
+          <label for="askQ" style="display:block;font-weight:700;margin-bottom:6px">Ask A.R.C.H. for a report</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="askQ" maxlength="600" style="flex:1;min-width:260px" placeholder="Example: every unpaid invoice over 45 days, by customer"><button type="button" class="ai-btn" id="askGo">A.R.C.H.</button></div>
+        </div>
         <div class="subtabs" id="repSub" style="display:flex;gap:18px;margin:6px 0 10px"><b data-sub="fin" class="on">Financial summary</b><b data-sub="all">All tickets</b></div>
         <div id="repFin">
           <div class="per" id="repPer" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0"></div>
@@ -340,10 +344,37 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
             <div class="nf"><label for="repTo">To</label><input id="repTo" type="date"></div>
             <div class="go"><button type="submit">Search</button></div>
           </div>
+          <div class="relrow" style="margin-top:8px">
+            <div class="nf"><label for="repInv">Invoice status</label><select id="repInv"><option value="">Any</option><option value="invoiced">Invoiced (any)</option><option value="outstanding">Outstanding (unpaid or partial)</option><option value="unpaid">Unpaid</option><option value="partial">Partially paid</option><option value="paid">Paid in full</option></select></div>
+            <div class="nf"><label for="repAgeMin">Invoice age, days (from)</label><input id="repAgeMin" type="number" min="0"></div>
+            <div class="nf"><label for="repAgeMax">Invoice age, days (to)</label><input id="repAgeMax" type="number" min="0"></div>
+            <div class="nf"><label for="repCtMin">Customer total, min ($)</label><input id="repCtMin" type="number" min="0" step="0.01"></div>
+            <div class="nf"><label for="repCtMax">Customer total, max ($)</label><input id="repCtMax" type="number" min="0" step="0.01"></div>
+          </div>
+          <div class="relrow" style="margin-top:8px">
+            <div class="nf"><label for="repInvFrom">Invoiced from</label><input id="repInvFrom" type="date"></div>
+            <div class="nf"><label for="repInvTo">Invoiced to</label><input id="repInvTo" type="date"></div>
+            <div class="nf"><label for="repPtMin">Provider total, min ($)</label><input id="repPtMin" type="number" min="0" step="0.01"></div>
+            <div class="nf"><label for="repPtMax">Provider total, max ($)</label><input id="repPtMax" type="number" min="0" step="0.01"></div>
+            <div class="nf"><label for="repMgMin">Margin, min (%)</label><input id="repMgMin" type="number" step="0.1"></div>
+            <div class="nf"><label for="repMgMax">Margin, max (%)</label><input id="repMgMax" type="number" step="0.1"></div>
+            <div class="go" style="display:flex;gap:8px"><button type="button" id="repClear" class="sec">Clear</button><button type="button" id="repCsv">Download CSV</button></div>
+          </div>
         </form>
         <p class="small" id="repCount"></p>
-        <div style="overflow-x:auto"><table class="t" id="repTable"><thead><tr><th>Ticket</th><th>Came in</th><th>Customer</th><th>Site</th><th>Title</th><th>Trade</th><th>Status</th><th>TMG Rep</th><th>Provider</th><th>Invoice</th><th>Customer total</th><th>Paid</th><th>Margin</th></tr></thead><tbody></tbody></table></div>
+        <div style="overflow-x:auto"><table class="t" id="repTable"><thead><tr><th>Ticket</th><th>Came in</th><th>Customer</th><th>Site</th><th>Title</th><th>Trade</th><th>Status</th><th>TMG Rep</th><th>Provider</th><th>Invoice</th><th>Customer total</th><th>Paid</th><th>Balance</th><th>Age (days)</th><th>Provider total</th><th>Margin</th></tr></thead><tbody></tbody></table></div>
         </div>
+      </div>
+    </div>
+
+    <div id="viewReportResult" hidden>
+      <div class="panel">
+        <h2 id="rrTitle">Report</h2>
+        <p class="small" id="rrInterp"></p>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin:10px 0"><button type="button" class="sec" id="rrBack">Back to Reports</button><button type="button" id="rrPdf">Download PDF</button><button type="button" id="rrCsv">Download CSV</button></div>
+        <p class="small" id="rrTotals" style="font-weight:700"></p>
+        <div style="overflow-x:auto"><table class="t" id="rrTable"><thead></thead><tbody></tbody></table></div>
+        <p class="small" id="rrNote"></p>
       </div>
     </div>
 
@@ -488,6 +519,8 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 <script>
 (function () {
   var TENANT_ID = '1f8c6a39-da3e-4156-aa81-d3f95603d363';
@@ -1251,7 +1284,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     if (h === '#providers') return loadProviders();
     if ((m = /^#provider\/([0-9a-fA-F-]{36})$/.exec(h))) return openProvider(m[1]);
     if (h === '#team' && me && me.role === 'owner') return loadTeam();
-    if (h === '#reports' && me && me.role === 'owner') return loadReports();
+    if ((h === '#reports' || h === '#report') && me && me.role === 'owner') return loadReports();
     if ((m = /^#ticket\/([0-9a-fA-F-]{36})$/.exec(h))) return openTicket(m[1]);
     if (h === '#new-ticket') return startWizard();
     return loadTickets();
@@ -1265,9 +1298,9 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
 
   // ---- tabs ----
   function view(name) {
-    ['viewTickets', 'viewWizard', 'viewTicket', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam', 'viewReports'].forEach(function (v) { $(v).hidden = true; });
+    ['viewTickets', 'viewWizard', 'viewTicket', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam', 'viewReports', 'viewReportResult'].forEach(function (v) { $(v).hidden = true; });
     $(name).hidden = false;
-    var tab = ({viewTickets:'tickets', viewWizard:'tickets', viewTicket:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team', viewReports:'reports'})[name] || 'customers';
+    var tab = ({viewTickets:'tickets', viewWizard:'tickets', viewTicket:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team', viewReports:'reports', viewReportResult:'reports'})[name] || 'customers';
     document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
       s.className = (s.getAttribute('data-tab') === tab) ? 'on' : '';
     });
@@ -1283,9 +1316,9 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
   // ---- reports: all tickets (Owner only) ----
   var repStatusDone = false;
   async function runReport() {
-    var qs = '?q=' + encodeURIComponent($('repQ').value) + '&status=' + encodeURIComponent($('repSt').value) + '&from=' + $('repFrom').value + '&to=' + $('repTo').value;
+    var qs = repQuery();
     try {
-      var d = await api('/staff/reports/tickets' + qs);
+      var d = await api('/staff/reports/tickets' + qs); repRows = d.tickets;
       var body = $('repTable').tBodies[0]; clear(body);
       $('repCount').textContent = d.tickets.length + ' ticket' + (d.tickets.length === 1 ? '' : 's') + (d.capped ? ' (showing the newest 500; narrow your search)' : '');
       d.tickets.forEach(function (t) {
@@ -1296,6 +1329,9 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
         tr.appendChild(td(t.staff_name || '')); tr.appendChild(td(t.provider_name || '')); tr.appendChild(td(t.invoice_number || ''));
         tr.appendChild(td(t.customer_total != null ? '$' + Number(t.customer_total).toFixed(2) : ''));
         tr.appendChild(td(t.customer_total != null && t.invoice_number ? (Number(t.paid) >= Number(t.customer_total) - 0.005 ? 'Paid' : Number(t.paid) > 0 ? '$' + Number(t.paid).toFixed(2) + ' (partial)' : 'Unpaid') : ''));
+        tr.appendChild(td(t.invoice_number && t.bill_status === 'invoiced' ? '$' + Number(t.balance).toFixed(2) : ''));
+        tr.appendChild(td(t.invoice_number && t.bill_status === 'invoiced' && Number(t.balance) > 0.004 ? String(t.age_days) : ''));
+        tr.appendChild(td(t.provider_total != null ? '$' + Number(t.provider_total).toFixed(2) : ''));
         var m = t.margin_pct, mc = td(m != null ? m + '%' : '');
         if (m != null) mc.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#b45309' : '#b91c1c');
         tr.appendChild(mc);
@@ -1304,7 +1340,31 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       });
     } catch (e) { flash(e.message, false); }
   }
-  var repSubCur = 'fin', finPer = 'month';
+  var repSubCur = 'fin', finPer = 'month', repRows = [];
+  var REP_NUM = [['repAgeMin', 'ageMin'], ['repAgeMax', 'ageMax'], ['repCtMin', 'ctMin'], ['repCtMax', 'ctMax'], ['repPtMin', 'ptMin'], ['repPtMax', 'ptMax'], ['repMgMin', 'mgMin'], ['repMgMax', 'mgMax'], ['repInvFrom', 'invFrom'], ['repInvTo', 'invTo']];
+  function repQuery() {
+    var qs = '?q=' + encodeURIComponent($('repQ').value) + '&status=' + encodeURIComponent($('repSt').value) + '&from=' + $('repFrom').value + '&to=' + $('repTo').value + '&inv=' + $('repInv').value;
+    REP_NUM.forEach(function (x) { qs += '&' + x[1] + '=' + encodeURIComponent($(x[0]).value); });
+    return qs;
+  }
+  function repReset() { ['repQ', 'repFrom', 'repTo'].forEach(function (i) { $(i).value = ''; }); $('repSt').value = ''; $('repInv').value = ''; REP_NUM.forEach(function (x) { $(x[0]).value = ''; }); }
+  // Click a number on the Financial summary and land on the exact tickets behind it.
+  function drill(f) { repReset(); Object.keys(f).forEach(function (k) { $(k).value = f[k]; }); showSub('all'); }
+  function csvCell(v) { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  $('repClear').onclick = function () { repReset(); runReport(); };
+  $('repCsv').onclick = function () {
+    if (!repRows.length) return flash('Nothing to download. Run a search first.', false);
+    var heads = ['Ticket', 'Came in', 'Customer', 'Site #', 'Site', 'City', 'State', 'Title', 'Trade', 'Pricing', 'Status', 'TMG Rep', 'Provider', 'Invoice', 'Invoiced on', 'Customer total', 'Paid', 'Balance', 'Age (days)', 'Provider total', 'Margin %'];
+    var lines = [heads.join(',')];
+    repRows.forEach(function (t) {
+      var inv = t.invoice_number && t.bill_status === 'invoiced';
+      lines.push([t.job_number, fmt(t.created_at), t.customer_name, t.site_number, t.site_name, t.city, t.state, t.title, t.trade, t.pricing_mode, String(t.status).replace(/_/g, ' '), t.staff_name, t.provider_name,
+        t.invoice_number, fmt(t.invoiced_at), t.customer_total, inv ? t.paid : '', inv ? t.balance : '', inv && Number(t.balance) > 0.004 ? t.age_days : '', t.provider_total, t.margin_pct].map(csvCell).join(','));
+    });
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tmg-tickets-' + iso(new Date()) + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  };
   function iso(d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
   function periodRange(k) {
     var n = new Date(), a = new Date(n.getFullYear(), n.getMonth(), n.getDate()), b = new Date(a);
@@ -1325,12 +1385,12 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
   document.querySelectorAll('#repSub b').forEach(function (x) { x.onclick = function () { showSub(x.getAttribute('data-sub')); }; });
   function money2(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function marginCell(m) { var c = td(m == null ? '' : m + '%'); if (m != null) c.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#b45309' : '#b91c1c'); return c; }
-  function finTable(box, title, heads, rows) {
+  function finTable(box, title, heads, rows, clicks) {
     var h = mk('h3', null, title); h.style.cssText = 'font-size:14px;text-transform:uppercase;margin:20px 0 4px'; box.appendChild(h);
     var t = mk('table', 't'), hr = t.createTHead().insertRow(); heads.forEach(function (x) { hr.appendChild(mk('th', null, x)); });
     var tb = t.createTBody();
     if (!rows.length) { var er = tb.insertRow(), ec = er.insertCell(); ec.colSpan = heads.length; ec.textContent = 'Nothing in this period.'; ec.style.color = '#666'; }
-    rows.forEach(function (r) { var tr = tb.insertRow(); r.forEach(function (c) { tr.appendChild(typeof c === 'object' ? c : td(c)); }); });
+    rows.forEach(function (r, ri) { var tr = tb.insertRow(); r.forEach(function (c) { tr.appendChild(typeof c === 'object' ? c : td(c)); }); if (clicks && clicks[ri]) { tr.className = 'row'; tr.title = 'Show these tickets'; tr.style.cursor = 'pointer'; tr.onclick = clicks[ri]; } });
     box.appendChild(t); var w = mk('div'); w.style.overflowX = 'auto'; w.appendChild(t); box.appendChild(w);
   }
   async function runFinancial() {
@@ -1348,15 +1408,75 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
         var x = mk('div'); x.style.cssText = 'border-left:4px solid ' + c[2] + ';background:#f7f7f7;padding:10px 12px';
         var l = mk('div', null, c[0]); l.style.cssText = 'text-transform:uppercase;font-size:11px;font-weight:700;color:#444'; var v = mk('div', null, c[1]); v.style.cssText = 'font-size:22px;font-weight:700;margin-top:2px';
         x.appendChild(l); x.appendChild(v); cards.appendChild(x);
+        var go = { 'Billed to customers': { repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }, 'Owed to providers': { repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }, 'TMG margin': { repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' } }[c[0]] || (c[0].indexOf('Outstanding') === 0 ? { repInv: 'outstanding' } : null);
+        if (go) { x.style.cursor = 'pointer'; x.title = 'Show these tickets'; x.onclick = function () { drill(go); }; }
       });
       var box = $('finBody'); clear(box);
-      finTable(box, 'By TMG rep', ['Rep', 'Tickets', 'Billed', 'Margin'], d.byRep.map(function (r) { return [r.rep, String(r.tickets), money2(r.billed), marginCell(r.marginPct)]; }));
-      finTable(box, 'Aging of outstanding invoices', ['Age', 'Invoices', 'Amount'], d.aging.map(function (a) { var c = td(money2(a.amount)); if (a.label === 'Over 60 days' && a.amount > 0) c.style.cssText = 'color:#b91c1c;font-weight:700'; return [a.label, String(a.invoices), c]; }));
-      finTable(box, 'By customer', ['Customer', 'Billed', 'Collected', 'Outstanding', 'Margin'], d.byCustomer.map(function (r) { return [r.customer, money2(r.billed), money2(r.collected), money2(r.outstanding), marginCell(r.marginPct)]; }));
-      finTable(box, 'By provider (owed)', ['Provider', 'Jobs', 'Approved bills'], d.byProvider.map(function (r) { return [r.provider, String(r.jobs), money2(r.owed)]; }));
+      finTable(box, 'By TMG rep', ['Rep', 'Tickets', 'Billed', 'Margin'], d.byRep.map(function (r) { return [r.rep, String(r.tickets), money2(r.billed), marginCell(r.marginPct)]; }), d.byRep.map(function (r) { return function () { drill({ repQ: r.rep, repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }); }; }));
+      finTable(box, 'Aging of outstanding invoices', ['Age', 'Invoices', 'Amount'], d.aging.map(function (a) { var c = td(money2(a.amount)); if (a.label === 'Over 60 days' && a.amount > 0) c.style.cssText = 'color:#b91c1c;font-weight:700'; return [a.label, String(a.invoices), c]; }), d.aging.map(function (a, i) { var lim = [[0, 30], [31, 60], [61, '']][i]; return function () { drill({ repInv: 'outstanding', repAgeMin: lim[0], repAgeMax: lim[1] }); }; }));
+      finTable(box, 'By customer', ['Customer', 'Billed', 'Collected', 'Outstanding', 'Margin'], d.byCustomer.map(function (r) { return [r.customer, money2(r.billed), money2(r.collected), money2(r.outstanding), marginCell(r.marginPct)]; }), d.byCustomer.map(function (r) { return function () { drill({ repQ: r.customer, repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }); }; }));
+      finTable(box, 'By provider (owed)', ['Provider', 'Jobs', 'Approved bills'], d.byProvider.map(function (r) { return [r.provider, String(r.jobs), money2(r.owed)]; }), d.byProvider.map(function (r) { return function () { drill({ repQ: r.provider, repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }); }; }));
     } catch (e) { flash(e.message, false); }
   }
   $('finGo').onclick = runFinancial;
+  // ---- Ask A.R.C.H. for a report: shows on its own screen, with PDF and CSV downloads ----
+  var rrData = null;
+  function cellText(c, v) {
+    if (v == null || v === '') return '';
+    if (c.money) return money2(v);
+    if (c.key === 'margin') return v + '%';
+    return String(v);
+  }
+  function drawResult(d) {
+    rrData = d; view('viewReportResult'); setHash('#report');
+    $('rrTitle').textContent = d.title;
+    $('rrInterp').textContent = d.interpretation ? 'A.R.C.H. understood: ' + d.interpretation : '';
+    var th = $('rrTable').tHead; clear(th); var hr = th.insertRow(); d.columns.forEach(function (c) { hr.appendChild(mk('th', null, c.label)); });
+    var tb = $('rrTable').tBodies[0]; clear(tb);
+    d.rows.forEach(function (r) { var tr = tb.insertRow(); d.columns.forEach(function (c) { var cell = td(cellText(c, r[c.key])); if (c.key === 'margin' && r[c.key] != null) cell.style.cssText = 'font-weight:700;color:' + (r[c.key] >= 20 ? '#15803d' : r[c.key] >= 5 ? '#b45309' : '#b91c1c'); tr.appendChild(cell); }); });
+    var t = d.totals; $('rrTotals').textContent = t.count + ' ' + (d.mode === 'grouped' ? 'tickets in ' + d.rows.length + ' groups' : 'ticket' + (t.count === 1 ? '' : 's')) + ' \u00b7 Customer total ' + money2(t.customer_total) + ' \u00b7 Provider total ' + money2(t.provider_total) + ' \u00b7 Outstanding ' + money2(t.balance) + (t.marginPct != null ? ' \u00b7 Margin ' + t.marginPct + '%' : '');
+    $('rrNote').textContent = d.rows.length ? (d.capped ? 'Very large result: only the newest 2,000 tickets were counted. Narrow the request for exact totals.' : '') : 'Nothing matched. Try widening the dates or amounts.';
+  }
+  async function askArch() {
+    var q = $('askQ').value.trim();
+    if (q.length < 5) return flash('Tell A.R.C.H. what you want to see.', false);
+    var bt = $('askGo'); bt.disabled = true; var old = bt.textContent; bt.textContent = 'A.R.C.H. is working...';
+    try {
+      var d = await api('/staff/reports/ask', 'POST', { prompt: q });
+      if (d.unsupported) flash('A.R.C.H.: ' + d.unsupported, false); else drawResult(d);
+    } catch (e) { flash(e.message, false); }
+    bt.disabled = false; bt.textContent = old;
+  }
+  $('askGo').onclick = askArch;
+  $('askQ').onkeydown = function (e) { if (e.key === 'Enter') { e.preventDefault(); askArch(); } };
+  $('rrBack').onclick = function () { loadReports(); };
+  $('rrCsv').onclick = function () {
+    if (!rrData) return;
+    var lines = [rrData.columns.map(function (c) { return csvCell(c.label); }).join(',')];
+    rrData.rows.forEach(function (r) { lines.push(rrData.columns.map(function (c) { var v = r[c.key]; return csvCell(v == null ? '' : v); }).join(',')); });
+    var blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'tmg-report-' + iso(new Date()) + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 2000);
+  };
+  $('rrPdf').onclick = function () {
+    if (!rrData) return;
+    if (!(window.jspdf && window.jspdf.jsPDF)) { flash('The PDF tool did not load. Use Download CSV, or your browser\u2019s Print and choose Save as PDF.', false); return; }
+    var doc = new window.jspdf.jsPDF({ orientation: rrData.columns.length > 8 ? 'landscape' : 'portrait', unit: 'pt', format: 'letter' });
+    var W = doc.internal.pageSize.getWidth();
+    doc.setFillColor(0, 0, 0); doc.rect(0, 0, W, 54, 'F');
+    doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Triple Maintenance Group, LLC', 36, 33);
+    doc.setTextColor(0, 0, 0); doc.setFontSize(14); doc.text(rrData.title, 36, 84);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(80, 80, 80);
+    var y = 100, lines = doc.splitTextToSize(rrData.interpretation ? 'Report: ' + rrData.interpretation : '', W - 72);
+    doc.text(lines, 36, y); y += lines.length * 11 + 2;
+    var t = rrData.totals;
+    doc.text('Generated ' + new Date().toLocaleString('en-US') + '  |  ' + t.count + ' tickets  |  Customer total ' + money2(t.customer_total) + '  |  Provider total ' + money2(t.provider_total) + '  |  Outstanding ' + money2(t.balance) + (t.marginPct != null ? '  |  Margin ' + t.marginPct + '%' : ''), 36, y + 4, { maxWidth: W - 72 });
+    doc.autoTable({ startY: y + 24, head: [rrData.columns.map(function (c) { return c.label; })],
+      body: rrData.rows.map(function (r) { return rrData.columns.map(function (c) { return cellText(c, r[c.key]); }); }),
+      styles: { fontSize: 7.5, cellPadding: 3 }, headStyles: { fillColor: [149, 6, 6], textColor: 255 }, margin: { left: 36, right: 36 },
+      didDrawPage: function () { doc.setFontSize(8); doc.setTextColor(120); doc.text('Page ' + doc.internal.getNumberOfPages(), W - 70, doc.internal.pageSize.getHeight() - 20); } });
+    doc.save('tmg-report-' + iso(new Date()) + '.pdf');
+  };
   async function loadReports() {
     setHash('#reports'); view('viewReports');
     if (!repStatusDone) {
