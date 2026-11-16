@@ -356,6 +356,7 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     };
     sh.appendChild(aiBtn); sh.appendChild(aiBox);
 
+    var laborMark = sh.lastChild, isFlat = f.pricingMode === 'flat';
     sh.appendChild(el('label', 'l', 'Labor'));
     if (f.tripPay > 0) sh.appendChild(el('div', 'box', 'Initial trip (flat rate): ' + money(f.tripPay)));
     var hoursRow = el('div'); hoursRow.style.marginTop = '8px';
@@ -404,12 +405,19 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     sh.appendChild(tbl);
     var addB = el('button', 'b b-blue-o', 'Add material line'); addB.style.marginTop = '8px'; addB.onclick = function () { addRow(); }; sh.appendChild(addB);
 
+    var flatIn = el('input'); flatIn.type = 'number'; flatIn.min = '0'; flatIn.step = '0.01'; flatIn.placeholder = 'Flat price'; flatIn.style.width = '180px';
+    if (isFlat) {
+      var kids = Array.prototype.slice.call(sh.children); kids.slice(kids.indexOf(laborMark) + 1).forEach(function (n) { n.hidden = true; });
+      sh.appendChild(el('label', 'l', 'Your flat price ($)')); sh.appendChild(flatIn);
+      sh.appendChild(el('div', 'meta', 'This job is billed as one flat price. Enter your total for the whole job, with the work description above.'));
+    }
     var totalBox = el('div', 'box'); totalBox.style.marginTop = '18px'; sh.appendChild(totalBox);
     var over = el('div', 'bad'); sh.appendChild(over);
     function total() {
       var m = 0; rows.forEach(function (o) { m += Math.round((Number(o.q.value) || 0) * (Number(o.u.value) || 0) * 100) / 100; });
       var labor = Math.round((Number(hrs.value) || 0) * (Number(f.hourlyRate) || 0) * 100) / 100;
       helpers.forEach(function (o) { labor = Math.round((labor + Math.round((Number(o.hi.value) || 0) * (Number(f.helperRate) || 0) * 100) / 100) * 100) / 100; });
+      if (isFlat) { var fv = Math.round((Number(flatIn.value) || 0) * 100) / 100; return { labor: 0, mats: 0, sum: fv }; }
       return { labor: labor, mats: m, sum: Math.round((f.tripPay + labor + m) * 100) / 100 };
     }
     function calc() {
@@ -420,18 +428,18 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
       totalBox.textContent = 'Your bill total: ' + money(t.sum) + '   (NTE: ' + money(f.providerNte) + ')';
       over.textContent = t.sum > f.providerNte ? 'This is higher than the amount approved for this job. Close this screen and request an increase first.' : '';
     }
-    hrs.oninput = calc; addRow(); calc();
+    flatIn.oninput = calc; hrs.oninput = calc; addRow(); calc();
 
     var bar = el('div', 'row');
     var go = el('button', 'b b-green', 'Submit bill');
     go.onclick = async function () {
       var t = total();
       if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
-      if (t.sum <= 0) return flash('Add your hours or materials.', false);
+      if (t.sum <= 0) return flash(isFlat ? 'Enter your flat price.' : 'Add your hours or materials.', false);
       if (t.sum > f.providerNte) return flash('Your bill is higher than the approved amount. Request an increase first.', false);
       var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
       go.disabled = true; go.textContent = 'Sending...';
-      try { await api('/provider/jobs/' + j.id + '/bill', 'POST', { description: ta.value, hours: hrs.value || 0, helpers: helpers.filter(function (o) { return o.hi.value; }).map(function (o) { return { hours: o.hi.value }; }), materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
+      try { await api('/provider/jobs/' + j.id + '/bill', 'POST', { description: ta.value, flatAmount: flatIn.value, hours: hrs.value || 0, helpers: helpers.filter(function (o) { return o.hi.value; }).map(function (o) { return { hours: o.hi.value }; }), materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
       catch (e) { flash(e.message, false); go.disabled = false; go.textContent = 'Submit bill'; }
     };
     var cx = el('button', 'b b-red-o', 'Cancel'); cx.onclick = close;

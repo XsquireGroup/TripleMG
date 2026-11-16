@@ -251,6 +251,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
               <button type="button" class="ai-btn" id="rlCheck" title="Automated Routing &amp; Cost Handler">A.R.C.H.</button></div>
             <div class="r"><div id="rlCheckOut"></div></div>
           </div>
+          <div class="rr"><div class="l"><label for="rlPrice">Pricing</label><select id="rlPrice"><option value="hourly">Hourly (hours and materials)</option><option value="flat">Flat price (one price for the job)</option></select></div></div>
           <div class="relrow">
             <div class="nf cust"><label for="rlCust">Customer NTE ($)</label><input id="rlCust" inputmode="decimal"></div>
             <div class="nf prov"><label for="rlProv">Provider NTE ($)</label><input id="rlProv" inputmode="decimal"></div>
@@ -261,7 +262,8 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
         <p class="small">The trade decides which labor rates apply to this job's bill. You can change it until a bill exists.</p>
         <div class="rr"><div class="l"><select id="tdSel"></select>
           <button type="button" class="btn-sm" id="tdSave">Save trade</button> <button type="button" class="ai-btn" id="tdCheck" title="Automated Routing &amp; Cost Handler">A.R.C.H.</button></div>
-          <div class="r"><div id="tdOut"></div></div></div></div>
+          <div class="r"><div id="tdOut"></div></div></div>
+        <div class="rr" style="margin-top:12px"><div class="l"><label for="tdPrice">Pricing</label><select id="tdPrice"><option value="hourly">Hourly (hours and materials)</option><option value="flat">Flat price (one price for the job)</option></select></div></div></div>
       <div class="panel" id="cmpSection" hidden><h2>Completion</h2><div id="cmpBody"></div><div class="ph" id="cmpPhotos"></div>
         <div id="cmpReview" hidden>
           <p class="small" style="margin-top:12px">Look at the photos, verify with the customer if needed, then confirm or send it back.</p>
@@ -816,6 +818,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     var why = mk('input', 'bill-in'); why.maxLength = 500; why.placeholder = 'e.g. Provider is not responding; entered from their phone call'; why.style.width = '100%'; box.appendChild(why);
     box.appendChild(lab('Work performed'));
     var ta = mk('textarea', 'bill-ta'); ta.rows = 4; ta.maxLength = 4000; box.appendChild(ta);
+    var laborMark = box.lastChild, isFlat = f.pricingMode === 'flat';
     box.appendChild(lab('Labor (provider side)'));
     var ltbl = mk('table', 't'), lh = ltbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Rate', 'Amount'].forEach(function (h) { lh.appendChild(mk('th', null, h)); });
     var ltb = ltbl.createTBody();
@@ -852,6 +855,12 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       [o.d, o.q, o.u].forEach(function (i) { i.oninput = calc; }); rows.push(o);
     }
     box.appendChild(tbl); box.appendChild(btn('Add material line', function () { addRow(); }, 'btn-sm'));
+    var flatIn = mk('input', 'bill-in'); flatIn.type = 'number'; flatIn.min = '0'; flatIn.step = '0.01';
+    if (isFlat) {
+      var kids = Array.prototype.slice.call(box.children), i0 = kids.indexOf(laborMark) + 1;
+      kids.slice(i0).forEach(function (n) { n.hidden = true; });
+      box.appendChild(lab('Provider flat price ($)')); box.appendChild(flatIn);
+    }
     var totBox = mk('div'); totBox.style.marginTop = '16px';
     var rowT = mk('div', 'nte prov'), rowN = mk('div', 'nte prov');
     rowT.appendChild(mk('b', null, 'Provider total')); var totV = mk('span'); rowT.appendChild(totV);
@@ -862,6 +871,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       var m = 0; rows.forEach(function (o) { m += r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
       var trip = r2(Number(tripIn.value) || 0), lead = r2((Number(hrs.value) || 0) * (Number(rateIn.value) || 0)), help = 0;
       mHelpers.forEach(function (o) { help = r2(help + r2((Number(o.hrs.value) || 0) * (Number(o.rate.value) || 0))); });
+      if (isFlat) { var ft = r2(Number(flatIn.value) || 0); return { m: 0, trip: 0, lead: 0, labor: 0, total: ft }; }
       return { m: m, trip: trip, lead: lead, labor: r2(lead + help), total: r2(trip + lead + help + m) };
     }
     function calc() {
@@ -872,14 +882,14 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       totV.textContent = dollars(t.total); totV.style.color = t.total > f.providerNte ? 'var(--red)' : '';
       warn.textContent = t.total > f.providerNte ? 'This is over the Provider NTE. Raise the NTE first.' : '';
     }
-    hrs.oninput = calc; tripIn.oninput = calc; rateIn.oninput = calc; addRow(); calc();
+    flatIn.oninput = calc; hrs.oninput = calc; tripIn.oninput = calc; rateIn.oninput = calc; addRow(); calc();
     var go = btn('Submit for the provider', async function () {
       if (why.value.trim().length < 5) return flash('Say why you are submitting this for the provider.', false);
       if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
       var t = sum(); if (t.total <= 0) return flash('Add hours or materials.', false);
       if (t.total > f.providerNte) return flash('Over the Provider NTE. Raise the NTE first.', false);
       var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
-      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, hours: hrs.value || 0, tripPay: tripIn.value, rate: rateIn.value, helperRate: mHelperRate || 0, helpers: mHelpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }), materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
+      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, flatAmount: flatIn.value, hours: hrs.value || 0, tripPay: tripIn.value, rate: rateIn.value, helperRate: mHelperRate || 0, helpers: mHelpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }), materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
       catch (er) { flash(er.message, false); }
     });
     go.style.marginTop = '12px'; box.appendChild(go);
@@ -942,7 +952,10 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       body.appendChild(aiBtn); body.appendChild(aiPanel);
     }
 
+    var flat = b.pricing_mode === 'flat';
     function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
+    var flatIn = num(b.flat_amount);
+    if (flat) { var fl = mk('label', null, 'Provider flat price ($)'); fl.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:14px 0 4px'; body.appendChild(fl); body.appendChild(flatIn); }
     var tbl = mk('table', 't'); tbl.style.marginTop = '14px';
     var hr = tbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Unit price', 'Provider amount'].forEach(function (h) { hr.appendChild(mk('th', null, h)); });
     var tb = tbl.createTBody();
@@ -974,8 +987,8 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       [o.qty, o.unit, o.desc].forEach(function (i) { i.oninput = upd; });
     }
     d.bill.materials.forEach(addMat);
-    body.appendChild(tbl);
-    if (edit) {
+    if (!flat) body.appendChild(tbl);
+    if (edit && !flat) {
       var addH = btn('Add helper', function () { if (helpers.length >= 2) return flash('A bill can have up to 2 helpers.', false); addHelper({}); upd(); }); addH.style.cssText = 'margin-top:8px;margin-right:8px'; body.appendChild(addH);
       var add = btn('Add material line', function () { addMat({}); upd(); }); add.style.marginTop = '8px'; body.appendChild(add);
     }
@@ -983,16 +996,19 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     var tot = mk('div'); tot.style.marginTop = '14px'; body.appendChild(tot);
     var warn = mk('div'); body.appendChild(warn);
     function vals() {
+      if (flat) return { description: ta.value, flatAmount: flatIn.value };
       return { description: ta.value, tripPay: tripPay.value, tripCharge: tripCharge.value, hours: hours.value, rate: rate.value, helperRate: helperRateVal || 0,
         helpers: helpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }),
         materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value }; }) };
     }
     var approveBtn = null;
     function upd() {
-      var v = vals(), c = calcBill(v);
+      var v = vals(), c = flat ? { pt: r2(Number(flatIn.value) || 0) } : calcBill(v);
+      if (!flat) {
       pLab.textContent = dollars(r2((Number(hours.value) || 0) * (Number(rate.value) || 0))); cLab.textContent = dollars(r2((Number(hours.value) || 0) * (Number(rate.value) || 0) / 0.80));
       helpers.forEach(function (o) { var a = r2((Number(o.hrs.value) || 0) * (Number(o.rate.value) || 0)); o.p.textContent = dollars(a); o.c.textContent = dollars(r2(a / 0.80)); });
       mats.forEach(function (o) { var a = r2((Number(o.qty.value) || 0) * (Number(o.unit.value) || 0)); o.p.textContent = dollars(a); o.c.textContent = dollars(r2(1.10 * a / 0.80)); });
+      }
       clear(tot);
       [['prov', 'Provider total', dollars(c.pt)]].forEach(function (x) {
         var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); r.appendChild(sp); tot.appendChild(r);
@@ -1000,7 +1016,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       clear(warn);
       if (c.pt > d.providerNte) warn.appendChild(mk('p', 'bill-warn', 'The provider total is over the Provider NTE (' + dollars(d.providerNte) + ').'));
     }
-    [ta, tripPay, tripCharge, hours, rate].forEach(function (i) { i.oninput = upd; });
+    [ta, tripPay, tripCharge, hours, rate, flatIn].forEach(function (i) { i.oninput = upd; });
 
     if (edit) {
       var note = mk('input', 'bill-in'); note.placeholder = 'Note to provider (required to return the bill)'; note.maxLength = 1000; note.style.marginTop = '14px';
@@ -1041,6 +1057,25 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     if (d.returnNote && d.status === 'provider_approved') body.appendChild(mk('p', 'bill-warn', 'Sent back by the Owner: ' + d.returnNote));
     if (d.submittedBy && d.status === 'customer_review') body.appendChild(mk('p', 'small', 'Prepared by ' + d.submittedBy + '.'));
     function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
+    if (d.mode === 'flat') {
+      body.appendChild(mk('p', 'small', 'Flat price job. The customer sees one line with this price. Suggested price (provider flat price divided by 0.80): ' + dollars(d.formulaFlat) + '.'));
+      var fl = mk('label', null, 'Customer flat price ($)'); fl.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:10px 0 4px';
+      var fIn = num(cs.flatPrice != null ? cs.flatPrice : d.formulaFlat); body.appendChild(fl); body.appendChild(fIn);
+      var ftot = mk('div'); ftot.style.marginTop = '14px'; body.appendChild(ftot);
+      var fwarn = mk('div'); body.appendChild(fwarn);
+      var fvals = function () { return { flatPrice: fIn.value }; };
+      var fupd = function () {
+        var ct = r2(Number(fIn.value) || 0), m = ct > 0 ? r2((ct - d.providerTotal) / ct * 100) : (d.providerTotal > 0 ? -100 : 0);
+        clear(ftot);
+        [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total (locked)', dollars(d.providerTotal)], ['mar', 'Margin', m + '%']].forEach(function (x) {
+          var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= d.minMargin ? ['#fef3c7', '#b45309', '#92400e'] : ['#fee2e2', '#b91c1c', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; } r.appendChild(sp); ftot.appendChild(r);
+        });
+        clear(fwarn);
+        if (ct > d.customerNte) fwarn.appendChild(mk('p', 'bill-warn', 'The customer total is over the Customer NTE (' + dollars(d.customerNte) + ').'));
+        if (m < d.minMargin) fwarn.appendChild(mk('p', 'bill-warn', 'Margin is under ' + d.minMargin + '%. The Owner will see this flag.'));
+      };
+      fIn.oninput = fupd; fupd(); buildBar(fvals); return;
+    }
     var tbl = mk('table', 't'); tbl.style.marginTop = '10px';
     var hr = tbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Unit price', 'Customer amount'].forEach(function (h) { hr.appendChild(mk('th', null, h)); });
     var tb = tbl.createTBody();
@@ -1112,6 +1147,8 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     }
     [trip, hours, cRate, cHelp].forEach(function (i) { i.oninput = upd; });
     upd();
+    buildBar(vals);
+    function buildBar(vals) {
     var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:12px';
     var saveIt = async function () { await api('/staff/bills/' + billId + '/customer-save', 'POST', vals()); };
     var note = null;
@@ -1128,6 +1165,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       try { await api('/staff/bills/' + billId + '/customer-return', 'POST', { note: note.value }); flash('Sent back to the employee.', true); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
     }, 'ai-no'));
     body.appendChild(bar);
+    }
   }
 
   // ---- browser back/forward: every screen gets its own history entry ----
@@ -1373,7 +1411,8 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       loadHandler(t);
       var isNew = t.status === 'new';
       $('reviewPanel').hidden = !isNew;
-      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); $('rlProv').value = ''; fillTradeSelect($('rlTrade')); $('rlTrade').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('rlCheckOut')); }
+      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); $('rlProv').value = ''; fillTradeSelect($('rlTrade')); $('rlTrade').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('rlCheckOut')); $('rlPrice').value = t.pricing_mode === 'flat' ? 'flat' : 'hourly'; }
+      $('tdPrice').value = t.pricing_mode === 'flat' ? 'flat' : 'hourly'; $('tdPrice').dataset.prev = $('tdPrice').value;
       var tp = $('tradePanel'); tp.hidden = isNew || ['closed', 'canceled', 'billed'].indexOf(t.status) >= 0; fillTradeSelect($('tdSel')); $('tdSel').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('tdOut'));
     } catch (e) { flash(e.message, false); }
   }
@@ -1409,7 +1448,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     var r2 = document.createElement('div'); r2.className = 'pills r2';
     var dot = document.createElement('span'); dot.className = 'dot ' + t.priority;
     r2.appendChild(infoPill(dot, 'Priority', t.priority.charAt(0).toUpperCase() + t.priority.slice(1)));
-    r2.appendChild(infoPill('\ud83d\udd27', 'Trade', t.trade || '-'));
+    r2.appendChild(infoPill('\ud83d\udd27', 'Trade', (t.trade || '-') + (t.pricing_mode === 'flat' ? ' \u00b7 Flat price' : '')));
     var st = document.createElement('span'); st.className = 'stp ' + t.status; st.textContent = t.status.replace(/_/g, ' ').replace(/^./, function (c) { return c.toUpperCase(); });
     r2.appendChild(infoPill('\u25cf', 'Status', st));
     r2.appendChild(infoPill('\ud83d\udc64', 'TMG Rep', t.staff_name || 'Unassigned'));
@@ -1575,7 +1614,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
   $('releaseForm').onsubmit = async function (ev) {
     ev.preventDefault();
     if (!String($('rlProv').value).trim()) { $('rlProv').focus(); return flash('Enter the provider NTE to post this job.', false); }
-    try { await api('/staff/tickets/' + currentTicket + '/release', 'POST', { providerNte: $('rlProv').value, customerNte: $('rlCust').value, trade: $('rlTrade').value }); flash('Posted to Open Jobs. Providers in the job\u2019s state have been alerted.', true); openTicket(currentTicket); }
+    try { await api('/staff/tickets/' + currentTicket + '/release', 'POST', { providerNte: $('rlProv').value, customerNte: $('rlCust').value, trade: $('rlTrade').value, pricingMode: $('rlPrice').value }); flash('Posted to Open Jobs. Providers in the job\u2019s state have been alerted.', true); openTicket(currentTicket); }
     catch (e) { flash(e.message, false); }
   };
 
@@ -1597,6 +1636,11 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     btnEl.disabled = false;
   }
   $('rlCheck').onclick = function () { runTradeCheck($('rlCheck'), $('rlCheckOut'), $('rlTrade')); };
+  $('tdPrice').onchange = async function () {
+    var sel = $('tdPrice');
+    try { await api('/staff/tickets/' + currentTicket + '/pricing-mode', 'POST', { mode: sel.value }); sel.dataset.prev = sel.value; flash(sel.value === 'flat' ? 'Set to flat price.' : 'Set to hourly.', true); openTicket(currentTicket); }
+    catch (e) { flash(e.message, false); sel.value = sel.dataset.prev || 'hourly'; }
+  };
   $('tdCheck').onclick = function () { runTradeCheck($('tdCheck'), $('tdOut'), $('tdSel')); };
   $('tdSave').onclick = async function () {
     try { await api('/staff/tickets/' + currentTicket + '/trade', 'POST', { trade: $('tdSel').value }); flash('Trade saved.', true); openTicket(currentTicket); }
