@@ -173,7 +173,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
   <img src="index-1-ce390515eb.png" alt="Triple Maintenance Group">
   <button class="linkbtn" id="signOut" hidden>Sign out</button>
 </div></div>
-<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers</span><span data-tab="providers">Providers</span><span data-tab="team" id="teamTab" hidden>Team</span><span class="off" title="Coming soon">Reports</span></div></div>
+<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers</span><span data-tab="providers">Providers</span><span data-tab="team" id="teamTab" hidden>Team</span><span data-tab="reports" id="repTab" hidden>Reports</span></div></div>
 
 <div class="wrap">
   <div class="card" id="signedOut" hidden>
@@ -317,6 +317,24 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
           <button type="submit">Post comment</button>
         </form>
         <div class="feed" id="notesList"></div></div>
+    </div>
+
+    <div id="viewReports" hidden>
+      <div class="panel">
+        <h2>Reports</h2>
+        <p class="small"><b>All tickets</b> &nbsp;|&nbsp; every ticket ever created, active or finished. Owner only.</p>
+        <form class="f" id="repForm" style="display:block">
+          <div class="relrow">
+            <div class="nf"><label for="repQ">Search</label><input id="repQ" maxlength="100" placeholder="Ticket number, customer, site, provider, invoice number"></div>
+            <div class="nf"><label for="repSt">Status</label><select id="repSt"><option value="">All statuses</option></select></div>
+            <div class="nf"><label for="repFrom">From</label><input id="repFrom" type="date"></div>
+            <div class="nf"><label for="repTo">To</label><input id="repTo" type="date"></div>
+            <div class="go"><button type="submit">Search</button></div>
+          </div>
+        </form>
+        <p class="small" id="repCount"></p>
+        <div style="overflow-x:auto"><table class="t" id="repTable"><thead><tr><th>Ticket</th><th>Came in</th><th>Customer</th><th>Site</th><th>Title</th><th>Trade</th><th>Status</th><th>TMG Rep</th><th>Provider</th><th>Invoice</th><th>Customer total</th><th>Margin</th></tr></thead><tbody></tbody></table></div>
+      </div>
     </div>
 
     <div id="viewCustomers" hidden>
@@ -1178,6 +1196,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     if (h === '#providers') return loadProviders();
     if ((m = /^#provider\/([0-9a-fA-F-]{36})$/.exec(h))) return openProvider(m[1]);
     if (h === '#team' && me && me.role === 'owner') return loadTeam();
+    if (h === '#reports' && me && me.role === 'owner') return loadReports();
     if ((m = /^#ticket\/([0-9a-fA-F-]{36})$/.exec(h))) return openTicket(m[1]);
     if (h === '#new-ticket') return startWizard();
     return loadTickets();
@@ -1191,9 +1210,9 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
 
   // ---- tabs ----
   function view(name) {
-    ['viewTickets', 'viewWizard', 'viewTicket', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam'].forEach(function (v) { $(v).hidden = true; });
+    ['viewTickets', 'viewWizard', 'viewTicket', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam', 'viewReports'].forEach(function (v) { $(v).hidden = true; });
     $(name).hidden = false;
-    var tab = ({viewTickets:'tickets', viewWizard:'tickets', viewTicket:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team'})[name] || 'customers';
+    var tab = ({viewTickets:'tickets', viewWizard:'tickets', viewTicket:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team', viewReports:'reports'})[name] || 'customers';
     document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
       s.className = (s.getAttribute('data-tab') === tab) ? 'on' : '';
     });
@@ -1202,9 +1221,42 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     s.onclick = function () {
       if (stayToPost()) return;
       var t = s.getAttribute('data-tab');
-      if (t === 'customers') loadCustomers(); else if (t === 'providers') loadProviders(); else if (t === 'team') loadTeam(); else loadTickets();
+      if (t === 'customers') loadCustomers(); else if (t === 'providers') loadProviders(); else if (t === 'team') loadTeam(); else if (t === 'reports') loadReports(); else loadTickets();
     };
   });
+
+  // ---- reports: all tickets (Owner only) ----
+  var repStatusDone = false;
+  async function runReport() {
+    var qs = '?q=' + encodeURIComponent($('repQ').value) + '&status=' + encodeURIComponent($('repSt').value) + '&from=' + $('repFrom').value + '&to=' + $('repTo').value;
+    try {
+      var d = await api('/staff/reports/tickets' + qs);
+      var body = $('repTable').tBodies[0]; clear(body);
+      $('repCount').textContent = d.tickets.length + ' ticket' + (d.tickets.length === 1 ? '' : 's') + (d.capped ? ' (showing the newest 500; narrow your search)' : '');
+      d.tickets.forEach(function (t) {
+        var tr = document.createElement('tr'); tr.className = 'row';
+        tr.appendChild(td(t.job_number)); tr.appendChild(td(fmt(t.created_at))); tr.appendChild(td(t.customer_name));
+        tr.appendChild(td('#' + t.site_number + ' ' + (t.site_name || ''))); tr.appendChild(td(t.title)); tr.appendChild(td(t.trade || ''));
+        var sc = document.createElement('td'); sc.appendChild(pill(t.status)); tr.appendChild(sc);
+        tr.appendChild(td(t.staff_name || '')); tr.appendChild(td(t.provider_name || '')); tr.appendChild(td(t.invoice_number || ''));
+        tr.appendChild(td(t.customer_total != null ? '$' + Number(t.customer_total).toFixed(2) : ''));
+        var m = t.margin_pct, mc = td(m != null ? m + '%' : '');
+        if (m != null) mc.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#b45309' : '#b91c1c');
+        tr.appendChild(mc);
+        tr.onclick = function () { openTicket(t.id); };
+        body.appendChild(tr);
+      });
+    } catch (e) { flash(e.message, false); }
+  }
+  async function loadReports() {
+    setHash('#reports'); view('viewReports');
+    if (!repStatusDone) {
+      ['new', 'waiting_assignment', 'needs_manual_match', 'assigned', 'in_progress', 'awaiting_part', 'completion_review', 'completed', 'needs_billing', 'billed', 'closed', 'canceled'].forEach(function (st) { opt($('repSt'), st, st.replace(/_/g, ' ')); });
+      repStatusDone = true;
+    }
+    runReport();
+  }
+  $('repForm').onsubmit = function (e) { e.preventDefault(); runReport(); };
 
   // ---- customers ----
   async function loadCustomers() {
@@ -1986,10 +2038,10 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     show('loading');
     try {
       me = await api('/staff/me');
-      $('teamTab').hidden = (me.role !== 'owner');
+      $('teamTab').hidden = (me.role !== 'owner'); $('repTab').hidden = (me.role !== 'owner');
       $('welcome').textContent = 'Welcome, ' + me.name;
       $('role').textContent = me.role;
-      if (!/^#(ticket|customer|provider)\/|^#(customers|providers|team|new-ticket)$/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search + '#tickets');
+      if (!/^#(ticket|customer|provider)\/|^#(customers|providers|team|reports|new-ticket)$/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search + '#tickets');
       route(location.hash);
       show('home');
     } catch (e) {
