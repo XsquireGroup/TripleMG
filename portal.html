@@ -186,6 +186,7 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
       <label for="nTrade">Type of work</label><select id="nTrade"></select>
       <label for="nTitle">Short title</label><input id="nTitle" maxlength="200" placeholder="Example: Leak in men's restroom">
       <label for="nDesc">What is happening?</label><textarea id="nDesc" maxlength="4000" placeholder="Where it is, what you see, anything we should know before we arrive."></textarea>
+      <div style="margin-top:8px"><button type="button" class="b b-blue" id="nArch" title="Automated Routing &amp; Cost Handler">A.R.C.H.</button></div><div id="nArchOut"></div>
       <label for="nPri">How urgent?</label>
       <select id="nPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select>
       <label for="nNte">Your not-to-exceed amount ($)</label><input id="nNte" inputmode="decimal" placeholder="Example: 850">
@@ -591,6 +592,30 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
     m.onclick = function () { m.hidden = true; };
     window.scrollTo(0, 0); clearTimeout(m._t); m._t = setTimeout(function () { m.hidden = true; }, 15000);
   }
+  document.addEventListener('click', async function (ev) {
+    if (!ev.target || ev.target.id !== 'nArch') return;
+    var bt = ev.target, out = document.getElementById('nArchOut'); out.innerHTML = '';
+    var desc = document.getElementById('nDesc'), ttl = document.getElementById('nTitle');
+    if (desc.value.trim().length < 5) return flash('Describe the problem first, then use A.R.C.H.', false);
+    bt.disabled = true; var old = bt.textContent; bt.textContent = 'A.R.C.H. is reading...';
+    try {
+      var r = await api('/customer/ai/clean-request', 'POST', { title: ttl.value, description: desc.value });
+      var box = document.createElement('div'); box.style.cssText = 'margin-top:12px;border-left:4px solid #1d4ed8;padding:4px 0 4px 14px';
+      var h = document.createElement('b'); h.textContent = 'A.R.C.H. suggests'; box.appendChild(h);
+      var t1 = document.createElement('p'); t1.style.cssText = 'font-weight:700;margin:8px 0 4px'; t1.textContent = r.title; box.appendChild(t1);
+      var d1 = document.createElement('p'); d1.style.cssText = 'margin:0 0 8px;white-space:pre-wrap'; d1.textContent = r.description; box.appendChild(d1);
+      if (r.questions && r.questions.length) {
+        var qh = document.createElement('p'); qh.style.cssText = 'margin:8px 0 2px;font-weight:600;color:#c2410c'; qh.textContent = 'Worth adding if you know it:'; box.appendChild(qh);
+        r.questions.forEach(function (q) { var qp = document.createElement('p'); qp.style.cssText = 'margin:0;color:#c2410c'; qp.textContent = '\u2022 ' + q; box.appendChild(qp); });
+      }
+      var row = document.createElement('div'); row.style.cssText = 'display:flex;gap:8px;margin-top:10px';
+      var use = document.createElement('button'); use.type = 'button'; use.className = 'b b-green'; use.textContent = 'Use this';
+      use.onclick = function () { ttl.value = r.title; desc.value = r.description; out.innerHTML = ''; flash('Edits applied. Review them, then send.', true); };
+      var no = document.createElement('button'); no.type = 'button'; no.className = 'b b-red-o'; no.textContent = 'Discard'; no.onclick = function () { out.innerHTML = ''; };
+      row.appendChild(use); row.appendChild(no); box.appendChild(row); out.appendChild(box);
+    } catch (e) { flash(e.message, false); }
+    bt.disabled = false; bt.textContent = old;
+  });
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function when(v) { var d = new Date(String(v).indexOf('Z') < 0 && String(v).indexOf('+') < 0 ? v + 'Z' : v); return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
