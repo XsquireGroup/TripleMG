@@ -1115,7 +1115,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     var rb = mk('div'); rb.style.cssText = 'display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;align-items:flex-end';
     function rateIn(label, val, formula) {
       var w = mk('div'); w.appendChild(mk('label', null, label)); var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = '0.01';
-      i.value = val == null ? '' : val; i.placeholder = 'Formula ' + dollars(formula); i.disabled = !edit; w.appendChild(i); rb.appendChild(w); return i;
+      i.value = val == null ? '' : val; i.disabled = !edit; w.appendChild(i); rb.appendChild(w); return i;
     }
     var cRate = rateIn('Customer rate: Lead Tech ($/hr' + (d.trade ? ', ' + d.trade : '') + ')', cs.rate, d.formulaRate);
     var cHelp = rateIn('Customer rate: Helper ($/hr)', cs.helperRate, d.formulaHelperRate);
