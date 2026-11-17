@@ -166,6 +166,77 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
 .fi .bd{min-width:0;flex:1}.fi .hd{font-size:15px;color:var(--steel)}.fi .tt{white-space:pre-wrap;margin-top:2px;font-size:17px}
 .fi.cust .av{background:#dbeafe}.fi.pub .av{background:#dcfce7}
 @media (max-width:760px){.duo{grid-template-columns:1fr}.pills.r1{grid-template-columns:1fr}.rr .l{flex:1 1 100%}.qbar button{flex:1 1 45%;justify-content:center}.bigmoney{font-size:34px}}
+
+#invoicePanel { overflow-x:auto; }
+.kpis { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
+button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
+.kpi.k0 { border-top-color:#6b7280; } .kpi.k0:hover { background:#fafaf8; }
+.kpi.k0.has { border-top-color:#b91c1c; background:#fff5f5; } .kpi.k0.has .kv { color:#b91c1c; }
+.kpi.k0[aria-expanded=true] { outline:2px solid var(--ink); }
+.alertsbox { background:var(--paper); border:1px solid var(--border); border-top:4px solid #b91c1c; padding:16px 20px; margin:12px 0 6px; }
+.alertsbox .ahead { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+.alertsbox h2 { font-size:20px; margin:0; }
+@media (max-width:760px) { .kpis { grid-template-columns:repeat(2,minmax(0,1fr)) !important; } .kpi.k0 { grid-column:1 / -1; } }
+/* Staff and owner home: KPI row, tabs, two-column ticket cards (same look as the provider page) */
+.board2 { max-width:980px; margin:20px auto; }
+.kpis { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; margin:0 0 6px; }
+.kpi { background:var(--paper); border:1px solid var(--border); border-top:4px solid var(--ink); padding:14px 16px; }
+.kpi .kl { font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-size:12px; font-weight:600; color:var(--steel); }
+.kpi .kv { font-family:'Oswald',sans-serif; font-size:30px; font-weight:700; line-height:1.15; margin-top:4px; }
+.kpi.k1 { border-top-color:#b8860b; } .kpi.k2 { border-top-color:#c2410c; } .kpi.k3 { border-top-color:#334155; } .kpi.k4 { border-top-color:#15803d; } .kpi.k4 .kv.money { color:#1d4ed8; }
+.tabbar { display:flex; align-items:flex-end; gap:8px; border-bottom:2px solid var(--border); margin:22px 0 14px; }
+.tabs { display:flex; gap:4px; flex-wrap:wrap; flex:1; }
+.tabs button { cursor:pointer; background:none; border:0; border-bottom:4px solid transparent; margin-bottom:-2px; padding:12px 16px; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; color:var(--steel); }
+.tabs button .n { display:inline-block; min-width:22px; padding:1px 7px; margin-left:6px; background:var(--border); color:var(--ink); font-size:12px; border-radius:11px; text-align:center; }
+.tabs button.on { color:var(--ink); border-bottom-color:var(--red); } .tabs button.on .n { background:var(--ink); color:#fff; }
+.tabbar .newbtn { margin-bottom:8px; cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; padding:11px 18px; background:var(--red); color:#fff; border:0; white-space:nowrap; }
+.tk2 { background:var(--paper); border:1px solid var(--border); margin-bottom:14px; }
+.tk2 .jc { display:grid; grid-template-columns:minmax(0,1fr) 250px; }
+.tk2 .jl { padding:18px 22px; min-width:0; }
+.tk2 .jr { padding:16px 18px; border-left:1px solid var(--border); background:#f6f6f4; display:flex; flex-direction:column; justify-content:center; gap:8px; }
+.tk2 .hd { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.tk2 .hd .id { font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:.04em; font-size:15px; background:var(--ink); color:#fff; padding:3px 10px; }
+.tk2 h3 { font-size:19px; margin:8px 0 8px; }
+.bdg { display:inline-block; font-family:'Oswald',sans-serif; letter-spacing:.05em; text-transform:uppercase; font-size:12px; font-weight:600; padding:3px 10px; color:#fff; background:var(--ink); }
+.bdg.red { background:#b91c1c; } .bdg.amber { background:#b45309; } .bdg.violet { background:#7c3aed; } .bdg.green { background:#15803d; } .bdg.blue { background:#1d4ed8; }
+.tk2 .hd .st { margin:0; }
+.tk2 .pills { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
+.tk2 .pill { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:5px 10px; border:1px solid var(--border); background:#fff; color:var(--ink); text-decoration:none; max-width:100%; }
+.tk2 .pill svg { width:15px; height:15px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.tk2 a.pill { color:#1d4ed8; border-color:#1d4ed8; } .tk2 a.pill:hover { background:#eef3ff; }
+.tk2 .jdesc { font-size:14px; line-height:1.45; margin:0 0 10px; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+.tk2 .strip { display:flex; gap:8px; margin:0 0 12px; }
+.tk2 .strip .th { position:relative; width:92px; height:68px; border:1px solid var(--border); background:#e8e8e5; cursor:pointer; padding:0; overflow:hidden; flex:none; }
+.tk2 .strip .th img { width:100%; height:100%; object-fit:cover; display:block; }
+.tk2 .strip .th .more { position:absolute; inset:0; background:rgba(0,0,0,.62); color:#fff; display:flex; align-items:center; justify-content:center; font-family:'Oswald',sans-serif; letter-spacing:.05em; font-weight:700; font-size:14px; text-align:center; }
+.tk2 .contacts { display:flex; flex-wrap:wrap; gap:8px 22px; padding-top:10px; border-top:1px solid var(--border); font-size:13px; }
+.tk2 .contacts .ct { display:flex; align-items:center; gap:8px; }
+.tk2 .contacts .ct b { font-family:'Oswald',sans-serif; letter-spacing:.05em; text-transform:uppercase; font-size:12px; color:var(--steel); }
+.tk2 .contacts a.ic { display:inline-flex; width:30px; height:30px; align-items:center; justify-content:center; border:1px solid var(--border); background:#fff; color:#1d4ed8; }
+.tk2 .contacts a.ic svg { width:15px; height:15px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.tk2 .mn { padding:8px 12px; border-left:6px solid; line-height:1.2; }
+.tk2 .mn span { display:block; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-size:12px; font-weight:600; }
+.tk2 .mn b { font-family:'Oswald',sans-serif; font-size:24px; font-weight:700; }
+.tk2 .mn.c { background:#e8efff; border-color:#1d4ed8; color:#1e3a8a; } .tk2 .mn.p { background:#fff0e3; border-color:#c2410c; color:#7c2d12; }
+.tk2 .mg { font-family:'Oswald',sans-serif; font-weight:700; font-size:14px; letter-spacing:.04em; padding:4px 10px; text-align:center; }
+.tk2 .mg.g { background:#dcfce7; color:#166534; } .tk2 .mg.a { background:#fef3c7; color:#92400e; } .tk2 .mg.r { background:#fee2e2; color:#991b1b; } .tk2 .mg.n { background:var(--concrete); color:var(--steel); }
+.tk2 .go { cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; line-height:1.2; padding:12px 18px; min-height:44px; border:2px solid #15803d; background:#15803d; color:#fff; width:100%; }
+.tk2 .go.blue { background:#1d4ed8; border-color:#1d4ed8; } .tk2 .go.red { background:var(--red); border-color:var(--red); }
+.tk2 .go:hover { filter:brightness(.92); }
+.lb { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.88); display:flex; align-items:center; justify-content:center; padding:18px; }
+.lb img { max-width:100%; max-height:84vh; background:#222; }
+.lb button { cursor:pointer; border:0; background:#fff; color:var(--ink); font-size:22px; width:46px; height:46px; }
+.lb .lbx { position:absolute; top:12px; right:16px; } .lb .lbp, .lb .lbn { position:absolute; top:50%; transform:translateY(-50%); } .lb .lbp { left:12px; } .lb .lbn { right:12px; }
+.lb .lbc { position:absolute; bottom:14px; left:0; right:0; text-align:center; color:#fff; font-size:14px; }
+@media (max-width:760px) {
+  .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .tk2 .jc { grid-template-columns:1fr; }
+  .tk2 .jr { border-left:0; border-top:1px solid var(--border); }
+  .tk2 .jl { padding:16px 14px; }
+  .tabbar { flex-wrap:wrap; } .tabs button { padding:10px 10px; font-size:13px; flex:1 1 auto; }
+  .tabbar .newbtn { width:100%; margin-bottom:10px; }
+  .tk2 .strip .th { width:calc(25% - 6px); height:60px; }
+}
 </style>
 </head>
 <body>
@@ -191,13 +262,31 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
     <div id="msg" class="msg" hidden></div>
 
     <div id="viewTickets">
-      <div class="panel" id="alertsPanel" hidden><h2>Alerts</h2><div id="alertsList"></div></div>
-      <div class="panel"><button class="btn-sm" id="newTicket" style="font-size:14px;padding:9px 16px;background:var(--red);color:#fff;border:0">+ New ticket</button></div>
-      <div class="panel" id="invoicePanel" hidden><h2>Ready to invoice</h2><table class="t" id="invTable"><thead><tr><th>Job #</th><th>Customer</th><th>Provider</th><th>Customer total</th><th>Margin</th><th>Approved</th><th>Invoice #</th></tr></thead><tbody></tbody></table><p class="small" id="invEmpty">Nothing waiting to be invoiced.</p></div>
-      <div class="panel" id="billingPanel" hidden><h2>Billing</h2><table class="t" id="tkBilling"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkBillingE" hidden>Nothing to bill.</p></div>
-      <div class="panel"><h2>Waiting assignment</h2><table class="t" id="tkWaiting"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkWaitingE" hidden>Nothing waiting.</p></div>
-      <div class="panel"><h2>My tickets</h2><table class="t" id="tkMine"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkMineE" hidden>No tickets assigned to you yet.</p></div>
-      <div class="panel"><h2>All active tickets</h2><table class="t" id="tkActive"><thead><tr><th>Job #</th><th>Customer / site</th><th>Issue</th><th>Status</th></tr></thead><tbody></tbody></table><p class="small" id="tkActiveE" hidden>No active tickets yet.</p></div>
+      <div class="board2">
+        <div class="kpis">
+          <button type="button" class="kpi k0" id="kAlerts" aria-expanded="false" aria-controls="alertsPanel"><div class="kl">Alerts</div><div class="kv" id="kAl">0</div></button>
+          <div class="kpi k1"><div class="kl">Waiting assignment</div><div class="kv" id="kWait">0</div></div>
+          <div class="kpi k2"><div class="kl">My tickets</div><div class="kv" id="kMine">0</div></div>
+          <div class="kpi k3"><div class="kl">In billing</div><div class="kv" id="kBill">0</div></div>
+          <div class="kpi k4"><div class="kl" id="k4l">All active</div><div class="kv" id="k4v">0</div></div>
+        </div>
+      <div id="alertsPanel" class="alertsbox" hidden>
+          <div class="ahead"><h2>Alerts</h2><span><button type="button" class="btn-sm" id="alertsClearAll">Clear all</button> <button type="button" class="btn-sm" id="alertsClose">Close</button></span></div>
+          <div id="alertsList"></div>
+        </div>
+        <div class="panel" id="invoicePanel" style="margin:18px 0 0;max-width:none" hidden><h2>Ready to invoice</h2><table class="t" id="invTable"><thead><tr><th>Job #</th><th>Customer</th><th>Provider</th><th>Customer total</th><th>Margin</th><th>Approved</th><th>Invoice #</th></tr></thead><tbody></tbody></table><p class="small" id="invEmpty">Nothing waiting to be invoiced.</p></div>
+        <div class="tabbar">
+          <div class="tabs" id="tkTabs" role="tablist">
+            <button type="button" data-t="waiting">Waiting assignment<span class="n" id="nWait">0</span></button>
+            <button type="button" data-t="mine">My tickets<span class="n" id="nMine">0</span></button>
+            <button type="button" data-t="billing">Billing<span class="n" id="nBill">0</span></button>
+            <button type="button" data-t="active">All active<span class="n" id="nAct">0</span></button>
+          </div>
+          <button type="button" class="newbtn" id="newTicket">+ New ticket</button>
+        </div>
+        <p class="small" id="tkListE" hidden></p>
+        <div id="tkList"></div>
+      </div>
     </div>
 
     <div id="viewWizard" hidden>
@@ -820,6 +909,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       var d = await api('/staff/ready-to-invoice');
       var tb = $('invTable').tBodies[0]; clear(tb);
       pn.hidden = false; $('invEmpty').hidden = d.bills.length > 0;
+      $('k4l').textContent = 'Ready to invoice'; $('k4v').className = 'kv money'; $('k4v').textContent = money2(d.bills.reduce(function (t2, b) { return t2 + Number(b.customer_total || 0); }, 0));
       var nextNo = Number(d.nextInvoiceNumber) || 1001, fresh = 0;
       d.bills.forEach(function (b, bi) {
         var tr = document.createElement('tr');
@@ -1594,24 +1684,116 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
 
   // ---- tickets ----
   function pill(st) { var s2 = document.createElement('span'); s2.className = 'st ' + st; s2.textContent = st.replace(/_/g, ' '); return s2; }
-  function fillTickets(tableId, emptyId, rows) {
-    var body = $(tableId).tBodies[0]; clear(body); $(emptyId).hidden = rows.length > 0;
-    rows.forEach(function (t) {
-      var tr = document.createElement('tr'); tr.className = 'row';
-      tr.appendChild(td(t.job_number));
-      tr.appendChild(td(t.customer_name + ' - ' + t.site_number + ' ' + t.site_name));
-      tr.appendChild(td(t.title + (t.priority !== 'normal' ? ' [' + t.priority + ']' : '')));
-      var c = document.createElement('td'); c.appendChild(pill(t.status));
-      if (t.increase_requested) { var q1 = document.createElement('span'); q1.className = 'st req'; q1.style.marginLeft = '6px'; q1.textContent = 'increase requested'; c.appendChild(q1); }
-      if (t.awaiting_customer) { var q2 = document.createElement('span'); q2.className = 'st cust'; q2.style.marginLeft = '6px'; q2.textContent = 'awaiting customer'; c.appendChild(q2); }
-      if (t.accepted_count > 0 && (t.status === 'waiting_assignment' || t.status === 'needs_manual_match')) {
-        var ac = document.createElement('span'); ac.className = 'st in_progress'; ac.style.marginLeft = '6px'; ac.textContent = t.accepted_count + ' accepted'; c.appendChild(ac);
-      }
-      tr.appendChild(c);
-      tr.onclick = function () { openTicket(t.id); };
-      body.appendChild(tr);
-    });
+  var TK_ICON = {
+    wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
+    building: '<path d="M4 21V4h10v17M14 9h6v12M8 8h2M8 12h2M8 16h2M2 21h20"/>',
+    pin: '<path d="M12 21s7-6.2 7-11a7 7 0 0 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+    phone: '<path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2z"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="1"/><path d="M3 7l9 6 9-6"/>'
+  };
+  function tkSvg(name) { var s2 = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s2.setAttribute('viewBox', '0 0 24 24'); s2.setAttribute('aria-hidden', 'true'); s2.innerHTML = TK_ICON[name]; return s2; }
+  function tkPill(icon, text, href) {
+    var p = mk(href ? 'a' : 'span', 'pill'); if (href) { p.href = href; p.target = '_blank'; p.rel = 'noopener'; p.title = 'Open in Google Maps and search nearby'; }
+    p.appendChild(tkSvg(icon)); p.appendChild(document.createTextNode(text)); return p;
   }
+  function tkIcon(icon, href, label) { var a = mk('a', 'ic'); a.href = href; a.title = label; a.setAttribute('aria-label', label); a.appendChild(tkSvg(icon)); return a; }
+  var tkPhotoUrls = {};
+  async function tkPhotoUrl(id) { if (!tkPhotoUrls[id]) tkPhotoUrls[id] = URL.createObjectURL(await apiBlob('/staff/photos/' + id)); return tkPhotoUrls[id]; }
+  function tkLightbox(ids, start) {
+    var at = start, ov = mk('div', 'lb'); ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Ticket photos');
+    var img = mk('img'); img.alt = 'Ticket photo'; var cnt = mk('div', 'lbc');
+    var x = mk('button', 'lbx', '×'); x.setAttribute('aria-label', 'Close');
+    var pv = mk('button', 'lbp', '‹'); pv.setAttribute('aria-label', 'Previous photo');
+    var nx = mk('button', 'lbn', '›'); nx.setAttribute('aria-label', 'Next photo');
+    var close = function () { document.removeEventListener('keydown', key); ov.remove(); };
+    var show = async function (k) {
+      at = (k + ids.length) % ids.length; cnt.textContent = (at + 1) + ' of ' + ids.length; img.removeAttribute('src');
+      try { img.src = await tkPhotoUrl(ids[at]); } catch (e) { cnt.textContent = 'Photo unavailable.'; }
+    };
+    var key = function (e) { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') show(at - 1); else if (e.key === 'ArrowRight') show(at + 1); };
+    x.onclick = close; pv.onclick = function () { show(at - 1); }; nx.onclick = function () { show(at + 1); };
+    ov.onclick = function (e) { if (e.target === ov) close(); };
+    ov.appendChild(img); ov.appendChild(x); if (ids.length > 1) { ov.appendChild(pv); ov.appendChild(nx); } ov.appendChild(cnt);
+    document.addEventListener('keydown', key); document.body.appendChild(ov); show(at);
+  }
+  // Thumbnails load only when the card scrolls into view, so a long list stays fast.
+  var tkSeen = window.IntersectionObserver ? new IntersectionObserver(function (es) {
+    es.forEach(function (en) { if (en.isIntersecting) { tkSeen.unobserve(en.target); en.target._load && en.target._load(); } });
+  }, { rootMargin: '200px' }) : null;
+  async function tkStrip(jobId, box) {
+    try {
+      var d = await api('/staff/tickets/' + jobId + '/photos'); var ids = d.photos.filter(function (p) { return p.kind === 'job'; }).map(function (p) { return p.id; });
+      if (!ids.length) { box.remove(); return; }
+      for (var i = 0; i < Math.min(4, ids.length); i++) {
+        (function (k) {
+          var t = mk('button', 'th'); t.type = 'button'; t.setAttribute('aria-label', 'Open photo ' + (k + 1));
+          var im = mk('img'); im.alt = 'Ticket photo'; t.appendChild(im);
+          if (k === 3 && ids.length > 4) t.appendChild(mk('div', 'more', '+' + (ids.length - 4) + ' more'));
+          t.onclick = function () { tkLightbox(ids, k); }; box.appendChild(t);
+          tkPhotoUrl(ids[k]).then(function (u) { im.src = u; }).catch(function () { /* skip one bad image */ });
+        })(i);
+      }
+    } catch (e) { box.remove(); }
+  }
+  function tkAge(t) { var m = Math.max(0, Math.floor((Date.now() - new Date(t.created_at).getTime()) / 60000)); return { mins: m, text: ageStr(m) }; }
+  function tkCard(t) {
+    var card = mk('div', 'tk2'), jc = mk('div', 'jc'), L = mk('div', 'jl'), R = mk('div', 'jr');
+    var hd = mk('div', 'hd'); hd.appendChild(mk('span', 'id', t.job_number));
+    if (t.priority !== 'normal') hd.appendChild(mk('span', 'bdg ' + (t.priority === 'emergency' ? 'red' : 'amber'), t.priority));
+    hd.appendChild(pill(t.status));
+    if (t.increase_requested) hd.appendChild(mk('span', 'bdg amber', 'Increase requested'));
+    if (t.awaiting_customer) hd.appendChild(mk('span', 'bdg violet', 'Awaiting customer'));
+    if ((t.status === 'waiting_assignment' || t.status === 'needs_manual_match') && t.accepted_count > 0) hd.appendChild(mk('span', 'bdg green', t.accepted_count + ' accepted'));
+    var ag = tkAge(t); hd.appendChild(mk('span', 'bdg ' + (ag.mins >= 4320 ? 'red' : ''), 'Age ' + ag.text));
+    L.appendChild(hd); L.appendChild(mk('h3', '', t.title));
+    var pills = mk('div', 'pills');
+    if (t.trade) pills.appendChild(tkPill('wrench', t.trade + (t.pricing_mode === 'flat' ? ' · Flat' : '')));
+    pills.appendChild(tkPill('building', t.customer_name + ' / ' + [t.site_number ? '#' + t.site_number : '', t.site_name].filter(Boolean).join(' ')));
+    var addr = [[t.address1, t.address2].filter(Boolean).join(', '), t.city, [t.state, t.zip].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+    if (addr) pills.appendChild(tkPill('pin', addr, 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(addr)));
+    L.appendChild(pills);
+    if (t.description) L.appendChild(mk('p', 'jdesc', t.description));
+    if (t.photo_count > 0) { var strip = mk('div', 'strip'); L.appendChild(strip); strip._load = function () { tkStrip(t.id, strip); }; if (tkSeen) tkSeen.observe(strip); else strip._load(); }
+    var cb = mk('div', 'contacts');
+    var c0 = mk('div', 'ct'); c0.appendChild(mk('b', '', 'TMG rep')); c0.appendChild(document.createTextNode(t.staff_name || 'Unassigned')); cb.appendChild(c0);
+    if (t.on_site_contact_name || t.on_site_contact_phone) {
+      var c1 = mk('div', 'ct'); c1.appendChild(mk('b', '', 'On site')); c1.appendChild(document.createTextNode(t.on_site_contact_name || ''));
+      if (t.on_site_contact_phone) c1.appendChild(tkIcon('phone', 'tel:' + String(t.on_site_contact_phone).replace(/[^0-9+]/g, ''), 'Call on-site contact ' + t.on_site_contact_phone));
+      cb.appendChild(c1);
+    }
+    if (t.provider_name) {
+      var c2 = mk('div', 'ct'); c2.appendChild(mk('b', '', 'Provider')); c2.appendChild(document.createTextNode(t.provider_name));
+      if (t.provider_phone) c2.appendChild(tkIcon('phone', 'tel:' + String(t.provider_phone).replace(/[^0-9+]/g, ''), 'Call ' + t.provider_name));
+      if (t.provider_email) c2.appendChild(tkIcon('mail', 'mailto:' + t.provider_email, 'Email ' + t.provider_name));
+      cb.appendChild(c2);
+    }
+    L.appendChild(cb);
+    var money = function (n) { return n == null ? 'Not set' : '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+    var mc = mk('div', 'mn c'); mc.appendChild(mk('span', '', 'Customer NTE')); mc.appendChild(mk('b', '', money(t.customer_nte))); R.appendChild(mc);
+    var mp = mk('div', 'mn p'); mp.appendChild(mk('span', '', 'Provider NTE')); mp.appendChild(mk('b', '', t.status === 'new' ? 'Not set' : money(t.provider_nte))); R.appendChild(mp);
+    var m = t.status === 'new' || t.margin_pct == null ? null : Number(t.margin_pct);
+    R.appendChild(mk('div', 'mg ' + (m == null ? 'n' : m >= 20 ? 'g' : m >= 5 ? 'a' : 'r'), m == null ? 'Margin: -' : 'Margin ' + m + '%'));
+    var label = t.status === 'new' ? 'Review & release' : (t.status === 'waiting_assignment' || t.status === 'needs_manual_match') ? 'Assign provider' : t.status === 'needs_billing' ? 'Review bill' : t.status === 'completion_review' ? 'Review completion' : 'Open ticket';
+    var go = mk('button', 'go' + (t.status === 'new' ? ' red' : (label === 'Open ticket' ? ' blue' : '')), label); go.type = 'button'; go.onclick = function () { openTicket(t.id); };
+    R.appendChild(go);
+    jc.appendChild(L); jc.appendChild(R); card.appendChild(jc);
+    card.style.cursor = 'default';
+    return card;
+  }
+  var tkTab = null, tkData = { waiting: [], mine: [], billing: [], active: [] };
+  function drawTickets() {
+    var d = tkData;
+    $('nWait').textContent = d.waiting.length; $('nMine').textContent = d.mine.length; $('nBill').textContent = d.billing.length; $('nAct').textContent = d.active.length;
+    $('kWait').textContent = d.waiting.length; $('kMine').textContent = d.mine.length; $('kBill').textContent = d.billing.length;
+    if (!(me && me.role === 'owner')) { $('k4l').textContent = 'All active'; $('k4v').textContent = d.active.length; $('k4v').className = 'kv'; }
+    if (tkTab === null) tkTab = d.waiting.length ? 'waiting' : d.mine.length ? 'mine' : 'active';
+    Array.prototype.forEach.call($('tkTabs').querySelectorAll('button'), function (b) { var on = b.getAttribute('data-t') === tkTab; b.className = on ? 'on' : ''; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    var rows = d[tkTab] || [], list = $('tkList'); clear(list);
+    var empty = { waiting: 'Nothing waiting.', mine: 'No tickets assigned to you yet.', billing: 'Nothing to bill.', active: 'No active tickets yet.' }[tkTab];
+    $('tkListE').hidden = rows.length > 0; $('tkListE').textContent = empty;
+    rows.forEach(function (t) { list.appendChild(tkCard(t)); });
+  }
+  $('tkTabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-t]'); if (!b) return; tkTab = b.getAttribute('data-t'); drawTickets(); });
   async function loadTickets() {
     setHash('#tickets');
     view('viewTickets');
@@ -1619,10 +1801,8 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
       var d = await api('/staff/tickets');
       var isB = function (t) { return t.status === 'needs_billing'; }, seen = {}, bill = [];
       (d.mine || []).concat(d.active || [], d.waiting || []).forEach(function (t) { if (isB(t) && !seen[t.id]) { seen[t.id] = 1; bill.push(t); } });
-      $('billingPanel').hidden = !bill.length; fillTickets('tkBilling', 'tkBillingE', bill);
-      fillTickets('tkWaiting', 'tkWaitingE', d.waiting.filter(function (t) { return !isB(t); }));
-      fillTickets('tkMine', 'tkMineE', d.mine.filter(function (t) { return !isB(t); }));
-      fillTickets('tkActive', 'tkActiveE', d.active.filter(function (t) { return !isB(t); }));
+      tkData = { billing: bill, waiting: d.waiting.filter(function (t) { return !isB(t); }), mine: d.mine.filter(function (t) { return !isB(t); }), active: d.active.filter(function (t) { return !isB(t); }) };
+      drawTickets();
       loadAlerts();
       loadInvoiceQueue();
     } catch (e) { flash(e.message, false); }
@@ -1930,17 +2110,33 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
   };
 
   // ---- alerts ----
+  var alertsOpen = false;
+  function showAlerts(open) { alertsOpen = open; $('kAlerts').setAttribute('aria-expanded', open ? 'true' : 'false'); $('alertsPanel').hidden = !open || Number($('kAl').textContent) === 0; }
+  $('kAlerts').onclick = function () { if (Number($('kAl').textContent) === 0) return flash('No alerts right now.', true); showAlerts(!alertsOpen); };
+  $('alertsClose').onclick = function () { showAlerts(false); };
+  $('alertsClearAll').onclick = async function () {
+    var n = Number($('kAl').textContent);
+    if (!n || !window.confirm('Clear all ' + n + ' alerts? Low-margin alerts are included.')) return;
+    try {
+      var d = await api('/staff/alerts');
+      for (var i = 0; i < d.alerts.length; i++) await api('/staff/alerts/' + d.alerts[i].id + '/dismiss', 'POST');
+      flash('Alerts cleared.', true);
+    } catch (e) { flash(e.message, false); }
+    loadAlerts();
+  };
   async function loadAlerts() {
     try {
       var d = await api('/staff/alerts');
       var box = $('alertsList'); clear(box);
-      $('alertsPanel').hidden = d.alerts.length === 0;
+      $('kAl').textContent = d.alerts.length; $('kAlerts').className = 'kpi k0' + (d.alerts.length ? ' has' : '');
+      if (!d.alerts.length) alertsOpen = false;
+      showAlerts(alertsOpen);
       d.alerts.forEach(function (a) {
         var r = document.createElement('div'); r.className = 'alert' + (a.kind === 'low_margin' ? ' low' : '');
         var t = document.createElement('span'); t.textContent = a.message; r.appendChild(t);
         var b = document.createElement('span');
         if (a.ticket_id) b.appendChild(btn('Open', function () { openTicket(a.ticket_id); }));
-        b.appendChild(btn('Dismiss', async function () { try { await api('/staff/alerts/' + a.id + '/dismiss', 'POST'); loadAlerts(); } catch (e) { flash(e.message, false); } }));
+        b.appendChild(btn('Clear', async function () { try { await api('/staff/alerts/' + a.id + '/dismiss', 'POST'); loadAlerts(); } catch (e) { flash(e.message, false); } }));
         r.appendChild(b); box.appendChild(r);
       });
     } catch (e) { /* alerts are a convenience; ignore */ }
