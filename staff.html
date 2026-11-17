@@ -265,7 +265,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="board2">
         <div class="kpis">
           <button type="button" class="kpi k0" id="kAlerts" aria-expanded="false" aria-controls="alertsPanel"><div class="kl">Alerts</div><div class="kv" id="kAl">0</div></button>
-          <div class="kpi k1"><div class="kl">Waiting assignment</div><div class="kv" id="kWait">0</div></div>
+          <div class="kpi k1"><div class="kl">Waiting for assignment</div><div class="kv" id="kWait">0</div></div>
           <div class="kpi k2"><div class="kl">My tickets</div><div class="kv" id="kMine">0</div></div>
           <div class="kpi k3"><div class="kl">In billing</div><div class="kv" id="kBill">0</div></div>
           <div class="kpi k4"><div class="kl" id="k4l">All active</div><div class="kv" id="k4v">0</div></div>
@@ -277,7 +277,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <div class="panel" id="invoicePanel" style="margin:18px 0 0;max-width:none" hidden><h2>Ready to invoice</h2><table class="t" id="invTable"><thead><tr><th>Job #</th><th>Customer</th><th>Provider</th><th>Customer total</th><th>Margin</th><th>Approved</th><th>Invoice #</th></tr></thead><tbody></tbody></table><p class="small" id="invEmpty">Nothing waiting to be invoiced.</p></div>
         <div class="tabbar">
           <div class="tabs" id="tkTabs" role="tablist">
-            <button type="button" data-t="waiting">Waiting assignment<span class="n" id="nWait">0</span></button>
+            <button type="button" data-t="waiting">Waiting for assignment<span class="n" id="nWait">0</span></button>
             <button type="button" data-t="mine">My tickets<span class="n" id="nMine">0</span></button>
             <button type="button" data-t="billing">Billing<span class="n" id="nBill">0</span></button>
             <button type="button" data-t="active">All active<span class="n" id="nAct">0</span></button>
@@ -368,7 +368,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="panel" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
       <div class="panel" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p><div id="provInfo"></div>
-        <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Jobs done</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
+        <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Completed jobs</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
         <form class="f" id="assignForm"><div><label for="asSel">Assign any approved provider</label><select id="asSel" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"></select></div><div><button type="submit">Assign</button></div></form>
       </div>
@@ -391,7 +391,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
             <div><label for="dM">How did the customer answer?</label><select id="dM" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"><option value="phone">Phone</option><option value="email">Email</option><option value="text">Text</option><option value="in_person">In person</option></select></div>
             <div><label for="dN">Who at the customer</label><input id="dN" maxlength="300"></div>
             <div><button type="button" id="dYes">Customer confirmed</button></div>
-            <div><button type="button" id="dNo" style="background:none;color:var(--ink);border:1px solid var(--steel)">Customer said no</button></div>
+            <div><button type="button" id="dNo" style="background:none;color:var(--ink);border:1px solid var(--steel)">Customer declined</button></div>
           </form>
         </div>
         <table class="t" id="nteHist" hidden><thead><tr><th>Date</th><th>Customer</th><th>Provider</th><th>Margin</th><th>Result</th></tr></thead><tbody></tbody></table>
@@ -534,7 +534,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       </div>
       <div class="panel">
         <h2>Login requests</h2>
-        <table class="t" id="lrTable"><thead><tr><th>Date</th><th>Requested by</th><th>Total wanted</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
+        <table class="t" id="lrTable"><thead><tr><th>Date</th><th>Requested by</th><th>Total requested</th><th>Reason</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="lrEmpty" hidden>No requests.</p>
       </div>
     </div>
@@ -2197,7 +2197,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         tr.appendChild(td(dollars(c.old_customer_nte) + ' \u2192 ' + dollars(c.new_customer_nte)));
         tr.appendChild(td(dollars(c.old_provider_nte) + ' \u2192 ' + dollars(c.new_provider_nte)));
         tr.appendChild(td(c.margin_pct + '%'));
-        tr.appendChild(td((c.status === 'approved' ? 'Approved' : 'Customer said no') + (c.confirm_method ? ' by ' + c.confirm_method.replace('_', ' ') : '') + (c.confirm_note ? ' (' + c.confirm_note + ')' : '')));
+        tr.appendChild(td((c.status === 'approved' ? 'Approved' : 'Customer declined') + (c.confirm_method ? ' by ' + c.confirm_method.replace('_', ' ') : '') + (c.confirm_note ? ' (' + c.confirm_note + ')' : '')));
         hb.appendChild(tr);
       });
     } catch (e) { /* panel stays hidden */ }
