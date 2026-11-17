@@ -1147,12 +1147,12 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
         if (pd.balance > 0.004) {
           var fr = mk('div'); fr.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:10px';
           var fld = function (lab, el) { var w = mk('div'); w.appendChild(mk('label', null, lab)); w.appendChild(el); fr.appendChild(w); return el; };
-          var amt = mk('input', 'bill-in'); amt.type = 'number'; amt.min = '0'; amt.step = '0.01'; amt.value = pd.balance.toFixed(2); amt.style.width = '120px'; fld('Amount ($)', amt);
+          var payRid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : String(Date.now()) + '-' + Math.random().toString(16).slice(2) + '0000000000'; var amt = mk('input', 'bill-in'); amt.type = 'number'; amt.min = '0'; amt.step = '0.01'; amt.value = pd.balance.toFixed(2); amt.style.width = '120px'; fld('Amount ($)', amt);
           var dt = mk('input', 'bill-in'); dt.type = 'date'; dt.value = iso(new Date()); fld('Date paid', dt);
           var mt = mk('select'); [['check', 'Check'], ['ach', 'ACH'], ['card', 'Card'], ['cash', 'Cash'], ['other', 'Other']].forEach(function (o) { opt(mt, o[0], o[1]); }); fld('Method', mt);
           var rf = mk('input', 'bill-in'); rf.maxLength = 100; rf.style.width = '150px'; fld('Check # / reference', rf);
           fr.appendChild(btn('Mark paid', async function () {
-            try { var r = await api('/staff/bills/' + billId + '/payments', 'POST', { amount: amt.value, paidOn: dt.value, method: mt.value, reference: rf.value }); flash(r.paymentStatus === 'paid' ? 'Paid in full.' : 'Payment recorded. ' + money2(r.balance) + ' remaining.', true); drawPay(); }
+            try { var r = await api('/staff/bills/' + billId + '/payments', 'POST', { amount: amt.value, paidOn: dt.value, method: mt.value, reference: rf.value, requestId: payRid }); flash(r.paymentStatus === 'paid' ? 'Paid in full.' : 'Payment recorded. ' + money2(r.balance) + ' remaining.', true); drawPay(); }
             catch (er) { flash(er.message, false); }
           }, 'ai-go'));
           payBox.appendChild(fr);
@@ -1350,7 +1350,8 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
   function repReset() { ['repQ', 'repFrom', 'repTo'].forEach(function (i) { $(i).value = ''; }); $('repSt').value = ''; $('repInv').value = ''; REP_NUM.forEach(function (x) { $(x[0]).value = ''; }); }
   // Click a number on the Financial summary and land on the exact tickets behind it.
   function drill(f) { repReset(); Object.keys(f).forEach(function (k) { $(k).value = f[k]; }); showSub('all'); }
-  function csvCell(v) { v = v == null ? '' : String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
+  // Cells that start with = + - @ (or tab/CR) would run as formulas in Excel, so they get a leading apostrophe. Real numbers are left alone.
+  function csvCell(v) { var isNum = typeof v === 'number'; v = v == null ? '' : String(v); if (!isNum && /^[=+\-@\t\r]/.test(v)) v = "'" + v; return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }
   $('repClear').onclick = function () { repReset(); runReport(); };
   $('repCsv').onclick = function () {
     if (!repRows.length) return flash('Nothing to download. Run a search first.', false);
