@@ -346,6 +346,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
             <div class="nf prov"><label for="rlProv">Provider NTE ($)</label><input id="rlProv" inputmode="decimal"></div>
             <div class="go"><button type="submit">Release to Providers</button></div>
           </div>
+          <p id="rlMargin" style="margin:8px 0 0;font-weight:700;font-size:15px"></p>
         </form></div>
       <div class="panel" id="tradePanel" hidden><h2>Trade</h2>
         <p class="small">The trade decides which labor rates apply to this job's bill. You can change it until a bill exists.</p>
@@ -1683,7 +1684,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   function fmt(d) { return d ? String(d).slice(0, 10) : ''; }
 
   // ---- tickets ----
-  function pill(st) { var s2 = document.createElement('span'); s2.className = 'st ' + st; s2.textContent = st.replace(/_/g, ' '); return s2; }
+  function pill(st) { var s2 = document.createElement('span'); s2.className = 'st ' + st; s2.textContent = st === 'waiting_assignment' ? 'waiting for assignment' : st.replace(/_/g, ' '); return s2; }
   var TK_ICON = {
     wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/>',
     building: '<path d="M4 21V4h10v17M14 9h6v12M8 8h2M8 12h2M8 16h2M2 21h20"/>',
@@ -1873,7 +1874,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       loadHandler(t);
       var isNew = t.status === 'new';
       $('reviewPanel').hidden = !isNew;
-      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); $('rlProv').value = ''; fillTradeSelect($('rlTrade')); $('rlTrade').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('rlCheckOut')); $('rlPrice').value = t.pricing_mode === 'flat' ? 'flat' : 'hourly'; }
+      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); provTouched = false; $('rlProv').value = suggestProv($('rlCust').value); showRelMargin(); fillTradeSelect($('rlTrade')); $('rlTrade').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('rlCheckOut')); $('rlPrice').value = t.pricing_mode === 'flat' ? 'flat' : 'hourly'; }
       $('tdPrice').value = t.pricing_mode === 'flat' ? 'flat' : 'hourly'; $('tdPrice').dataset.prev = $('tdPrice').value;
       var tp = $('tradePanel'); tp.hidden = isNew || ['closed', 'canceled', 'billed'].indexOf(t.status) >= 0; fillTradeSelect($('tdSel')); $('tdSel').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('tdOut'));
     } catch (e) { flash(e.message, false); }
@@ -2059,6 +2060,15 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         av.textContent = fromCust ? '\ud83d\udc64' : '\ud83d\udcac';
         h.textContent = (fromCust ? 'Customer: ' : '') + (n.author || 'Staff') + ' \u00b7 ' + when + ' \u00b7 ' + (fromCust ? 'from the customer portal' : n.visibility === 'customer' ? 'customer can see' : 'internal only');
         tt.textContent = n.body;
+        if (me && me.role === 'owner') {
+          var del = document.createElement('button'); del.type = 'button'; del.textContent = 'Delete'; del.className = 'linkbtn';
+          del.style.cssText = 'margin-left:10px;background:none;border:0;color:#950606;text-decoration:underline;cursor:pointer;font-size:14px;padding:0';
+          del.onclick = async function () {
+            if (!window.confirm('Delete this comment for everyone, including the customer if they can see it?\n\nA copy is kept in the audit log.')) return;
+            try { await api('/staff/tickets/' + id + '/notes/' + n.id + '/delete', 'POST', { confirm: true }); flash('Comment deleted.', true); loadNotes(id); } catch (e) { flash(e.message, false); }
+          };
+          h.appendChild(del);
+        }
       } else {
         var x = it.hist; r.className = 'fi'; av.textContent = '\u2022';
         h.textContent = (x.changed_by || 'System') + ' \u00b7 ' + when;
@@ -2067,6 +2077,17 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       bd.appendChild(h); bd.appendChild(tt); r.appendChild(av); r.appendChild(bd); box.appendChild(r);
     });
   }
+  var provTouched = false, PROV_PCT = 0.475;
+  function suggestProv(cust) { var c = parseFloat(String(cust).replace(/[$,]/g, '')); return c > 0 ? (Math.round(c * PROV_PCT / 5) * 5).toFixed(2) : ''; }
+  function showRelMargin() {
+    var c = parseFloat(String($('rlCust').value).replace(/[$,]/g, '')), p = parseFloat(String($('rlProv').value).replace(/[$,]/g, '')), o = $('rlMargin');
+    if (!(c > 0) || !(p >= 0) || String($('rlProv').value).trim() === '') { o.textContent = ''; return; }
+    var m = Math.round((c - p) / c * 1000) / 10;
+    o.textContent = 'Margin at these NTEs: ' + m + '%' + (p > c ? ' (provider NTE is above the customer NTE)' : '');
+    o.style.color = m >= 20 ? '#15803d' : m >= 5 ? '#b45309' : '#b91c1c';
+  }
+  $('rlCust').addEventListener('input', function () { if (!provTouched) $('rlProv').value = suggestProv($('rlCust').value); showRelMargin(); });
+  $('rlProv').addEventListener('input', function () { provTouched = true; showRelMargin(); });
   $('noteAddForm').onsubmit = async function (ev) {
     ev.preventDefault();
     if (!$('ntBody').value.trim()) return flash('Write a note first.', false);
