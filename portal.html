@@ -124,6 +124,22 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   .strip .th { width:calc(25% - 6px); height:60px; }
   .job2 .xp input { width:100% !important; margin-right:0 !important; font-size:16px; }
 }
+
+/* Customer board: summary cards, tabs, two-column job cards */
+.tabbar { display:flex; align-items:flex-end; gap:8px; border-bottom:2px solid var(--border); margin:22px 0 14px; }
+.tabbar .tabs { flex:1; margin:0; border-bottom:0; }
+.chead { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin:6px 0 14px; }
+.newbtn.big { cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:17px; padding:16px 30px; background:var(--red); color:#fff; border:0; white-space:nowrap; box-shadow:0 3px 0 rgba(0,0,0,.25); }
+.newbtn.big:hover { background:#7a0505; }
+.tabbar .newbtn { margin-bottom:8px; cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; padding:11px 18px; background:var(--red); color:#fff; border:0; white-space:nowrap; }
+.kpi.k-alert { border-top-color:#b91c1c; } .kpi.k-alert.has { background:#fff5f5; } .kpi.k-alert.has .kv { color:#b91c1c; }
+.job2 .nte.c { color:#1d4ed8; }
+.job2 .sitechip { display:inline-block; color:#fff; font-family:'Oswald',sans-serif; letter-spacing:.05em; font-size:12px; padding:3px 10px; text-transform:uppercase; }
+.job2 .when { display:flex; flex-wrap:wrap; gap:6px 22px; padding-top:10px; border-top:1px solid var(--border); font-size:13px; }
+.job2 .when b { font-family:'Oswald',sans-serif; letter-spacing:.05em; text-transform:uppercase; font-size:12px; color:var(--steel); margin-right:6px; }
+.cwrap .jcta { cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; line-height:1.2; padding:12px 18px; min-height:44px; border:2px solid #1d4ed8; background:#1d4ed8; color:#fff; width:100%; }
+.cwrap .jcta.green { background:#15803d; border-color:#15803d; } .cwrap .jcta:hover { filter:brightness(.92); }
+@media (max-width:760px) { .tabbar { flex-wrap:wrap; } .chead .newbtn { width:100%; } .cwrap .kpis { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 /* Phones */
 @media (max-width:640px) {
   .card { margin:28px auto; padding:28px 18px; }
@@ -225,15 +241,30 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 
   <div class="cwrap" id="custBoard" hidden>
     <span class="role" id="role3"></span>
-    <h1 id="welcome3" style="font-size:28px;margin:0"></h1>
+    <div class="chead">
+      <h1 id="welcome3" style="font-size:28px;margin:0"></h1>
+      <button type="button" class="newbtn big" id="cNew2">+ Request service</button>
+    </div>
     <div id="msg3" class="msg" hidden></div>
     <div class="cbar">
       <input id="cSearch" type="search" placeholder="Search by job number or site" aria-label="Search jobs">
       <select id="cSite" aria-label="Filter by site"><option value="">All sites</option></select>
-      <button class="bigbtn" id="cNew">Request service</button>
     </div>
-    <h2>Open jobs</h2><p class="empty" id="cOpenEmpty" hidden>No open jobs.</p><div id="cOpen"></div>
-    <h2 id="cClosedHead" hidden>Completed and closed</h2><div id="cClosed"></div>
+    <div class="kpis">
+      <div class="kpi k-open"><div class="kl">Open requests</div><div class="kv" id="ckOpen">0</div></div>
+      <div class="kpi k-alert" id="ckActBox"><div class="kl">Needs your action</div><div class="kv" id="ckAct">0</div></div>
+      <div class="kpi k-pend"><div class="kl">Invoices to review</div><div class="kv" id="ckInv">0</div></div>
+      <div class="kpi k-paid"><div class="kl">Completed</div><div class="kv" id="ckDone">0</div></div>
+    </div>
+    <div class="tabbar">
+      <div class="tabs" id="cTabs" role="tablist">
+        <button type="button" data-t="open">Open requests<span class="n" id="cnOpen">0</span></button>
+        <button type="button" data-t="action">Needs your action<span class="n" id="cnAct">0</span></button>
+        <button type="button" data-t="done">Completed &amp; closed<span class="n" id="cnDone">0</span></button>
+      </div>
+    </div>
+    <p class="empty" id="cListEmpty" hidden></p>
+    <div id="cList"></div>
   </div>
 
   <div class="cwrap" id="custJob" hidden>
@@ -529,8 +560,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 
   // Photos are fetched through the backend (it checks this provider may see them). Fetched pictures are remembered for the session.
   var photoUrls = {};
-  async function photoUrl(id) { if (!photoUrls[id]) photoUrls[id] = URL.createObjectURL(await apiBlob('/provider/photos/' + id)); return photoUrls[id]; }
-  function openLightbox(ids, start) {
+  async function photoUrl(id, base) { base = base || '/provider/photos/'; if (!photoUrls[base + id]) photoUrls[base + id] = URL.createObjectURL(await apiBlob(base + id)); return photoUrls[base + id]; }
+  function openLightbox(ids, start, base) {
     var at = start, ov = el('div', 'lb'); ov.setAttribute('role', 'dialog'); ov.setAttribute('aria-label', 'Job photos');
     var img = el('img'); img.alt = 'Job photo';
     var cnt = el('div', 'lbc');
@@ -540,7 +571,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var close = function () { document.removeEventListener('keydown', key); ov.remove(); };
     var show = async function (k) {
       at = (k + ids.length) % ids.length; cnt.textContent = (at + 1) + ' of ' + ids.length; img.removeAttribute('src');
-      try { var u = await photoUrl(ids[at]); if (ids[at]) img.src = u; } catch (e) { cnt.textContent = 'Photo unavailable.'; }
+      try { var u = await photoUrl(ids[at], base); if (ids[at]) img.src = u; } catch (e) { cnt.textContent = 'Photo unavailable.'; }
     };
     var key = function (e) { if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') show(at - 1); else if (e.key === 'ArrowRight') show(at + 1); };
     x.onclick = close; pv.onclick = function () { show(at - 1); }; nx.onclick = function () { show(at + 1); };
@@ -801,24 +832,78 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       renderCust();
     } catch (e) { cflash('msg3', e.message, false); }
   }
+  var cTab = null;
+  function cNteWord(j) { return j.nte == null ? 'Not set' : money(j.nte); }
+  function custCard(j) {
+    var card = el('div', 'job2'), jc = el('div', 'jc'), L = el('div', 'jl'), R = el('div', 'jr');
+    var snum = String(j.site).split(' – ')[0];
+    var hd = el('div', 'hd'); hd.appendChild(el('span', 'id', j.jobNumber));
+    var sc = el('span', 'sitechip', 'Site ' + snum); sc.style.background = siteColor(snum); hd.appendChild(sc);
+    if (j.priority && j.priority !== 'normal') hd.appendChild(el('span', 'bdg ' + j.priority, j.priority));
+    hd.appendChild(chipFor(j.status, j.needsAction));
+    if (j.recentUpdates) hd.appendChild(el('span', 'bdg red', 'New update'));
+    if (j.needsAction && cTab === 'open') hd.appendChild(el('span', 'bdg red', 'Action needed'));
+    L.appendChild(hd); L.appendChild(el('h3', null, j.title));
+    var pills = el('div', 'pills');
+    if (j.trade) pills.appendChild(pillOf('wrench', j.trade));
+    pills.appendChild(pillOf('building', String(j.site).split(' – ').slice(1).join(' – ') || j.site));
+    if (j.address) pills.appendChild(pillOf('pin', j.address, 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(j.address)));
+    L.appendChild(pills);
+    if (j.description) L.appendChild(el('p', 'jdesc', j.description));
+    if (j.photoCount > 0) {
+      var strip = el('div', 'strip'); L.appendChild(strip);
+      j.photoIds.forEach(function (pid, k) {
+        var t = el('button', 'th'); t.type = 'button'; t.setAttribute('aria-label', 'Open photo ' + (k + 1));
+        var im = el('img'); im.alt = 'Job photo'; t.appendChild(im);
+        if (k === 3 && j.photoCount > 4) t.appendChild(el('div', 'more', '+' + (j.photoCount - 4) + ' more'));
+        t.onclick = async function () {
+          var ids = j.photoIds;
+          if (j.photoCount > ids.length) { try { var dj = await api('/customer/jobs/' + j.id); ids = dj.photos; } catch (e) { /* fall back to the first few */ } }
+          openLightbox(ids, k, '/customer/photos/');
+        };
+        strip.appendChild(t);
+        photoUrl(pid, '/customer/photos/').then(function (u) { im.src = u; }).catch(function () { /* skip one bad image */ });
+      });
+    }
+    var wh = el('div', 'when');
+    var w1 = el('span'); w1.appendChild(el('b', null, 'Requested')); w1.appendChild(document.createTextNode(when(j.createdAt))); wh.appendChild(w1);
+    if (j.expectedArrival) { var w2 = el('span'); w2.appendChild(el('b', null, 'Expected')); w2.appendChild(document.createTextNode(when(j.expectedArrival))); wh.appendChild(w2); }
+    L.appendChild(wh);
+    var nte = el('div', 'nte c');
+    if (j.invoiceTotal != null) { nte.appendChild(el('span', null, 'Invoice total:')); nte.appendChild(document.createTextNode(money(j.invoiceTotal))); }
+    else { nte.appendChild(el('span', null, 'Your NTE:')); nte.appendChild(document.createTextNode(cNteWord(j))); }
+    R.appendChild(nte);
+    var label = j.status === 'Awaiting your approval' ? 'Review increase' : j.status === 'Invoice ready' ? 'Review invoice' : 'View job';
+    var go = el('button', 'jcta' + (label === 'View job' ? '' : ' green'), label); go.type = 'button'; go.onclick = function () { openCustJob(j.id); };
+    R.appendChild(go);
+    jc.appendChild(L); jc.appendChild(R); card.appendChild(jc);
+    return card;
+  }
   function renderCust() {
     var q = $('cSearch').value.trim().toLowerCase(), site = $('cSite').value;
     var list = cJobs.filter(function (j) { return (!site || j.site === site) && (!q || (j.jobNumber + ' ' + j.site + ' ' + j.title).toLowerCase().indexOf(q) >= 0); });
-    var open = $('cOpen'), closed = $('cClosed'); open.textContent = ''; closed.textContent = '';
-    var o = list.filter(function (j) { return !j.closed; }), c = list.filter(function (j) { return j.closed; });
-    $('cOpenEmpty').hidden = o.length > 0; $('cClosedHead').hidden = c.length === 0;
-    function card(j) {
-      var r = el('div', 'jcard'); r.tabIndex = 0;
-      var snum = String(j.site).split(' – ')[0]; r.style.borderLeft = '6px solid ' + siteColor(snum);
-      var left = el('div'); var h = el('h3', '', j.jobNumber + ' · ' + j.title); h.insertBefore(siteChip(snum), h.firstChild);
-      if (j.recentUpdates) h.appendChild(el('span', 'dot', 'NEW UPDATE'));
-      left.appendChild(h); left.appendChild(el('div', 'meta', j.site + ' · ' + (j.trade || '') + ' · Requested ' + when(j.createdAt).split(',')[0]));
-      r.appendChild(left); r.appendChild(chipFor(j.status, j.needsAction));
-      var go = function () { openCustJob(j.id); }; r.onclick = go; r.onkeydown = function (e) { if (e.key === 'Enter') go(); };
-      return r;
-    }
-    o.forEach(function (j) { open.appendChild(card(j)); }); c.forEach(function (j) { closed.appendChild(card(j)); });
+    var open = list.filter(function (j) { return !j.closed; }), act = list.filter(function (j) { return j.needsAction; }), done = list.filter(function (j) { return j.closed; });
+    var inv = list.filter(function (j) { return j.status === 'Invoice ready'; });
+    $('ckOpen').textContent = open.length; $('ckAct').textContent = act.length; $('ckInv').textContent = inv.length; $('ckDone').textContent = done.length;
+    $('ckActBox').className = 'kpi k-alert' + (act.length ? ' has' : '');
+    $('cnOpen').textContent = open.length; $('cnAct').textContent = act.length; $('cnDone').textContent = done.length;
+    if (cTab === null) cTab = act.length ? 'action' : 'open';
+    Array.prototype.forEach.call($('cTabs').querySelectorAll('button'), function (b) { var on = b.getAttribute('data-t') === cTab; b.className = on ? 'on' : ''; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
+    var rows = cTab === 'open' ? open : cTab === 'action' ? act : done, box = $('cList'); box.textContent = '';
+    $('cListEmpty').hidden = rows.length > 0; $('cListEmpty').textContent = '';
+    if (!cJobs.length) {
+      $('cListEmpty').appendChild(el('strong', null, 'No service requests yet.')); $('cListEmpty').appendChild(el('br'));
+      $('cListEmpty').appendChild(document.createTextNode('Need something fixed? Send us a request and we will get a provider on it.')); $('cListEmpty').appendChild(el('br'));
+      var eb = el('button', 'newbtn big', '+ Request service'); eb.type = 'button'; eb.style.marginTop = '14px'; eb.onclick = openCustNew; $('cListEmpty').appendChild(eb);
+    } else $('cListEmpty').textContent = { open: 'No open requests.', action: 'Nothing needs your action right now.', done: 'No completed jobs yet.' }[cTab];
+    rows.forEach(function (j) { box.appendChild(custCard(j)); });
   }
+  [['ckOpen', 'open'], ['ckAct', 'action'], ['ckInv', 'action'], ['ckDone', 'done']].forEach(function (p) {
+    var k = $(p[0]).parentNode; k.style.cursor = 'pointer'; k.tabIndex = 0; k.setAttribute('role', 'button');
+    var go = function () { cTab = p[1]; renderCust(); $('cTabs').scrollIntoView({ behavior: 'smooth', block: 'nearest' }); };
+    k.addEventListener('click', go); k.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+  });
+  $('cTabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-t]'); if (!b) return; cTab = b.getAttribute('data-t'); renderCust(); });
   var SITE_COLORS = ['#1d4ed8', '#c2410c', '#15803d', '#7e22ce', '#be123c', '#0f766e', '#a16207', '#4338ca', '#0369a1', '#9d174d', '#4d7c0f', '#b45309'];
   function siteColor(num) { var n = String(num).trim(), v = /^\d+$/.test(n) ? parseInt(n, 10) : n.split('').reduce(function (a, ch) { return a * 31 + ch.charCodeAt(0); }, 7); return SITE_COLORS[Math.abs(v) % SITE_COLORS.length]; }
   function siteChip(num) { var c = el('span', '', 'Site ' + num); c.style.cssText = 'display:inline-block;background:' + siteColor(num) + ';color:#fff;font-family:Oswald,sans-serif;letter-spacing:.05em;font-size:13px;padding:2px 9px;margin-right:8px;vertical-align:middle;text-transform:uppercase'; return c; }
@@ -963,7 +1048,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     } catch (e) { cflash('msg5', e.message, false); }
   }
   $('cSearch').oninput = renderCust; $('cSite').onchange = renderCust;
-  $('cNew').onclick = openCustNew;
+  $('cNew2').onclick = openCustNew;
   $('cJobBack').onclick = function () { loadCustBoard(); };
   $('cNewBack').onclick = function () { loadCustBoard(); };
   window.addEventListener('popstate', function () { if (!$('custJob').hidden || !$('custNew').hidden) loadCustBoard(); });
