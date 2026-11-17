@@ -223,6 +223,15 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 .tk2 .go { cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; line-height:1.2; padding:12px 18px; min-height:44px; border:2px solid #15803d; background:#15803d; color:#fff; width:100%; }
 .tk2 .go.blue { background:#1d4ed8; border-color:#1d4ed8; } .tk2 .go.red { background:var(--red); border-color:var(--red); }
 .tk2 .go:hover { filter:brightness(.92); }
+.mdl { position:fixed; inset:0; z-index:210; background:rgba(0,0,0,.6); display:flex; align-items:flex-start; justify-content:center; padding:24px 14px; overflow:auto; }
+.mdl .box { background:#fff; width:100%; max-width:640px; padding:22px 22px 20px; border-top:5px solid var(--red); }
+.mdl h2 { margin:0 0 4px; } .mdl .x { float:right; cursor:pointer; border:0; background:none; font-size:26px; line-height:1; }
+.newflag { display:inline-block; background:#fef3c7; color:#92400e; border:1px solid #f59e0b; padding:4px 10px; font-weight:700; font-size:13px; letter-spacing:.04em; text-transform:uppercase; }
+.rq { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.rq .stars { display:flex; gap:4px; } .rq .stars button { width:42px; height:42px; border:1px solid var(--border); background:#fff; font-size:18px; font-weight:700; cursor:pointer; }
+.rq .stars button.on { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
+.rep .big { font-size:38px; font-weight:700; font-family:'Oswald',sans-serif; } .rep .bar { height:10px; background:#e5e7eb; } .rep .bar i { display:block; height:100%; background:#1d4ed8; }
+.rep .arch { background:#eff6ff; border-left:4px solid #1d4ed8; padding:10px 14px; margin:12px 0; }
 .lb { position:fixed; inset:0; z-index:200; background:rgba(0,0,0,.88); display:flex; align-items:center; justify-content:center; padding:18px; }
 .lb img { max-width:100%; max-height:84vh; background:#222; }
 .lb button { cursor:pointer; border:0; background:#fff; color:var(--ink); font-size:22px; width:46px; height:46px; }
@@ -369,7 +378,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="panel" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
       <div class="panel" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p><div id="provInfo"></div>
-        <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Completed jobs</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
+        <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Completed jobs</th><th>Score</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
         <form class="f" id="assignForm"><div><label for="asSel">Assign any approved provider</label><select id="asSel" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"></select></div><div><button type="submit">Assign</button></div></form>
       </div>
@@ -484,7 +493,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     <div id="viewProviders" hidden>
       <div class="panel">
         <h2>Providers</h2>
-        <table class="t" id="provTable"><thead><tr><th>Business</th><th>Trade</th><th>States</th><th>Status</th><th>Logins</th><th>Jobs</th><th></th></tr></thead><tbody></tbody></table>
+        <table class="t" id="provTable"><thead><tr><th>Business</th><th>Trade</th><th>States</th><th>Status</th><th>Logins</th><th>Jobs</th><th>Score</th></tr></thead><tbody></tbody></table>
         <p class="small" id="provEmpty" hidden>No providers yet.</p>
       </div>
     </div>
@@ -494,6 +503,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="panel">
         <h2 id="pName"></h2>
         <p class="small" id="pMeta"></p>
+        <p><button type="button" class="ai-btn" id="pReportBtn">Scorecard</button></p>
         <p class="small" id="pTerms"></p>
         <p class="small" id="pPref"></p>
         <div id="pActions" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
@@ -1352,15 +1362,16 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (d.canDecide && d.status === 'customer_review') { note = mk('input', 'bill-in'); note.placeholder = 'Note to the employee (required to send it back)'; note.maxLength = 1000; note.style.marginTop = '14px'; body.appendChild(note); }
     if (edit) bar.appendChild(btn('Save changes', async function () { try { await saveIt(); flash('Saved.', true); loadCustomerBill(id, billId); } catch (er) { flash(er.message, false); } }, 'ai-btn'));
     if (d.canSubmit && !d.isOwner) bar.appendChild(btn('Submit to Owner', async function () {
-      try { await api('/staff/bills/' + billId + '/customer-submit', 'POST', vals()); flash('Sent to the Owner for approval.', true); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
+      try { await api('/staff/bills/' + billId + '/customer-submit', 'POST', vals()); flash('Sent to the Owner for approval.', true); openTicket(id); loadAlerts(); maybeSurvey(id); } catch (er) { flash(er.message, false); }
     }, 'ai-go'));
     if (d.canDecide) bar.appendChild(btn('Approve customer bill', async function () {
-      try { if (edit) await saveIt(); await api('/staff/bills/' + billId + '/customer-approve', 'POST', {}); flash('Customer bill approved. It is now in Ready to invoice.', true); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
+      try { if (edit) await saveIt(); await api('/staff/bills/' + billId + '/customer-approve', 'POST', {}); flash('Customer bill approved. It is now in Ready to invoice.', true); maybeSurvey(id); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
     }, 'ai-go'));
     if (note) bar.appendChild(btn('Return to employee', async function () {
       if (note.value.trim().length < 3) return flash('Add a note telling the employee what to fix.', false);
       try { await api('/staff/bills/' + billId + '/customer-return', 'POST', { note: note.value }); flash('Sent back to the employee.', true); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
     }, 'ai-no'));
+    api('/staff/tickets/' + id + '/rating').then(function (rt) { if (rt.canRate) bar.appendChild(btn('Rate provider', function () { openSurvey(id, rt); }, 'ai-btn')); }).catch(function () { /* optional */ });
     body.appendChild(bar);
     }
   }
@@ -1845,7 +1856,11 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       $('tkAcc').hidden = !open;
       d.acceptances.forEach(function (a) {
         var tr = document.createElement('tr');
-        tr.appendChild(td('Yes')); tr.appendChild(td(a.business_name + (a.preferred ? ' \u2605' : ''))); tr.appendChild(td(a.completed_jobs)); tr.appendChild(td(fmt(a.accepted_at)));
+        tr.appendChild(td('Yes'));
+        var nm = document.createElement('td'), nl = mk('button', null, a.business_name + (a.preferred ? ' \u2605' : '')); nl.type = 'button';
+        nl.style.cssText = 'background:none;border:0;padding:0;color:#1d4ed8;text-decoration:underline;cursor:pointer;font:inherit;text-align:left';
+        nl.onclick = function () { openReport(a.provider_id); }; nm.appendChild(nl); tr.appendChild(nm);
+        tr.appendChild(td(a.completed_jobs)); tr.appendChild(td(scoreText(a.score, a.rating_count))); tr.appendChild(td(fmt(a.accepted_at)));
         var c = document.createElement('td');
         if (open) c.appendChild(btn('Assign', function () { doAssign(a.provider_id, a.business_name); }));
         tr.appendChild(c); ab.appendChild(tr);
@@ -2076,6 +2091,64 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       }
       bd.appendChild(h); bd.appendChild(tt); r.appendChild(av); r.appendChild(bd); box.appendChild(r);
     });
+  }
+  // ---- provider scorecard: score text, survey after the customer bill is sent on, report ----
+  function scoreText(score, count) {
+    count = Number(count || 0);
+    if (!count) return '\u2605 New';
+    return Number(score).toFixed(1) + ' / 5' + (count < 3 ? ' \u2605 New (' + count + ')' : '');
+  }
+  function modal() {
+    var o = mk('div', 'mdl'), bx = mk('div', 'box'), x = mk('button', 'x', '\u00d7'); x.type = 'button'; x.setAttribute('aria-label', 'Close');
+    x.onclick = function () { o.remove(); }; o.addEventListener('click', function (e) { if (e.target === o) o.remove(); });
+    bx.appendChild(x); o.appendChild(bx); document.body.appendChild(o); return { o: o, bx: bx };
+  }
+  async function maybeSurvey(ticketId) {
+    try { var rt = await api('/staff/tickets/' + ticketId + '/rating'); if (rt.canRate) openSurvey(ticketId, rt); } catch (e) { /* optional */ }
+  }
+  var QS = [['communication', 'Communication'], ['completion', 'Job completed thoroughly'], ['ontime', 'On time and professional'], ['appUse', 'Uses the app: accepts, updates and bills on time'], ['overall', 'Overall']];
+  function openSurvey(ticketId, rt) {
+    var m = modal(), vals = {};
+    m.bx.appendChild(mk('h2', null, 'Rate ' + (rt.provider ? rt.provider.name : 'the provider')));
+    m.bx.appendChild(mk('p', 'small', rt.jobNumber + ' \u00b7 1 is poor, 5 is excellent. Only TMG staff see this.'));
+    QS.forEach(function (q) {
+      var row = mk('div', 'rq'), st = mk('div', 'stars'); row.appendChild(mk('span', null, q[1]));
+      for (var n = 1; n <= 5; n++) (function (n) {
+        var b = mk('button', null, String(n)); b.type = 'button'; b.setAttribute('aria-label', q[1] + ' ' + n);
+        b.onclick = function () { vals[q[0]] = n; Array.prototype.forEach.call(st.children, function (c, k) { c.className = k < n ? 'on' : ''; }); };
+        st.appendChild(b);
+      })(n);
+      row.appendChild(st); m.bx.appendChild(row);
+    });
+    var cm = mk('textarea'); cm.placeholder = 'Anything else? (optional)'; cm.maxLength = 1000; cm.style.cssText = 'width:100%;min-height:70px;margin-top:12px';
+    m.bx.appendChild(cm);
+    var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;margin-top:12px;flex-wrap:wrap';
+    bar.appendChild(btn('Submit rating', async function () {
+      if (QS.some(function (q) { return !vals[q[0]]; })) return flash('Please rate every question from 1 to 5.', false);
+      try { vals.comment = cm.value; await api('/staff/tickets/' + ticketId + '/rating', 'POST', vals); m.o.remove(); flash('Thanks. Rating saved.', true); } catch (e) { flash(e.message, false); }
+    }, 'ai-go'));
+    bar.appendChild(btn('Not now', function () { m.o.remove(); }, 'ai-no'));
+    m.bx.appendChild(bar);
+  }
+  async function openReport(providerId) {
+    var d; try { d = await api('/staff/providers/' + providerId + '/report'); } catch (e) { return flash(e.message, false); }
+    var m = modal(); m.bx.className += ' rep';
+    m.bx.appendChild(mk('h2', null, d.provider.name + (d.provider.preferred ? ' \u2605 Preferred' : '')));
+    m.bx.appendChild(mk('p', 'small', [d.provider.trade, d.provider.states, d.provider.status.replace(/_/g, ' ')].filter(Boolean).join(' \u00b7 ')));
+    if (d.isNew) m.bx.appendChild(mk('div', 'newflag', '\u2605 New provider: ' + d.ratings + ' of ' + d.minRatings + ' ratings so far'));
+    m.bx.appendChild(mk('div', 'big', d.score == null ? 'No score yet' : d.score.toFixed(1) + ' / 5'));
+    m.bx.appendChild(mk('p', 'small', d.jobsCompleted + ' completed job' + (d.jobsCompleted === 1 ? '' : 's') + (d.onTimePct != null ? ' \u00b7 ' + d.onTimePct + '% rated on time' : '') + ' \u00b7 ' + d.ratings + ' rating' + (d.ratings === 1 ? '' : 's')));
+    if (d.summary) { var a = mk('div', 'arch'); a.appendChild(mk('b', null, 'A.R.C.H. summary')); a.appendChild(mk('div', null, d.summary)); m.bx.appendChild(a); }
+    if (d.averages) QS.forEach(function (q) {
+      var v = d.averages[q[0]], row = mk('div', 'rq'); row.appendChild(mk('span', null, q[1]));
+      var w = mk('div'); w.style.cssText = 'display:flex;align-items:center;gap:8px;min-width:200px'; var bar = mk('div', 'bar'); bar.style.flex = '1'; var i = mk('i'); i.style.width = (v / 5 * 100) + '%'; bar.appendChild(i);
+      w.appendChild(bar); w.appendChild(mk('b', null, v.toFixed(1))); row.appendChild(w); m.bx.appendChild(row);
+    });
+    if (d.trades.length) m.bx.appendChild(mk('p', 'small', 'Jobs by trade: ' + d.trades.map(function (t) { return t.trade + ' ' + t.jobs; }).join(', ')));
+    if (d.recent.length) {
+      m.bx.appendChild(mk('h3', null, 'Recent ratings'));
+      d.recent.forEach(function (x) { m.bx.appendChild(mk('p', 'small', x.job + ' \u00b7 ' + x.overall + '/5 overall' + (x.comment ? ' \u00b7 ' + x.comment : ''))); });
+    }
   }
   var provTouched = false, PROV_PCT = 0.475;
   function suggestProv(cust) { var c = parseFloat(String(cust).replace(/[$,]/g, '')); return c > 0 ? (Math.round(c * PROV_PCT / 5) * 5).toFixed(2) : ''; }
@@ -2345,7 +2418,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         tr.appendChild(td(p.primary_trade)); tr.appendChild(td(p.service_states));
         tr.appendChild(td(p.status.replace(/_/g, ' ') + (p.pending_requests ? ' (login request)' : '')));
         tr.appendChild(td(p.logins + ' / ' + p.max_logins)); tr.appendChild(td(p.completed_jobs));
-        tr.appendChild(td(''));
+        tr.appendChild(td(scoreText(p.score, p.rating_count)));
         tr.onclick = function () { openProvider(p.id); };
         body.appendChild(tr);
       });
@@ -2362,7 +2435,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       view('viewProvider');
       var p = d.provider;
       $('pName').textContent = p.business_name + (p.preferred ? ' \u2605 Preferred' : '');
-      loadProviderRate(id);
+      loadProviderRate(id); $('pReportBtn').onclick = function () { openReport(id); };
       $('pMeta').textContent = [p.contact_name, p.email, p.phone, p.primary_trade, 'States: ' + p.service_states, 'Status: ' + p.status.replace(/_/g, ' '), 'Completed jobs: ' + d.completedJobs].filter(Boolean).join(' | ');
       $('pTerms').textContent = p.terms_accepted_at ? 'Terms ' + p.terms_version + ' signed by ' + p.terms_signer_name + ' on ' + fmt(p.terms_accepted_at) : 'Terms not on file.';
       $('pPref').textContent = p.preferred && p.preferred_set_by ? 'Preferred set by ' + p.preferred_set_by + ' on ' + fmt(p.preferred_set_at) : '';
