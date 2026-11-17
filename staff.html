@@ -503,7 +503,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="panel">
         <h2 id="pName"></h2>
         <p class="small" id="pMeta"></p>
-        <p><button type="button" class="ai-btn" id="pReportBtn">Scorecard</button></p>
+        <p><button type="button" class="ai-btn" id="pReportBtn">Scorecard</button> <button type="button" class="ai-btn" id="pTermsBtn" hidden>Signed terms (PDF)</button></p>
         <p class="small" id="pTerms"></p>
         <p class="small" id="pPref"></p>
         <div id="pActions" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
@@ -567,6 +567,17 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="panel">
         <h2 id="cName"></h2>
         <p class="small">Customers see only the worksites listed here, and only after they sign in with an approved email.</p>
+        <p><button type="button" class="ai-btn" id="cDocsBtn" hidden>Signed MSA &amp; documents</button></p>
+      </div>
+      <div class="panel" id="cDocsPanel" hidden>
+        <h2>Signed MSA &amp; documents</h2>
+        <p class="small">Only the Owner can see, upload or download these. PDF files only, up to 10 MB each.</p>
+        <div id="cDocsList"></div>
+        <div class="relrow">
+          <div><label for="cDocLabel">Label</label><input id="cDocLabel" maxlength="120" placeholder="Example: MSA signed Nov 2026"></div>
+          <div><label for="cDocFile">PDF file</label><input id="cDocFile" type="file" accept="application/pdf,.pdf"></div>
+          <div class="go"><button type="button" id="cDocUp">Upload</button></div>
+        </div>
       </div>
       <div class="panel">
         <h2>Billing terms (client agreement)</h2>
@@ -1627,6 +1638,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       var d = await api('/staff/customers/' + id);
       view('viewCustomer');
       $('cName').textContent = d.customer.name;
+      setupCustDocs(id);
       loadBillTerms(id);
 
       var sb = $('siteTable').tBodies[0]; clear(sb);
@@ -2092,6 +2104,51 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       bd.appendChild(h); bd.appendChild(tt); r.appendChild(av); r.appendChild(bd); box.appendChild(r);
     });
   }
+  // ---- Owner-only signed documents ----
+  async function dlFile(path, name) {
+    var t = await token(false), resp = await fetch(API + path, { headers: { Authorization: 'Bearer ' + t } });
+    if (!resp.ok) { var m = 'Could not download that file.'; try { m = (await resp.json()).error || m; } catch (e) { /* keep default */ } throw new Error(m); }
+    var cd = resp.headers.get('Content-Disposition') || '', mm = /filename="([^"]+)"/.exec(cd), b = await resp.blob();
+    var a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = mm ? mm[1] : name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+  }
+  function setupCustDocs(id) {
+    var owner = !!(me && me.role === 'owner');
+    $('cDocsBtn').hidden = !owner; $('cDocsPanel').hidden = true;
+    if (!owner) return;
+    $('cDocsBtn').onclick = function () { $('cDocsPanel').hidden = !$('cDocsPanel').hidden; if (!$('cDocsPanel').hidden) loadCustDocs(id); };
+    $('cDocUp').onclick = async function () {
+      var f = $('cDocFile').files[0], label = $('cDocLabel').value.trim();
+      if (!label) return flash('Give the document a short label first.', false);
+      if (!f) return flash('Choose a PDF file first.', false);
+      if (f.size > 10 * 1024 * 1024) return flash('That file is over 10 MB.', false);
+      var b = $('cDocUp'); b.disabled = true;
+      try {
+        var data = await new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(String(fr.result).split(',')[1]); }; fr.onerror = function () { rej(new Error('Could not read that file.')); }; fr.readAsDataURL(f); });
+        await api('/staff/customers/' + id + '/documents', 'POST', { label: label, filename: f.name, dataBase64: data });
+        $('cDocLabel').value = ''; $('cDocFile').value = ''; flash('Uploaded.', true); loadCustDocs(id);
+      } catch (e) { flash(e.message, false); }
+      b.disabled = false;
+    };
+  }
+  async function loadCustDocs(id) {
+    var box = $('cDocsList'); clear(box);
+    try {
+      var d = await api('/staff/customers/' + id + '/documents');
+      if (!d.documents.length) box.appendChild(mk('p', 'small', 'No documents uploaded yet.'));
+      d.documents.forEach(function (x) {
+        var row = mk('div', 'rq'), left = mk('div'); left.appendChild(mk('b', null, x.label)); left.appendChild(mk('div', 'small', x.original_name + ' \u00b7 ' + Math.max(1, Math.round(x.size_bytes / 1024)) + ' KB \u00b7 uploaded ' + fmt(x.uploaded_at) + ' by ' + x.uploaded_by));
+        var acts = mk('div'); acts.style.cssText = 'display:flex;gap:8px';
+        acts.appendChild(btn('Download', async function () { try { await dlFile('/staff/customers/' + id + '/documents/' + x.id, x.original_name); } catch (e) { flash(e.message, false); } }, 'ai-btn'));
+        acts.appendChild(btn('Delete', async function () {
+          if (!window.confirm('Delete "' + x.label + '"? This cannot be undone.')) return;
+          try { await api('/staff/customers/' + id + '/documents/' + x.id + '/delete', 'POST', { confirm: true }); flash('Deleted.', true); loadCustDocs(id); } catch (e) { flash(e.message, false); }
+        }, 'ai-no'));
+        row.appendChild(left); row.appendChild(acts); box.appendChild(row);
+      });
+    } catch (e) { box.appendChild(mk('p', 'small', e.message)); }
+  }
+
   // ---- provider scorecard: score text, survey after the customer bill is sent on, report ----
   function scoreText(score, count) {
     count = Number(count || 0);
@@ -2436,6 +2493,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       var p = d.provider;
       $('pName').textContent = p.business_name + (p.preferred ? ' \u2605 Preferred' : '');
       loadProviderRate(id); $('pReportBtn').onclick = function () { openReport(id); };
+      $('pTermsBtn').hidden = !(me && me.role === 'owner'); $('pTermsBtn').onclick = async function () { try { await dlFile('/staff/providers/' + id + '/signed-terms', 'Provider-Terms-signed.pdf'); } catch (e) { flash(e.message, false); } };
       $('pMeta').textContent = [p.contact_name, p.email, p.phone, p.primary_trade, 'States: ' + p.service_states, 'Status: ' + p.status.replace(/_/g, ' '), 'Completed jobs: ' + d.completedJobs].filter(Boolean).join(' | ');
       $('pTerms').textContent = p.terms_accepted_at ? 'Terms ' + p.terms_version + ' signed by ' + p.terms_signer_name + ' on ' + fmt(p.terms_accepted_at) : 'Terms not on file.';
       $('pPref').textContent = p.preferred && p.preferred_set_by ? 'Preferred set by ' + p.preferred_set_by + ' on ' + fmt(p.preferred_set_at) : '';
