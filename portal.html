@@ -246,6 +246,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       <button type="button" class="newbtn big" id="cNew2">+ Request service</button>
     </div>
     <div id="msg3" class="msg" hidden></div>
+    <div class="cpanel" id="cBill" hidden></div>
     <div class="cbar">
       <input id="cSearch" type="search" placeholder="Search by job number or site" aria-label="Search jobs">
       <select id="cSite" aria-label="Filter by site"><option value="">All sites</option></select>
@@ -273,6 +274,22 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     <div id="cJobBody"></div>
   </div>
 
+  <div class="cwrap" id="custCard" hidden>
+    <button class="back" id="cCardBack">&larr; All jobs</button>
+    <div class="cpanel cform">
+      <h2 id="cardTitle">Card on file</h2>
+      <div id="msg6" class="msg" hidden></div>
+      <p id="cardIntro" style="margin:0 0 12px"></p>
+      <div id="cardSaved" hidden style="margin:0 0 14px;font-weight:700"></div>
+      <div id="cardForm">
+        <div id="cardBox" style="min-height:96px;margin:6px 0 12px"></div>
+        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:6px 0 14px"><input type="checkbox" id="cardConsent" style="margin-top:4px;width:auto"><span id="cardConsentText"></span></label>
+        <div class="crow"><span></span><button class="bigbtn green" id="cardSave" type="button">Save card</button></div>
+      </div>
+      <div id="cardPayOnly" hidden class="crow"><span></span><button class="bigbtn green" id="cardPayRet" type="button"></button></div>
+    </div>
+  </div>
+
   <div class="cwrap" id="custNew" hidden>
     <button class="back" id="cNewBack">&larr; All jobs</button>
     <div class="cpanel cform">
@@ -288,6 +305,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       <label for="nNte">Your not-to-exceed amount ($)</label><input id="nNte" inputmode="decimal" placeholder="Example: 850">
       <label>Photos (optional, up to 5)</label>
       <input id="nFiles" type="file" accept="image/*" multiple>
+      <div class="strip" id="nPrev" style="margin-top:8px"></div><div class="small" id="nPrevNote" style="margin-top:4px"></div>
       <div class="crow"><span></span><button class="bigbtn green" id="nGo">Send request</button></div>
     </div>
   </div>
@@ -309,7 +327,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   var SCOPES = ['openid', 'profile', 'email'];
 
   function show(id) {
-    ['signedOut', 'loading', 'home', 'board', 'custBoard', 'custJob', 'custNew', 'problem'].forEach(function (x) {
+    ['signedOut', 'loading', 'home', 'board', 'custBoard', 'custJob', 'custNew', 'custCard', 'problem'].forEach(function (x) {
       document.getElementById(x).hidden = (x !== id);
     });
     document.getElementById('signOut').hidden = (id !== 'home' && id !== 'board' && id.indexOf('cust') !== 0);
@@ -830,8 +848,88 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       var seen = {}; cJobs.forEach(function (j) { if (!seen[j.site]) { seen[j.site] = 1; var o = el('option', '', j.site); o.value = j.site; sel.appendChild(o); } });
       sel.value = keep;
       renderCust();
+      loadBilling();
     } catch (e) { cflash('msg3', e.message, false); }
   }
+
+  // ---- card on file, account credit, card payments ----
+  var cBilling = null, sqCard = null, sqLoaded = null;
+  async function loadBilling() {
+    try { cBilling = await api('/customer/billing'); } catch (e) { cBilling = null; }
+    renderBillStrip();
+    return cBilling;
+  }
+  function renderBillStrip() {
+    var b = $('cBill'); b.textContent = '';
+    if (!cBilling || !cBilling.enabled) { b.hidden = true; return; }
+    b.hidden = false; b.style.padding = '12px 16px';
+    var row = el('div'); row.style.cssText = 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between';
+    var left = el('div');
+    if (!cBilling.card) {
+      left.appendChild(el('strong', '', 'Add a card on file to request service.'));
+    } else {
+      var c = cBilling.card;
+      left.appendChild(el('strong', '', (c.brand || 'Card') + ' ending ' + (c.last4 || '----') + (c.expMonth ? '  (exp ' + c.expMonth + '/' + String(c.expYear).slice(-2) + ')' : '')));
+      if (cBilling.owedNow > 0) { left.appendChild(el('br')); left.appendChild(el('span', '', 'A retainer of ' + money(cBilling.owedNow) + ' is due before new requests.')); }
+      if (cBilling.creditBalance > 0) { left.appendChild(el('br')); left.appendChild(el('span', '', 'Account credit: ' + money(cBilling.creditBalance) + ' (applied to your invoices first)')); }
+    }
+    row.appendChild(left);
+    var btn = el('button', 'bigbtn ' + (cBilling.ready ? 'gray' : ''), !cBilling.card ? 'Add card' : cBilling.owedNow > 0 ? 'Pay retainer' : 'Change card'); btn.type = 'button';
+    btn.style.padding = '10px 18px'; btn.style.fontSize = '14px'; btn.onclick = function () { openCard(null); };
+    row.appendChild(btn); b.appendChild(row);
+  }
+  function loadSquareSdk(url) {
+    if (sqLoaded) return sqLoaded;
+    sqLoaded = new Promise(function (res, rej) {
+      var sc = document.createElement('script'); sc.src = url; sc.onload = res; sc.onerror = function () { sqLoaded = null; rej(new Error('Could not load the secure card form. Please try again.')); };
+      document.head.appendChild(sc);
+    });
+    return sqLoaded;
+  }
+  async function openCard(reason) {
+    if (!cBilling) await loadBilling();
+    if (!cBilling || !cBilling.enabled) return cflash('msg3', 'Card payments are not available yet. Please call TMG.', false);
+    show('custCard'); history.pushState({ v: 'card' }, ''); window.scrollTo(0, 0);
+    var haveCard = !!cBilling.card, owed = cBilling.owedNow;
+    $('cardTitle').textContent = haveCard ? 'Card on file' : 'Add a card on file';
+    $('cardIntro').textContent = reason || (haveCard
+      ? (owed > 0 ? 'TMG requires a retainer on your account. It stays on your account as credit and is applied to your invoices.' : 'You can replace the card on file. Nothing is charged when you change it.')
+      : 'TMG requires a card on file. We charge ' + money(cBilling.requiredTotal) + ' now to confirm the card works. It is not a fee: it stays on your account as credit and is applied to your invoices first.');
+    var sv = $('cardSaved'); sv.hidden = !haveCard; sv.textContent = haveCard ? 'Current card: ' + (cBilling.card.brand || 'Card') + ' ending ' + (cBilling.card.last4 || '----') : '';
+    $('cardPayOnly').hidden = !(haveCard && owed > 0);
+    $('cardPayRet').textContent = 'Pay ' + money(owed) + ' retainer with the card on file';
+    $('cardForm').hidden = false;
+    $('cardConsentText').textContent = cBilling.consentText; $('cardConsent').checked = false;
+    $('cardSave').textContent = haveCard ? 'Save new card' : 'Save card and pay ' + money(owed);
+    try {
+      await loadSquareSdk(cBilling.square.sdkUrl);
+      if (!window.Square) throw new Error('The secure card form did not load.');
+      if (sqCard) { try { await sqCard.destroy(); } catch (e) { /* ignore */ } sqCard = null; }
+      $('cardBox').textContent = '';
+      var pay = window.Square.payments(cBilling.square.appId, cBilling.square.locationId);
+      sqCard = await pay.card(); await sqCard.attach('#cardBox');
+    } catch (e) { cflash('msg6', e.message || 'The secure card form did not load.', false); }
+  }
+  $('cardSave').onclick = async function () {
+    if (!$('cardConsent').checked) return cflash('msg6', 'Please tick the box to authorize the charge.', false);
+    if (!sqCard) return cflash('msg6', 'The secure card form is not ready yet.', false);
+    var bt = $('cardSave'); bt.disabled = true; var old = bt.textContent; bt.textContent = 'Saving...';
+    try {
+      var r = await sqCard.tokenize();
+      if (r.status !== 'OK') throw new Error((r.errors && r.errors[0] && r.errors[0].message) || 'Please check the card details and try again.');
+      await api('/customer/card', 'POST', { token: r.token, consent: true });
+      await loadBilling(); await loadCustBoard();
+      cflash('msg3', 'Your card is saved. Thank you.', true);
+    } catch (e) { cflash('msg6', e.message, false); }
+    bt.disabled = false; bt.textContent = old;
+  };
+  $('cardPayRet').onclick = async function () {
+    var bt = $('cardPayRet'); bt.disabled = true;
+    try { await api('/customer/deposit', 'POST', {}); await loadBilling(); await loadCustBoard(); cflash('msg3', 'Retainer paid. Thank you.', true); }
+    catch (e) { cflash('msg6', e.message, false); }
+    bt.disabled = false;
+  };
+  $('cCardBack').onclick = function () { loadCustBoard(); };
   var cTab = null;
   function cNteWord(j) { return j.nte == null ? 'Not set' : money(j.nte); }
   function custCard(j) {
@@ -882,7 +980,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   function renderCust() {
     var q = $('cSearch').value.trim().toLowerCase(), site = $('cSite').value;
     var list = cJobs.filter(function (j) { return (!site || j.site === site) && (!q || (j.jobNumber + ' ' + j.site + ' ' + j.title).toLowerCase().indexOf(q) >= 0); });
-    var open = list.filter(function (j) { return !j.closed; }), act = list.filter(function (j) { return j.needsAction; }), done = list.filter(function (j) { return j.closed; });
+    var open = list.filter(function (j) { return !j.closed; }), act = list.filter(function (j) { return j.needsAction; }), done = list.filter(function (j) { return j.closed && !j.needsAction; });
     var inv = list.filter(function (j) { return j.status === 'Invoice ready'; });
     $('ckOpen').textContent = open.length; $('ckAct').textContent = act.length; $('ckInv').textContent = inv.length; $('ckDone').textContent = done.length;
     $('ckActBox').className = 'kpi k-alert' + (act.length ? ' has' : '');
@@ -928,7 +1026,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       box.appendChild(head);
       if (j.pendingIncrease != null) {
         var ac = el('div', 'action'); var b = el('b', '', 'TMG has asked to raise your NTE to ' + money(j.pendingIncrease) + '.'); b.style.display = 'block';
-        ac.appendChild(b); ac.appendChild(el('span', '', 'Nothing changes until you approve. Your current NTE stays at ' + money(j.nte) + ' if you say no.'));
+        ac.appendChild(b); ac.appendChild(el('span', '', 'Nothing changes until you approve.'));
         var row = el('div'); row.style.cssText = 'display:flex;gap:10px;flex-wrap:wrap;margin-top:10px';
         function answerNte(yes) {
           if (!confirm(yes ? 'Approve a new NTE of ' + money(j.pendingIncrease) + '?' : 'Keep your NTE at ' + money(j.nte) + ' and decline the increase?')) return;
@@ -944,10 +1042,35 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
         var iv = j.invoice, ip = el('div', 'cpanel invoice'); ip.appendChild(el('h2', '', 'Invoice ' + (iv.number || '')));
         var tb = el('table', 'invtable');
         iv.lines.forEach(function (l) { var tr = el('tr'); var lc = el('td', '', l.label); if (l.detail) { var dd = el('div', 'meta', l.detail); dd.style.fontSize = '13px'; lc.appendChild(dd); } tr.appendChild(lc); tr.appendChild(el('td', 'amt', money(l.amount))); tb.appendChild(tr); });
-        var tt = el('tr', 'invtotal'); tt.appendChild(el('td', '', 'Total due')); tt.appendChild(el('td', 'amt', money(iv.total))); tb.appendChild(tt);
+        var tt = el('tr', 'invtotal'); tt.appendChild(el('td', '', iv.paid > 0 ? 'Invoice total' : 'Total due')); tt.appendChild(el('td', 'amt', money(iv.total))); tb.appendChild(tt);
+        if (iv.paid > 0) {
+          var pr1 = el('tr'); pr1.appendChild(el('td', '', 'Paid')); pr1.appendChild(el('td', 'amt', '-' + money(iv.paid))); tb.appendChild(pr1);
+          var pr2 = el('tr', 'invtotal'); pr2.appendChild(el('td', '', 'Balance due')); pr2.appendChild(el('td', 'amt', money(iv.balance))); tb.appendChild(pr2);
+        }
         ip.appendChild(tb);
         ip.appendChild(el('p', 'meta', 'Invoice date ' + when(iv.date).split(',')[0]));
         box.appendChild(ip);
+        if (iv.balance > 0.004 && iv.decision !== 'disputed') {
+          if (!cBilling) await loadBilling();
+          if (cBilling && cBilling.enabled) {
+            var credit = Math.min(cBilling.creditBalance || 0, iv.balance), cardAmt = Math.round((iv.balance - credit) * 100) / 100;
+            var pp = el('div', 'cpanel'); pp.appendChild(el('h2', '', 'Pay this invoice'));
+            var ptxt = credit > 0 ? 'Account credit of ' + money(credit) + ' is applied first.' + (cardAmt > 0 ? ' Your card is charged ' + money(cardAmt) + '.' : ' Nothing is charged to your card.') : (cBilling.card ? 'Your ' + (cBilling.card.brand || 'card') + ' ending ' + cBilling.card.last4 + ' is charged ' + money(cardAmt) + '.' : '');
+            if (ptxt) pp.appendChild(el('p', '', ptxt));
+            var pbtn = el('button', 'bigbtn green', cardAmt > 0 && !cBilling.card ? 'Add a card to pay' : credit > 0 && cardAmt <= 0 ? 'Pay ' + money(iv.balance) + ' from account credit' : 'Pay ' + money(iv.balance));
+            pbtn.type = 'button';
+            pbtn.onclick = function () {
+              if (cardAmt > 0 && !cBilling.card) return openCard('Add a card to pay this invoice.');
+              if (!confirm('Pay ' + money(iv.balance) + ' now?' + (credit > 0 ? '\nAccount credit applied: ' + money(credit) : '') + (cardAmt > 0 ? '\nCard charged: ' + money(cardAmt) : ''))) return;
+              pbtn.disabled = true; pbtn.textContent = 'Processing...';
+              api('/customer/jobs/' + id + '/pay', 'POST', {}).then(function () { loadBilling(); cflash('msg4', 'Payment received. Thank you.', true); openCustJob(id); })
+                .catch(function (e) { cflash('msg4', e.message, false); pbtn.disabled = false; pbtn.textContent = 'Pay ' + money(iv.balance); });
+            };
+            pp.appendChild(pbtn); box.appendChild(pp);
+          }
+        } else if (iv.total > 0 && iv.balance <= 0.004) {
+          var pd = el('p', 'meta', 'Paid in full. Thank you.'); pd.style.cssText = 'font-weight:700;margin:0 0 14px'; box.appendChild(pd);
+        }
         if (!iv.decision) {
           var ia = el('div', 'action'); var ib = el('b', '', 'Action needed: approve this invoice?'); ib.style.display = 'block'; ia.appendChild(ib);
           ia.appendChild(el('span', '', 'If we do not hear from you within 28 days of the invoice date, the invoice is treated as approved.'));
@@ -1039,6 +1162,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     } catch (e) { box.textContent = ''; cflash('msg4', e.message, false); }
   }
   async function openCustNew() {
+    if (!cBilling) await loadBilling();
+    if (cBilling && cBilling.enabled && !cBilling.ready) return openCard(cBilling.card ? 'A retainer of ' + money(cBilling.owedNow) + ' is required on your account before you can request service.' : 'Please add a card on file before requesting service.');
     show('custNew'); history.pushState({ v: 'new' }, ''); window.scrollTo(0, 0);
     try {
       var d = await api('/customer/sites'); cSites = d.sites;
@@ -1051,15 +1176,32 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   $('cNew2').onclick = openCustNew;
   $('cJobBack').onclick = function () { loadCustBoard(); };
   $('cNewBack').onclick = function () { loadCustBoard(); };
-  window.addEventListener('popstate', function () { if (!$('custJob').hidden || !$('custNew').hidden) loadCustBoard(); });
+  window.addEventListener('popstate', function () { if (!$('custJob').hidden || !$('custNew').hidden || !$('custCard').hidden) loadCustBoard(); });
+  var nPicked = [];
+  function drawPrev() {
+    var box = $('nPrev'); box.textContent = '';
+    nPicked.forEach(function (f, k) {
+      var t = el('div', 'th'); t.style.cursor = 'default';
+      var im = el('img'); im.alt = f.name; im.src = URL.createObjectURL(f); t.appendChild(im);
+      var x = el('button', null, '\u00d7'); x.type = 'button'; x.setAttribute('aria-label', 'Remove photo ' + (k + 1));
+      x.style.cssText = 'position:absolute;top:2px;right:2px;width:22px;height:22px;border:0;background:rgba(0,0,0,.75);color:#fff;font-size:16px;line-height:1;cursor:pointer;padding:0';
+      x.onclick = function () { nPicked.splice(k, 1); drawPrev(); };
+      t.appendChild(x); box.appendChild(t);
+    });
+    $('nPrevNote').textContent = nPicked.length ? nPicked.length + ' of 5 photos' : '';
+  }
+  $('nFiles').addEventListener('change', function () {
+    Array.prototype.slice.call($('nFiles').files).forEach(function (f) { if (nPicked.length < 5) nPicked.push(f); });
+    $('nFiles').value = ''; drawPrev();
+  });
   $('nGo').onclick = async function () {
     var b = $('nGo'); b.disabled = true; b.textContent = 'Sending…';
     try {
-      var files = Array.prototype.slice.call($('nFiles').files, 0, 5);
+      var files = nPicked.slice(0, 5);
       var arr = await Promise.all(files.map(shrink));
       var r = await api('/customer/jobs', 'POST', { siteId: $('nSite').value, trade: $('nTrade').value, title: $('nTitle').value, description: $('nDesc').value,
         priority: $('nPri').value, nte: $('nNte').value, photos: arr.map(function (a) { return { filename: a.filename, dataBase64: a.dataBase64 }; }) });
-      ['nTitle', 'nDesc', 'nNte', 'nFiles'].forEach(function (i) { $(i).value = ''; });
+      ['nTitle', 'nDesc', 'nNte', 'nFiles'].forEach(function (i) { $(i).value = ''; }); nPicked = []; drawPrev();
       await loadCustBoard();
       cflash('msg3', 'Request ' + r.jobNumber + ' sent. TMG will review it and schedule a provider.' + (r.photosSaved < r.photosSent ? ' Some photos did not upload; add them from the job page.' : ''), true);
     } catch (e) { cflash('msg5', e.message, false); }

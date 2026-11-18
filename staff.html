@@ -579,6 +579,23 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           <div class="go"><button type="button" id="cDocUp">Upload</button></div>
         </div>
       </div>
+      <div class="panel" id="cCardPanel" hidden>
+        <h2>Card on file, account credit and retainer</h2>
+        <div id="cCardInfo"></div>
+        <form class="f" id="cRetForm">
+          <div><label for="cRetAmt">Retainer amount ($)</label><input id="cRetAmt" type="number" min="0" step="0.01"></div>
+          <div><label for="cRetReq" style="display:flex;gap:8px;align-items:center"><input id="cRetReq" type="checkbox" style="width:auto"> Required before this customer can request service</label></div>
+          <div><button type="submit" id="cRetSave">Save retainer</button></div>
+        </form>
+        <h3 style="font-size:14px;margin:18px 0 6px;text-transform:uppercase">Refund account credit to the card</h3>
+        <div class="relrow">
+          <div><label for="cRefAmt">Amount ($)</label><input id="cRefAmt" type="number" min="0" step="0.01"></div>
+          <div><label for="cRefNote">Reason</label><input id="cRefNote" maxlength="300"></div>
+          <div class="go"><button type="button" id="cRefGo" class="ai-no" style="background:#950606;border-color:#950606;color:#fff">Refund</button></div>
+        </div>
+        <h3 style="font-size:14px;margin:18px 0 6px;text-transform:uppercase">Credit history</h3>
+        <div id="cCreditList"></div>
+      </div>
       <div class="panel">
         <h2>Billing terms (client agreement)</h2>
         <p class="small">Set from this client's Master Service Agreement. The flat initial trip is preloaded on every bill for this client. The provider is paid for the initial trip only, however many return visits it takes. Providers never see the trip charge. Only the Owner can change these terms.</p>
@@ -1251,7 +1268,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         var stt = pd.paymentStatus === 'paid' ? ['Paid in full', '#15803d'] : pd.paymentStatus === 'partial' ? ['Partially paid. ' + money2(pd.balance) + ' remaining', '#b45309'] : ['Unpaid. ' + money2(pd.balance) + ' due', '#b91c1c'];
         var sp = mk('p', null, 'Invoice ' + (pd.invoiceNumber || '') + ' \u00b7 ' + money2(pd.total) + ' \u00b7 ' + stt[0]); sp.style.cssText = 'font-weight:700;margin:6px 0;color:' + stt[1]; payBox.appendChild(sp);
         pd.payments.forEach(function (p) {
-          var ln = mk('div', null, fmt(p.paid_on) + ' \u00b7 ' + money2(p.amount) + ' \u00b7 ' + p.method + (p.reference ? ' \u00b7 ' + p.reference : '') + (p.external_id ? ' (Stripe)' : '') + (p.voided_at ? ' \u00b7 VOIDED: ' + (p.void_reason || '') : ''));
+          var ln = mk('div', null, fmt(p.paid_on) + ' \u00b7 ' + money2(p.amount) + ' \u00b7 ' + p.method + (p.reference ? ' \u00b7 ' + p.reference : '') + (p.external_id && String(p.external_id).indexOf('credit:') !== 0 ? ' (Square)' : '') + (p.voided_at ? ' \u00b7 VOIDED: ' + (p.void_reason || '') : ''));
           ln.style.cssText = 'margin:3px 0;' + (p.voided_at ? 'text-decoration:line-through;color:#888' : '');
           if (!p.voided_at && !p.external_id) { var vb = btn('Void', async function () { var why = window.prompt('Why is this payment being voided?'); if (!why) return; try { await api('/staff/payments/' + p.id + '/void', 'POST', { reason: why }); flash('Payment voided.', true); drawPay(); } catch (er) { flash(er.message, false); } }, 'ai-no'); vb.style.cssText += ';margin-left:10px;min-height:26px;padding:2px 8px'; ln.appendChild(vb); }
           payBox.appendChild(ln);
@@ -1268,6 +1285,17 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
             catch (er) { flash(er.message, false); }
           }, 'ai-go'));
           payBox.appendChild(fr);
+          var cr = mk('div'); cr.style.cssText = 'margin-top:12px;padding-top:10px;border-top:1px solid #ddd';
+          cr.appendChild(mk('div', 'small', 'Charge the card on file for this invoice now. Account credit is used first. Owner only.'));
+          var cb = btn('Charge card now', async function () {
+            var warn = pd.disputed ? 'THIS INVOICE IS IN DISPUTE.\n\n' : '';
+            if (!window.confirm(warn + 'Charge the customer\'s card on file for up to ' + money2(pd.balance) + ' now (account credit is used first)?')) return;
+            if (pd.disputed && !window.confirm('The customer disputed this invoice. Charge it anyway?')) return;
+            cb.disabled = true;
+            try { var r = await api('/staff/bills/' + billId + '/charge-card', 'POST', { confirm: true }); flash('Charged. Card ' + money2(r.cardCharged) + (r.creditUsed ? ', credit ' + money2(r.creditUsed) : '') + '.', true); drawPay(); }
+            catch (er) { flash(er.message, false); cb.disabled = false; }
+          }, 'ai-no');
+          cb.style.marginTop = '8px'; cr.appendChild(cb); payBox.appendChild(cr);
         }
       };
       drawPay();
@@ -1639,6 +1667,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       view('viewCustomer');
       $('cName').textContent = d.customer.name;
       setupCustDocs(id);
+      setupCustCard(id);
       loadBillTerms(id);
 
       var sb = $('siteTable').tBodies[0]; clear(sb);
@@ -2130,6 +2159,52 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       } catch (e) { flash(e.message, false); }
       b.disabled = false;
     };
+  }
+  function setupCustCard(id) {
+    var owner = !!(me && me.role === 'owner');
+    $('cCardPanel').hidden = !owner;
+    if (!owner) return;
+    loadCustCard(id);
+    $('cRetForm').onsubmit = async function (ev) {
+      ev.preventDefault();
+      var b = $('cRetSave'); b.disabled = true;
+      try {
+        var v = $('cRetAmt').value.trim();
+        await api('/staff/customers/' + id + '/retainer', 'POST', { amount: v === '' ? null : Number(v), required: $('cRetReq').checked });
+        flash('Retainer saved.', true); loadCustCard(id);
+      } catch (e) { flash(e.message, false); }
+      b.disabled = false;
+    };
+    $('cRefGo').onclick = async function () {
+      var amt = Number($('cRefAmt').value), note = $('cRefNote').value.trim();
+      if (!(amt > 0)) return flash('Enter the amount to refund.', false);
+      if (note.length < 3) return flash('Add a short reason.', false);
+      if (!window.confirm('Refund ' + money2(amt) + ' of account credit back to the customer\'s card?')) return;
+      var b = $('cRefGo'); b.disabled = true;
+      try { await api('/staff/customers/' + id + '/credit-refund', 'POST', { amount: amt, note: note }); $('cRefAmt').value = ''; $('cRefNote').value = ''; flash('Refunded.', true); loadCustCard(id); }
+      catch (e) { flash(e.message, false); }
+      b.disabled = false;
+    };
+  }
+  async function loadCustCard(id) {
+    var info = $('cCardInfo'), list = $('cCreditList'); clear(info); clear(list);
+    try {
+      var d = await api('/staff/customers/' + id + '/card-billing');
+      var c = d.card;
+      info.appendChild(mk('p', null, c ? 'Card on file: ' + (c.brand || 'Card') + ' ending ' + (c.last4 || '----') + (c.expMonth ? ' (exp ' + c.expMonth + '/' + String(c.expYear).slice(-2) + ')' : '') : 'No card on file yet. This customer cannot request service until one is added.'));
+      info.appendChild(mk('p', null, 'Account credit: ' + money2(d.creditBalance) + (d.owedNow > 0 ? '  \u00b7  still owed before new requests: ' + money2(d.owedNow) : '')));
+      $('cRetAmt').value = d.retainerAmount != null ? d.retainerAmount : ''; $('cRetReq').checked = !!d.retainerRequired;
+      if (!d.ledger.length) list.appendChild(mk('p', 'small', 'No credit activity yet.'));
+      d.ledger.forEach(function (x) {
+        var row = mk('div', 'rq'), left = mk('div');
+        left.appendChild(mk('b', null, (x.amount < 0 ? '-' : '+') + money2(Math.abs(x.amount)) + '  ' + ({ verification: 'Card verification deposit', retainer: 'Retainer', applied: 'Applied to an invoice', refund: 'Refund', adjust: 'Adjustment' }[x.kind] || x.kind)));
+        left.appendChild(mk('div', 'small', new Date(x.created_at).toLocaleString() + (x.note ? ' \u00b7 ' + x.note : '')));
+        row.appendChild(left); list.appendChild(row);
+      });
+      (d.charges || []).filter(function (x) { return x.status === 'failed'; }).slice(0, 3).forEach(function (x) {
+        list.appendChild(mk('p', 'small', 'Failed charge ' + money2(x.amount) + ' on ' + new Date(x.attempted_at).toLocaleDateString() + ' (' + (x.error_text || 'declined') + ')'));
+      });
+    } catch (e) { info.appendChild(mk('p', 'small', e.message)); }
   }
   async function loadCustDocs(id) {
     var box = $('cDocsList'); clear(box);
