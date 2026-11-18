@@ -54,7 +54,7 @@ button.b-red-o { background:#fff; border-color:var(--red); color:var(--red); }
 button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
 .job input { max-width:100%; }
 .tag { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; background:var(--ink); color:#fff; text-transform:uppercase; margin-right:6px; }
-.tag.urgent { background:#c2410c; } .tag.emergency { background:#b91c1c; } .tag.ok { background:#15803d; }
+.tag.urgent { background:#c2410c; } .tag.emergency { background:#950606; } .tag.ok { background:#15803d; }
 .msg { margin:16px 0 0; padding:10px 14px; font-weight:600; } .msg.ok { background:#e8f3ea; color:#1e5a2b; } .msg.bad { background:#fbeaea; color:var(--red); }
 .msg.float { position:fixed; top:14px; left:50%; transform:translateX(-50%); z-index:100; width:min(92%,640px); margin:0; box-shadow:0 4px 16px rgba(0,0,0,.35); }
 .sms-box { background:var(--paper); border:1px solid var(--border); padding:16px 18px; margin:16px 0 4px; }
@@ -72,7 +72,7 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
 .kpi { background:var(--paper); border:1px solid var(--border); border-top:4px solid var(--ink); padding:14px 16px; }
 .kpi .kl { font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-size:12px; font-weight:600; color:var(--steel); }
 .kpi .kv { font-family:'Oswald',sans-serif; font-size:30px; font-weight:700; line-height:1.15; margin-top:4px; }
-.kpi.k-open { border-top-color:#1d4ed8; } .kpi.k-active { border-top-color:#c2410c; } .kpi.k-pend { border-top-color:#b45309; } .kpi.k-paid { border-top-color:#15803d; }
+.kpi.k-open { border-top-color:#1d4ed8; } .kpi.k-active { border-top-color:#c2410c; } .kpi.k-pend { border-top-color:#eab308; } .kpi.k-paid { border-top-color:#15803d; }
 .tabs { display:flex; gap:4px; flex-wrap:wrap; border-bottom:2px solid var(--border); margin:22px 0 14px; }
 .tabs button { cursor:pointer; background:none; border:0; border-bottom:4px solid transparent; margin-bottom:-2px; padding:12px 16px; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; color:var(--steel); }
 .tabs button .n { display:inline-block; min-width:22px; padding:1px 7px; margin-left:6px; background:var(--border); color:var(--ink); font-size:12px; border-radius:11px; text-align:center; }
@@ -85,14 +85,15 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
 .job2 .hd .id { font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:.04em; font-size:15px; background:var(--ink); color:#fff; padding:3px 10px; }
 .job2 h3 { font-size:19px; margin:8px 0 8px; }
 .bdg { display:inline-block; font-family:'Oswald',sans-serif; letter-spacing:.05em; text-transform:uppercase; font-size:12px; font-weight:600; padding:3px 10px; color:#fff; background:var(--ink); }
-.bdg.urgent { background:#c2410c; } .bdg.emergency, .bdg.red { background:#b91c1c; } .bdg.green { background:#15803d; } .bdg.amber { background:#b45309; } .bdg.blue { background:#1d4ed8; }
+.bdg.urgent { background:#c2410c; } .bdg.emergency, .bdg.red { background:#950606; } .bdg.green { background:#15803d; } .bdg.amber { background:#eab308; color:#422006; } .bdg.blue { background:#1d4ed8; } .bdg.orange { background:#c2410c; } .bdg.gray { background:#6b7280; } .bdg.violet { background:#7c3aed; }
 .pills { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
 .pill { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:5px 10px; border:1px solid var(--border); background:#fff; color:var(--ink); text-decoration:none; max-width:100%; }
+.pill.site { background:#ecfeff; border-color:#0e7490; color:#155e75; font-weight:600; }
 .pill svg { width:15px; height:15px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3ff; }
 .jdesc { font-size:14px; line-height:1.45; margin:0 0 10px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.jnote { font-size:13px; font-weight:600; padding:8px 10px; margin:0 0 10px; background:#fff7e6; border-left:4px solid #b45309; }
-.jnote.good { background:#e8f3ea; border-left-color:#15803d; } .jnote.bad { background:#fbeaea; border-left-color:#b91c1c; }
+.jnote { font-size:13px; font-weight:600; padding:8px 10px; margin:0 0 10px; background:#fff7e6; border-left:4px solid #eab308; }
+.jnote.good { background:#e8f3ea; border-left-color:#15803d; } .jnote.bad { background:#fbeaea; border-left-color:#950606; }
 .strip { display:flex; gap:8px; margin:0 0 12px; }
 .strip .th { position:relative; width:92px; height:68px; border:1px solid var(--border); background:#e8e8e5; cursor:pointer; padding:0; overflow:hidden; flex:none; }
 .strip .th img { width:100%; height:100%; object-fit:cover; display:block; }
@@ -132,7 +133,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 .newbtn.big { cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:17px; padding:16px 30px; background:var(--red); color:#fff; border:0; white-space:nowrap; box-shadow:0 3px 0 rgba(0,0,0,.25); }
 .newbtn.big:hover { background:#7a0505; }
 .tabbar .newbtn { margin-bottom:8px; cursor:pointer; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-weight:600; font-size:14px; padding:11px 18px; background:var(--red); color:#fff; border:0; white-space:nowrap; }
-.kpi.k-alert { border-top-color:#b91c1c; } .kpi.k-alert.has { background:#fff5f5; } .kpi.k-alert.has .kv { color:#b91c1c; }
+.kpi.k-alert { border-top-color:#950606; } .kpi.k-alert.has { background:#fff5f5; } .kpi.k-alert.has .kv { color:#950606; }
 .job2 .nte.c { color:#1d4ed8; }
 .job2 .sitechip { display:inline-block; color:#fff; font-family:'Oswald',sans-serif; letter-spacing:.05em; font-size:12px; padding:3px 10px; text-transform:uppercase; }
 .job2 .when { display:flex; flex-wrap:wrap; gap:6px 22px; padding-top:10px; border-top:1px solid var(--border); font-size:13px; }
@@ -170,7 +171,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 .jcard:hover { border-color:#9a9890; }
 .jcard h3 { font-size:17px; margin:0 0 4px; } .jcard .meta { color:var(--steel); font-size:13px; }
 .chip { display:inline-block; font-family:'Oswald',sans-serif; text-transform:uppercase; letter-spacing:.06em; font-size:12px; font-weight:600; color:#fff; background:#1d4ed8; padding:6px 11px; white-space:nowrap; }
-.chip.done { background:#15803d; } .chip.wait { background:#c2410c; } .chip.off { background:#4a4a48; }
+.chip.done { background:#15803d; } .chip.wait { background:#c2410c; } .chip.off { background:#6b7280; }
 .dot { display:inline-block; background:#c2410c; color:#fff; font-size:11px; font-weight:700; padding:2px 7px; margin-left:6px; }
 .cpanel { background:var(--paper); border:1px solid var(--border); padding:18px 20px; margin-bottom:14px; }
 .cpanel h2 { font-size:18px; margin:0 0 12px; }
@@ -572,6 +573,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   function svg(name) { var s = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true'); s.innerHTML = ICON[name]; return s; }
   function pillOf(icon, text, href) {
     var p = el(href ? 'a' : 'span', 'pill'); if (href) { p.href = href; p.target = '_blank'; p.rel = 'noopener'; }
+    if (icon === 'building') p.className += ' site';
     p.appendChild(svg(icon)); p.appendChild(document.createTextNode(text)); return p;
   }
   function iconLink(icon, href, label) { var a = el('a', 'ic'); a.href = href; a.title = label; a.setAttribute('aria-label', label); a.appendChild(svg(icon)); return a; }
@@ -622,8 +624,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var b = [];
     if (j.priority && j.priority !== 'normal') b.push(['bdg ' + j.priority, j.priority]);
     if (offer) { if (j.accepted) b.push(['bdg green', 'You accepted']); return b; }
-    var colors = { billed: 'green', completed: 'amber', needs_billing: 'blue', margin_review: 'blue', completion_review: 'blue', closed: '' };
-    b.push(['bdg ' + (colors[j.status] === undefined ? '' : colors[j.status]), j.status_label]);
+    var colors = { billed: 'green', completed: 'gray', closed: 'gray', canceled: 'gray', on_hold: 'gray', needs_billing: 'amber', margin_review: 'amber', completion_review: 'amber', awaiting_funds: 'violet', awaiting_part: 'amber' };
+    b.push(['bdg ' + (colors[j.status] === undefined ? 'blue' : colors[j.status]), j.status_label]);
     return b;
   }
   function jobCard(j, offer, history) {
@@ -1002,8 +1004,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     k.addEventListener('click', go); k.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
   });
   $('cTabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-t]'); if (!b) return; cTab = b.getAttribute('data-t'); renderCust(); });
-  var SITE_COLORS = ['#1d4ed8', '#c2410c', '#15803d', '#7e22ce', '#be123c', '#0f766e', '#a16207', '#4338ca', '#0369a1', '#9d174d', '#4d7c0f', '#b45309'];
-  function siteColor(num) { var n = String(num).trim(), v = /^\d+$/.test(n) ? parseInt(n, 10) : n.split('').reduce(function (a, ch) { return a * 31 + ch.charCodeAt(0); }, 7); return SITE_COLORS[Math.abs(v) % SITE_COLORS.length]; }
+  /* One color for every site (teal). No status uses teal, so a site can never be mistaken for a status. */
+  function siteColor() { return '#0e7490'; }
   function siteChip(num) { var c = el('span', '', 'Site ' + num); c.style.cssText = 'display:inline-block;background:' + siteColor(num) + ';color:#fff;font-family:Oswald,sans-serif;letter-spacing:.05em;font-size:13px;padding:2px 9px;margin-right:8px;vertical-align:middle;text-transform:uppercase'; return c; }
   async function openCustJob(id) {
     cOpenId = id; show('custJob'); history.pushState({ v: 'job' }, '');

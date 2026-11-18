@@ -64,14 +64,15 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .nte.mar { background:var(--concrete); border-left:6px solid var(--steel); color:var(--ink); }
 .st.req { background:#c2410c; } .st.cust { background:#7c3aed; }
 .alert { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:10px 14px; margin:8px 0; background:#fff4e5; border:1px solid #f0c98a; border-left:6px solid #c2410c; }
-.alert.low { background:#fbeaea; border-color:#e5b8b8; border-left-color:#b91c1c; }
+.alert.low { background:#fbeaea; border-color:#e5b8b8; border-left-color:#950606; }
 .nq button { margin:4px 6px 0 0; }
-.calc { font-size:14px; margin-top:10px; line-height:1.6; } .calc .warn { color:#b91c1c; font-weight:700; }
+.calc { font-size:14px; margin-top:10px; line-height:1.6; } .calc .warn { color:#950606; font-weight:700; }
 .st { display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; color:#fff; background:#666; text-transform:uppercase; letter-spacing:.03em; }
-.st.waiting_assignment,.st.new { background:#b8860b; } .st.needs_manual_match { background:#c2410c; }
-.st.assigned,.st.dispatched { background:#1d4ed8; } .st.in_progress { background:#15803d; }
-.st.awaiting_funds { background:#7c3aed; } .st.awaiting_part { background:#0e7490; }
-.st.completed,.st.needs_billing { background:#334155; } .st.completion_review { background:#a16207; } .st.billed { background:#0f766e; }
+/* Status colors: orange = needs action now, blue = active, amber = waiting on someone else, violet = waiting on the customer, green = done, gray = closed or inactive */
+.st.waiting_assignment,.st.new,.st.needs_manual_match,.st.completion_review,.st.needs_billing { background:#c2410c; }
+.st.assigned,.st.dispatched,.st.in_progress { background:#1d4ed8; }
+.st.awaiting_funds { background:#7c3aed; } .st.awaiting_part { background:#eab308; color:#422006; }
+.st.billed { background:#15803d; } .st.completed,.st.closed,.st.canceled { background:#6b7280; }
 .bill-in { width:100%; padding:7px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .bill-ta { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .ai-btn,.ai-go,.ai-no { cursor:pointer; font:inherit; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:9px 14px; min-height:40px; border:2px solid; }
@@ -80,8 +81,8 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .ai-panel select,.ai-panel input,.ai-panel textarea { width:100%; max-width:100%; padding:8px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .ai-flag { color:#9a3412; font-size:13px; margin:4px 0; } .ai-note { font-size:12px; color:var(--steel); margin:6px 0; }
 @media (max-width:640px) { .ai-panel select,.ai-panel input,.ai-panel textarea { font-size:16px; } .ai-btn,.ai-go,.ai-no { flex:1; min-height:44px; } }
-.bill-warn { color:var(--red); font-weight:600; font-size:13px; margin:6px 0; } .st.margin_review { background:#9d174d; } .st.on_hold { background:#6b7280; }
-.st.emergency { background:#b91c1c; } .st.urgent { background:#c2410c; }
+.bill-warn { color:var(--red); font-weight:600; font-size:13px; margin:6px 0; } .st.margin_review { background:#c2410c; } .st.on_hold { background:#6b7280; }
+.st.emergency { background:#950606; } .st.urgent { background:#c2410c; }
 .steps { display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap; } .steps span { font-size:12px; padding:3px 8px; background:var(--concrete); border:1px solid var(--border); }
 .steps span.on { background:var(--ink); color:var(--paper); }
 .wiz label { display:block; font-size:12px; font-weight:600; color:var(--steel); margin:14px 0 4px; text-transform:uppercase; letter-spacing:.04em; }
@@ -102,16 +103,17 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .pl .tx small{display:block;color:var(--steel);font-size:12.5px;letter-spacing:.04em;text-transform:uppercase;line-height:1.2}
 .pl .tx b{font-weight:600}
 .pl.wrapt .tx{white-space:normal}
-.dot{width:10px;height:10px;border-radius:50%;flex:none;background:#f59e0b}
-.dot.urgent{background:#ea580c}.dot.emergency{background:#b91c1c}
+.dot{width:10px;height:10px;border-radius:50%;flex:none;background:#eab308}
+.dot.urgent{background:#ea580c}.dot.emergency{background:#950606}
 .stp{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:600;font-size:15px;background:#e5e7eb;color:#374151}
-.stp.new{background:#dbeafe;color:#1d4ed8}.stp.waiting_assignment,.stp.needs_manual_match{background:#fef3c7;color:#92400e}
-.stp.assigned,.stp.in_progress,.stp.scheduled{background:#dcfce7;color:#166534}.stp.awaiting_funds,.stp.awaiting_review,.stp.completed{background:#ede9fe;color:#5b21b6}
-.stp.closed,.stp.billed{background:#e5e7eb;color:#374151}.stp.canceled{background:#fee2e2;color:#991b1b}
+.stp.new,.stp.waiting_assignment,.stp.needs_manual_match,.stp.completion_review,.stp.needs_billing,.stp.margin_review{background:#ffedd5;color:#9a3412}
+.stp.assigned,.stp.dispatched,.stp.in_progress,.stp.scheduled{background:#dbeafe;color:#1d4ed8}
+.stp.awaiting_funds,.stp.awaiting_review{background:#ede9fe;color:#5b21b6}.stp.awaiting_part{background:#fef9c3;color:#713f12}
+.stp.billed{background:#dcfce7;color:#166534}.stp.completed,.stp.closed,.stp.canceled,.stp.on_hold{background:#e5e7eb;color:#374151}
 .issue{margin-top:16px;padding:12px 16px;background:#fafaf8;border:1px solid var(--border);border-left:5px solid var(--ink)}
 .issue small{display:block;font-family:'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;font-size:13px;color:var(--steel);margin-bottom:4px}
 .issue p{margin:0;font-size:17px;color:var(--ink)}
-.cbanner{border-left:6px solid #b91c1c;background:#fef2f2}
+.cbanner{border-left:6px solid #950606;background:#fef2f2}
 .cbanner h2{color:#991b1b}
 .mdl{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px}
 .mdl .box{background:#fff;max-width:520px;width:100%;padding:24px;border-radius:8px;max-height:90vh;overflow:auto}
@@ -171,9 +173,9 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
 .kpis { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
 button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 .kpi.k0 { border-top-color:#6b7280; } .kpi.k0:hover { background:#fafaf8; }
-.kpi.k0.has { border-top-color:#b91c1c; background:#fff5f5; } .kpi.k0.has .kv { color:#b91c1c; }
+.kpi.k0.has { border-top-color:#950606; background:#fff5f5; } .kpi.k0.has .kv { color:#950606; }
 .kpi.k0[aria-expanded=true] { outline:2px solid var(--ink); }
-.alertsbox { background:var(--paper); border:1px solid var(--border); border-top:4px solid #b91c1c; padding:16px 20px; margin:12px 0 6px; }
+.alertsbox { background:var(--paper); border:1px solid var(--border); border-top:4px solid #950606; padding:16px 20px; margin:12px 0 6px; }
 .alertsbox .ahead { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
 .alertsbox h2 { font-size:20px; margin:0; }
 @media (max-width:760px) { .kpis { grid-template-columns:repeat(2,minmax(0,1fr)) !important; } .kpi.k0 { grid-column:1 / -1; } }
@@ -198,11 +200,12 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 .tk2 .hd .id { font-family:'Oswald',sans-serif; font-weight:700; letter-spacing:.04em; font-size:15px; background:var(--ink); color:#fff; padding:3px 10px; }
 .tk2 h3 { font-size:19px; margin:8px 0 8px; }
 .bdg { display:inline-block; font-family:'Oswald',sans-serif; letter-spacing:.05em; text-transform:uppercase; font-size:12px; font-weight:600; padding:3px 10px; color:#fff; background:var(--ink); }
-.bdg.red { background:#b91c1c; } .bdg.amber { background:#b45309; } .bdg.violet { background:#7c3aed; } .bdg.green { background:#15803d; } .bdg.blue { background:#1d4ed8; }
+.bdg.red { background:#950606; } .bdg.amber { background:#eab308; color:#422006; } .bdg.violet { background:#7c3aed; } .bdg.green { background:#15803d; } .bdg.blue { background:#1d4ed8; } .bdg.orange { background:#c2410c; } .bdg.gray { background:#6b7280; }
 .tk2 .hd .st { margin:0; }
 .tk2 .pills { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
 .tk2 .pill { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:5px 10px; border:1px solid var(--border); background:#fff; color:var(--ink); text-decoration:none; max-width:100%; }
 .tk2 .pill svg { width:15px; height:15px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.tk2 .pill.site { background:#ecfeff; border-color:#0e7490; color:#155e75; font-weight:600; }
 .tk2 a.pill { color:#1d4ed8; border-color:#1d4ed8; } .tk2 a.pill:hover { background:#eef3ff; }
 .tk2 .jdesc { font-size:14px; line-height:1.45; margin:0 0 10px; color:var(--ink); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .tk2 .strip { display:flex; gap:8px; margin:0 0 12px; }
@@ -1265,7 +1268,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         clear(payBox);
         var pd; try { pd = await api('/staff/bills/' + billId + '/payments'); } catch (er) { return; }
         var hd = mk('b', null, 'Payments'); payBox.appendChild(hd);
-        var stt = pd.paymentStatus === 'paid' ? ['Paid in full', '#15803d'] : pd.paymentStatus === 'partial' ? ['Partially paid. ' + money2(pd.balance) + ' remaining', '#b45309'] : ['Unpaid. ' + money2(pd.balance) + ' due', '#b91c1c'];
+        var stt = pd.paymentStatus === 'paid' ? ['Paid in full', '#15803d'] : pd.paymentStatus === 'partial' ? ['Partially paid. ' + money2(pd.balance) + ' remaining', '#a16207'] : ['Unpaid. ' + money2(pd.balance) + ' due', '#950606'];
         var sp = mk('p', null, 'Invoice ' + (pd.invoiceNumber || '') + ' \u00b7 ' + money2(pd.total) + ' \u00b7 ' + stt[0]); sp.style.cssText = 'font-weight:700;margin:6px 0;color:' + stt[1]; payBox.appendChild(sp);
         pd.payments.forEach(function (p) {
           var ln = mk('div', null, fmt(p.paid_on) + ' \u00b7 ' + money2(p.amount) + ' \u00b7 ' + p.method + (p.reference ? ' \u00b7 ' + p.reference : '') + (p.external_id && String(p.external_id).indexOf('credit:') !== 0 ? ' (Square)' : '') + (p.voided_at ? ' \u00b7 VOIDED: ' + (p.void_reason || '') : ''));
@@ -1314,7 +1317,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         var ct = r2(Number(fIn.value) || 0), m = ct > 0 ? r2((ct - d.providerTotal) / ct * 100) : (d.providerTotal > 0 ? -100 : 0);
         clear(ftot);
         [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total (locked)', dollars(d.providerTotal)], ['mar', 'Margin', m + '%']].forEach(function (x) {
-          var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= d.minMargin ? ['#fef3c7', '#b45309', '#92400e'] : ['#fee2e2', '#b91c1c', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; } r.appendChild(sp); ftot.appendChild(r);
+          var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= d.minMargin ? ['#fef3c7', '#a16207', '#92400e'] : ['#fee2e2', '#950606', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; } r.appendChild(sp); ftot.appendChild(r);
         });
         clear(fwarn);
         if (ct > d.customerNte) fwarn.appendChild(mk('p', 'bill-warn', 'The customer total is over the Customer NTE (' + dollars(d.customerNte) + ').'));
@@ -1385,7 +1388,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       var m = ct > 0 ? r2((ct - d.providerTotal) / ct * 100) : (d.providerTotal > 0 ? -100 : 0);
       clear(tot);
       [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total (locked)', dollars(d.providerTotal)], ['mar', 'Margin', m + '%']].forEach(function (x) {
-        var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= d.minMargin ? ['#fef3c7', '#b45309', '#92400e'] : ['#fee2e2', '#b91c1c', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; } r.appendChild(sp); tot.appendChild(r);
+        var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= d.minMargin ? ['#fef3c7', '#a16207', '#92400e'] : ['#fee2e2', '#950606', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; } r.appendChild(sp); tot.appendChild(r);
       });
       clear(warn);
       if (ct > d.customerNte) warn.appendChild(mk('p', 'bill-warn', 'The customer total is over the Customer NTE (' + dollars(d.customerNte) + ').'));
@@ -1474,7 +1477,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         tr.appendChild(td(t.invoice_number && t.bill_status === 'invoiced' && Number(t.balance) > 0.004 ? String(t.age_days) : ''));
         tr.appendChild(td(t.provider_total != null ? '$' + Number(t.provider_total).toFixed(2) : ''));
         var m = t.margin_pct, mc = td(m != null ? m + '%' : '');
-        if (m != null) mc.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#b45309' : '#b91c1c');
+        if (m != null) mc.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#a16207' : '#950606');
         tr.appendChild(mc);
         tr.onclick = function () { openTicket(t.id); };
         body.appendChild(tr);
@@ -1526,7 +1529,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   }
   document.querySelectorAll('#repSub b').forEach(function (x) { x.onclick = function () { showSub(x.getAttribute('data-sub')); }; });
   function money2(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
-  function marginCell(m) { var c = td(m == null ? '' : m + '%'); if (m != null) c.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#b45309' : '#b91c1c'); return c; }
+  function marginCell(m) { var c = td(m == null ? '' : m + '%'); if (m != null) c.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#a16207' : '#950606'); return c; }
   function finTable(box, title, heads, rows, clicks) {
     var h = mk('h3', null, title); h.style.cssText = 'font-size:14px;text-transform:uppercase;margin:20px 0 4px'; box.appendChild(h);
     var t = mk('table', 't'), hr = t.createTHead().insertRow(); heads.forEach(function (x) { hr.appendChild(mk('th', null, x)); });
@@ -1545,8 +1548,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       var d = await api('/staff/reports/financial?from=' + rg[0] + '&to=' + rg[1]);
       $('finRange').textContent = 'Invoices issued ' + d.from + ' to ' + d.to + ' (' + d.invoices + '). Collected counts payments received in the period. Outstanding is as of today.';
       var cards = $('finCards'); clear(cards);
-      [['Billed to customers', money2(d.billed), '#1d4ed8'], ['Owed to providers', money2(d.provider), '#c2410c'], ['TMG margin', money2(d.margin) + (d.marginPct != null ? ' \u00b7 ' + d.marginPct + '%' : ''), d.marginPct == null || d.marginPct >= 20 ? '#15803d' : d.marginPct >= 5 ? '#b45309' : '#b91c1c'],
-       ['Outstanding (' + d.outstandingCount + ')', money2(d.outstanding), '#b45309'], ['Collected', money2(d.collected), '#15803d']].forEach(function (c) {
+      [['Billed to customers', money2(d.billed), '#1d4ed8'], ['Owed to providers', money2(d.provider), '#c2410c'], ['TMG margin', money2(d.margin) + (d.marginPct != null ? ' \u00b7 ' + d.marginPct + '%' : ''), d.marginPct == null || d.marginPct >= 20 ? '#15803d' : d.marginPct >= 5 ? '#a16207' : '#950606'],
+       ['Outstanding (' + d.outstandingCount + ')', money2(d.outstanding), '#a16207'], ['Collected', money2(d.collected), '#15803d']].forEach(function (c) {
         var x = mk('div'); x.style.cssText = 'border-left:4px solid ' + c[2] + ';background:#f7f7f7;padding:10px 12px';
         var l = mk('div', null, c[0]); l.style.cssText = 'text-transform:uppercase;font-size:11px;font-weight:700;color:#444'; var v = mk('div', null, c[1]); v.style.cssText = 'font-size:22px;font-weight:700;margin-top:2px';
         x.appendChild(l); x.appendChild(v); cards.appendChild(x);
@@ -1555,7 +1558,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       });
       var box = $('finBody'); clear(box);
       finTable(box, 'By TMG rep', ['Rep', 'Tickets', 'Billed', 'Margin'], d.byRep.map(function (r) { return [r.rep, String(r.tickets), money2(r.billed), marginCell(r.marginPct)]; }), d.byRep.map(function (r) { return function () { drill({ repQ: r.rep, repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }); }; }));
-      finTable(box, 'Aging of outstanding invoices', ['Age', 'Invoices', 'Amount'], d.aging.map(function (a) { var c = td(money2(a.amount)); if (a.label === 'Over 60 days' && a.amount > 0) c.style.cssText = 'color:#b91c1c;font-weight:700'; return [a.label, String(a.invoices), c]; }), d.aging.map(function (a, i) { var lim = [[0, 30], [31, 60], [61, '']][i]; return function () { drill({ repInv: 'outstanding', repAgeMin: lim[0], repAgeMax: lim[1] }); }; }));
+      finTable(box, 'Aging of outstanding invoices', ['Age', 'Invoices', 'Amount'], d.aging.map(function (a) { var c = td(money2(a.amount)); if (a.label === 'Over 60 days' && a.amount > 0) c.style.cssText = 'color:#950606;font-weight:700'; return [a.label, String(a.invoices), c]; }), d.aging.map(function (a, i) { var lim = [[0, 30], [31, 60], [61, '']][i]; return function () { drill({ repInv: 'outstanding', repAgeMin: lim[0], repAgeMax: lim[1] }); }; }));
       finTable(box, 'By customer', ['Customer', 'Billed', 'Collected', 'Outstanding', 'Margin'], d.byCustomer.map(function (r) { return [r.customer, money2(r.billed), money2(r.collected), money2(r.outstanding), marginCell(r.marginPct)]; }), d.byCustomer.map(function (r) { return function () { drill({ repQ: r.customer, repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }); }; }));
       finTable(box, 'By provider (owed)', ['Provider', 'Jobs', 'Approved bills'], d.byProvider.map(function (r) { return [r.provider, String(r.jobs), money2(r.owed)]; }), d.byProvider.map(function (r) { return function () { drill({ repQ: r.provider, repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }); }; }));
     } catch (e) { flash(e.message, false); }
@@ -1575,7 +1578,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     $('rrInterp').textContent = d.interpretation ? 'A.R.C.H. understood: ' + d.interpretation : '';
     var th = $('rrTable').tHead; clear(th); var hr = th.insertRow(); d.columns.forEach(function (c) { hr.appendChild(mk('th', null, c.label)); });
     var tb = $('rrTable').tBodies[0]; clear(tb);
-    d.rows.forEach(function (r) { var tr = tb.insertRow(); d.columns.forEach(function (c) { var cell = td(cellText(c, r[c.key])); if (c.key === 'margin' && r[c.key] != null) cell.style.cssText = 'font-weight:700;color:' + (r[c.key] >= 20 ? '#15803d' : r[c.key] >= 5 ? '#b45309' : '#b91c1c'); tr.appendChild(cell); }); });
+    d.rows.forEach(function (r) { var tr = tb.insertRow(); d.columns.forEach(function (c) { var cell = td(cellText(c, r[c.key])); if (c.key === 'margin' && r[c.key] != null) cell.style.cssText = 'font-weight:700;color:' + (r[c.key] >= 20 ? '#15803d' : r[c.key] >= 5 ? '#a16207' : '#950606'); tr.appendChild(cell); }); });
     var t = d.totals; $('rrTotals').textContent = t.count + ' ' + (d.mode === 'grouped' ? 'tickets in ' + d.rows.length + ' groups' : 'ticket' + (t.count === 1 ? '' : 's')) + ' \u00b7 Customer total ' + money2(t.customer_total) + ' \u00b7 Provider total ' + money2(t.provider_total) + ' \u00b7 Outstanding ' + money2(t.balance) + (t.marginPct != null ? ' \u00b7 Margin ' + t.marginPct + '%' : '');
     $('rrNote').textContent = d.rows.length ? (d.capped ? 'Very large result: only the newest 2,000 tickets were counted. Narrow the request for exact totals.' : '') : 'Nothing matched. Try widening the dates or amounts.';
   }
@@ -1747,6 +1750,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   function tkSvg(name) { var s2 = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); s2.setAttribute('viewBox', '0 0 24 24'); s2.setAttribute('aria-hidden', 'true'); s2.innerHTML = TK_ICON[name]; return s2; }
   function tkPill(icon, text, href) {
     var p = mk(href ? 'a' : 'span', 'pill'); if (href) { p.href = href; p.target = '_blank'; p.rel = 'noopener'; p.title = 'Open in Google Maps and search nearby'; }
+    if (icon === 'building') p.className += ' site';
     p.appendChild(tkSvg(icon)); p.appendChild(document.createTextNode(text)); return p;
   }
   function tkIcon(icon, href, label) { var a = mk('a', 'ic'); a.href = href; a.title = label; a.setAttribute('aria-label', label); a.appendChild(tkSvg(icon)); return a; }
@@ -1950,7 +1954,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     var t = curTicket, done = ['closed', 'billed', 'canceled'].indexOf(t.status) >= 0;
     var end = done && t.updated_at ? new Date(t.updated_at) : new Date();
     var mins = Math.max(0, Math.floor((end - new Date(t.created_at)) / 60000));
-    el.textContent = ageStr(mins) + (done ? ' (finished)' : ''); el.style.color = (!done && mins >= 4320) ? '#b91c1c' : '';
+    el.textContent = ageStr(mins) + (done ? ' (finished)' : ''); el.style.color = (!done && mins >= 4320) ? '#950606' : '';
   }
   setInterval(tickAge, 30000);
   function drawMeta(t) {
@@ -2289,7 +2293,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (!(c > 0) || !(p >= 0) || String($('rlProv').value).trim() === '') { o.textContent = ''; return; }
     var m = Math.round((c - p) / c * 1000) / 10;
     o.textContent = 'Margin at these NTEs: ' + m + '%' + (p > c ? ' (provider NTE is above the customer NTE)' : '');
-    o.style.color = m >= 20 ? '#15803d' : m >= 5 ? '#b45309' : '#b91c1c';
+    o.style.color = m >= 20 ? '#15803d' : m >= 5 ? '#a16207' : '#950606';
   }
   $('rlCust').addEventListener('input', function () { if (!provTouched) $('rlProv').value = suggestProv($('rlCust').value); showRelMargin(); });
   $('rlProv').addEventListener('input', function () { provTouched = true; showRelMargin(); });
