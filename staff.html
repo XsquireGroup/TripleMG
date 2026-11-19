@@ -63,6 +63,26 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .ph figure { margin:0; width:120px; }
 .ph img { width:120px; height:90px; object-fit:cover; border:1px solid var(--border); cursor:pointer; display:block; background:#eee; }
 .ph figcaption { font-size:12px; margin-top:4px; }
+.alcount { color:#c2410c; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.tkal { display:flex; gap:10px; align-items:flex-start; justify-content:space-between; padding:8px 0; border-top:1px solid var(--border); font-size:14px; }
+.tkal .am { flex:1; min-width:0; } .tkal small { display:block; color:var(--steel); font-size:12px; }
+.mk-w { position:relative; display:inline-block; }
+.mk-b { display:inline-flex; align-items:center; gap:6px; cursor:pointer; font:inherit; font-size:13px; font-weight:600; padding:4px 9px; background:#fff; border:1px solid var(--border); color:var(--ink); min-height:30px; }
+.mk-b svg, .mk-i svg { width:16px; height:16px; flex:none; }
+.mk-m { position:absolute; z-index:30; left:0; top:100%; margin-top:2px; min-width:220px; background:#fff; border:1px solid var(--steel); box-shadow:0 6px 18px rgba(0,0,0,.18); }
+.mk-i { display:flex; align-items:center; gap:10px; width:100%; text-align:left; cursor:pointer; font:inherit; font-size:14px; padding:10px 12px; min-height:42px; background:#fff; border:0; border-bottom:1px solid var(--border); color:var(--ink); }
+.mk-i:hover, .mk-b:hover { background:#f3f2ee; }
+.mk-last { font-size:12px; color:var(--steel); margin-left:8px; }
+#sheetBack { position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:140; }
+.sheet { display:none !important; }
+.sheet.open { display:block !important; position:fixed; z-index:150; inset:3vh 5vw; overflow:auto; margin:0; box-shadow:0 12px 40px rgba(0,0,0,.4); }
+.sheet[hidden] { display:none !important; }
+body.sheet-lock { overflow:hidden; }
+.shbar { position:sticky; top:-16px; z-index:2; display:flex; gap:8px; align-items:center; flex-wrap:wrap; background:var(--paper); padding:10px 0; margin:-6px 0 10px; border-bottom:2px solid var(--ink); }
+.shbar .shtabs { display:flex; gap:6px; flex:1; flex-wrap:wrap; }
+.shbar .shtab { font:inherit; font-size:13px; font-weight:700; text-transform:uppercase; padding:8px 12px; min-height:40px; cursor:pointer; background:#fff; border:2px solid var(--ink); color:var(--ink); }
+.shbar .shtab.on { background:var(--ink); color:#fff; }
+@media (max-width:640px) { .sheet.open { inset:0; } .shbar .shtab { flex:1; } }
 .btn-sm { padding:5px 10px; font-size:12px; background:none; border:1px solid var(--steel); color:var(--ink); cursor:pointer; }
 .nte { padding:12px 16px; margin:8px 0; display:flex; justify-content:space-between; align-items:baseline; font-size:15px; }
 .nte b { font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-size:13px; }
@@ -76,11 +96,23 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .nq button { margin:4px 6px 0 0; }
 .calc { font-size:14px; margin-top:10px; line-height:1.6; } .calc .warn { color:#950606; font-weight:700; }
 .st { display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; color:#fff; background:#666; text-transform:uppercase; letter-spacing:.03em; }
-/* Status colors: orange = needs action now, blue = active, amber = waiting on someone else, violet = waiting on the customer, green = done, gray = closed or inactive */
-.st.waiting_assignment,.st.new,.st.needs_manual_match,.st.completion_review,.st.needs_billing { background:#c2410c; }
-.st.assigned,.st.dispatched,.st.in_progress { background:#1d4ed8; }
-.st.awaiting_funds { background:#7c3aed; } .st.awaiting_part { background:#eab308; color:#422006; }
-.st.billed { background:#15803d; } .st.completed,.st.closed,.st.canceled { background:#6b7280; }
+/* Status colors: every status has its own color (Rich, Nov 19 2026) */
+.st.new { background:#49c0b6; color:#1a1a1a; }
+.st.waiting_assignment { background:#e4e932; color:#1a1a1a; }
+.st.needs_manual_match { background:#566127; color:#fff; }
+.st.completion_review { background:#6a3be4; color:#fff; }
+.st.needs_billing { background:#005670; color:#fff; }
+.st.margin_review { background:#d52685; color:#fff; }
+.st.assigned { background:#005387; color:#fff; }
+.st.dispatched { background:#fdb813; color:#1a1a1a; }
+.st.in_progress { background:#1d4ed8; color:#fff; }
+.st.awaiting_part { background:#00d1b2; color:#1a1a1a; }
+.st.awaiting_funds { background:#bc0024; color:#fff; }
+.st.billed { background:#2baf2b; color:#1a1a1a; }
+.st.completed { background:#262a3e; color:#fff; }
+.st.closed { background:#ff7243; color:#1a1a1a; }
+.st.canceled { background:#562e19; color:#fff; }
+.st.on_hold { background:#fff; color:#6b7280; box-shadow:inset 0 0 0 2px #6b7280; }
 .bill-in { width:100%; padding:7px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .bill-ta { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .ai-btn,.ai-go,.ai-no { cursor:pointer; font:inherit; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:9px 14px; min-height:40px; border:2px solid; }
@@ -89,7 +121,7 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .ai-panel select,.ai-panel input,.ai-panel textarea { width:100%; max-width:100%; padding:8px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .ai-flag { color:#9a3412; font-size:13px; margin:4px 0; } .ai-note { font-size:12px; color:var(--steel); margin:6px 0; }
 @media (max-width:640px) { .ai-panel select,.ai-panel input,.ai-panel textarea { font-size:16px; } .ai-btn,.ai-go,.ai-no { flex:1; min-height:44px; } }
-.bill-warn { color:var(--red); font-weight:600; font-size:13px; margin:6px 0; } .st.margin_review { background:#c2410c; } .st.on_hold { background:#6b7280; }
+.bill-warn { color:var(--red); font-weight:600; font-size:13px; margin:6px 0; }
 .st.emergency { background:#950606; } .st.urgent { background:#c2410c; }
 .steps { display:flex; gap:6px; margin:10px 0 4px; flex-wrap:wrap; } .steps span { font-size:12px; padding:3px 8px; background:var(--concrete); border:1px solid var(--border); }
 .steps span.on { background:var(--ink); color:var(--paper); }
@@ -114,10 +146,22 @@ form.f button { padding:11px 16px; background:var(--red); color:var(--paper); bo
 .dot{width:10px;height:10px;border-radius:50%;flex:none;background:#eab308}
 .dot.urgent{background:#ea580c}.dot.emergency{background:#950606}
 .stp{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:600;font-size:15px;background:#e5e7eb;color:#374151}
-.stp.new,.stp.waiting_assignment,.stp.needs_manual_match,.stp.completion_review,.stp.needs_billing,.stp.margin_review{background:#ffedd5;color:#9a3412}
-.stp.assigned,.stp.dispatched,.stp.in_progress,.stp.scheduled{background:#dbeafe;color:#1d4ed8}
-.stp.awaiting_funds,.stp.awaiting_review{background:#ede9fe;color:#5b21b6}.stp.awaiting_part{background:#fef9c3;color:#713f12}
-.stp.billed{background:#dcfce7;color:#166534}.stp.completed,.stp.closed,.stp.canceled,.stp.on_hold{background:#e5e7eb;color:#374151}
+.stp.new { background:#49c0b6; color:#1a1a1a; }
+.stp.waiting_assignment { background:#e4e932; color:#1a1a1a; }
+.stp.needs_manual_match { background:#566127; color:#fff; }
+.stp.completion_review { background:#6a3be4; color:#fff; }
+.stp.needs_billing { background:#005670; color:#fff; }
+.stp.margin_review { background:#d52685; color:#fff; }
+.stp.assigned { background:#005387; color:#fff; }
+.stp.dispatched { background:#fdb813; color:#1a1a1a; }
+.stp.in_progress { background:#1d4ed8; color:#fff; }
+.stp.awaiting_part { background:#00d1b2; color:#1a1a1a; }
+.stp.awaiting_funds { background:#bc0024; color:#fff; }
+.stp.billed { background:#2baf2b; color:#1a1a1a; }
+.stp.completed { background:#262a3e; color:#fff; }
+.stp.closed { background:#ff7243; color:#1a1a1a; }
+.stp.canceled { background:#562e19; color:#fff; }
+.stp.on_hold { background:#fff; color:#6b7280; box-shadow:inset 0 0 0 2px #6b7280; }
 .issue{margin-top:16px;padding:12px 16px;background:#fafaf8;border:1px solid var(--border);border-left:5px solid var(--ink)}
 .issue small{display:block;font-family:'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;font-size:13px;color:var(--steel);margin-bottom:4px}
 .issue p{margin:0;font-size:17px;color:var(--ink)}
@@ -327,7 +371,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     <div id="viewTicket" hidden>
       <button class="back" id="backToTickets">&larr; All tickets</button>
       <div class="panel cbanner" id="cancelBanner" hidden></div>
-      <div class="panel" id="tkHead"><h2 id="tkTitle"></h2>
+      <div class="panel" id="tkHead"><div id="tkMarker" style="margin-bottom:10px"></div><h2 id="tkTitle"></h2>
         <div id="tkMeta"></div>
         <div class="issue"><small>Issue</small><p id="tkDesc"></p></div>
         <div class="qbar" id="qbar">
@@ -351,6 +395,10 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           <label class="drop" id="tkDrop" for="tkPhAdd"><b>+ Add Photo(s)</b><span>Drag photos here or tap to choose. Up to 10.</span><input id="tkPhAdd" type="file" accept="image/*" multiple></label>
           <div class="slots" id="tkPhotos"></div></div>
         <div class="panel"><h2>Money</h2><div id="tkMoney"></div></div>
+      </div>
+      <div class="panel" id="tkAlertsPanel" hidden><h2>Pending alerts on this ticket <span class="alcount" id="tkAlN"></span></h2>
+        <p class="small">Work each one, then clear it. Owner alerts can only be cleared by the Owner.</p>
+        <div id="tkAlList"></div>
       </div>
       <div class="panel" id="checkPanel" hidden><h2>Check-in / Check-out</h2>
         <p class="small" id="ckSum"></p>
@@ -392,8 +440,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           <div id="cmpBackRow" style="margin-top:10px"></div>
         </div>
       </div>
-      <div class="panel" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
-      <div class="panel" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
+      <div class="panel" id="billLaunch" hidden><h2>Bills</h2><p id="blText" style="margin:6px 0"></p><div id="blBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div></div>
+      <div class="panel sheet" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
+      <div class="panel sheet" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p><div id="provInfo"></div>
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Completed jobs</th><th>Score</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
@@ -542,9 +591,10 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       </div>
       <div class="panel">
         <h2>Documents</h2>
-        <table class="t" id="docTable"><thead><tr><th>Type</th><th>File</th><th>Uploaded</th><th>Expires</th></tr></thead><tbody></tbody></table>
+        <table class="t" id="docTable"><thead><tr><th>Type</th><th>File</th><th>Uploaded</th><th>Expires</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="docEmpty" hidden>No documents uploaded.</p>
       </div>
+      <div class="panel" id="bankPanel"><h2>Bank account for payouts</h2><div id="bankBody"></div></div>
       <div class="panel">
         <h2>Logins</h2>
         <p class="small" id="pLimit"></p>
@@ -682,13 +732,19 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   }
   function problem(msg) { $('problemText').textContent = msg; show('problem'); }
 
+  // Phones and the installed app stay signed in; desktop browsers sign out when closed.
+  var ON_PHONE = false;
+  try {
+    ON_PHONE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  } catch (e) { }
   var app = new msal.PublicClientApplication({
     auth: {
       clientId: CLIENT_ID,
       authority: 'https://login.microsoftonline.com/' + TENANT_ID,
       redirectUri: window.location.origin + window.location.pathname
     },
-    cache: { cacheLocation: 'sessionStorage' }
+    cache: { cacheLocation: ON_PHONE ? 'localStorage' : 'sessionStorage' }
   });
 
   function signIn() { app.loginRedirect({ scopes: SCOPES }); }
@@ -985,13 +1041,61 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     } catch (er) { pn.hidden = true; }
   }
 
+  // ---- bill review sheet: click-through pop-up over the ticket ----
+  var sheetWanted = false, sheetTicket = null, sheetStep = 0, billInfo = {};
+  var BILL_STAT = { margin_review: 'The bill is in margin review.', submitted: 'The provider bill is waiting for your review.', returned: 'Returned to the provider.', provider_approved: 'Provider bill approved. The customer bill is ready for your review.', customer_review: 'Customer bill is waiting on the Owner.', approved: 'Customer bill approved, ready to invoice.', invoiced: 'Invoiced.' };
+  function closeSheet() {
+    sheetWanted = false; sheetStep = 0;
+    ['billSection', 'custSection'].forEach(function (x) { $(x).classList.remove('open'); var b = $(x).querySelector('.shbar'); if (b) b.remove(); });
+    var bk = $('sheetBack'); if (bk) bk.remove(); document.body.classList.remove('sheet-lock');
+  }
+  function sheetShows() {
+    if (!sheetWanted) return;
+    var haveP = !$('billSection').hidden, haveC = !$('custSection').hidden;
+    if (!haveP && !haveC) return closeSheet();
+    var step = sheetStep === 1 && haveP ? 1 : sheetStep === 2 && haveC ? 2 : (haveC ? 2 : 1);
+    sheetStep = step;
+    if (!$('sheetBack')) { var bk = mk('div'); bk.id = 'sheetBack'; bk.onclick = closeSheet; document.body.appendChild(bk); }
+    document.body.classList.add('sheet-lock');
+    [['billSection', 1], ['custSection', 2]].forEach(function (p) {
+      var sec = $(p[0]), old = sec.querySelector('.shbar'); if (old) old.remove();
+      sec.classList.toggle('open', p[1] === step);
+      if (p[1] !== step) return;
+      var bar = mk('div', 'shbar'), tabs = mk('div', 'shtabs');
+      [[1, 'Step 1: Provider bill', haveP], [2, 'Step 2: Customer bill', haveC]].forEach(function (t) {
+        if (!t[2]) return;
+        var b = mk('button', 'shtab' + (t[0] === step ? ' on' : ''), t[1]); b.type = 'button';
+        b.onclick = function () { sheetStep = t[0]; sheetShows(); }; tabs.appendChild(b);
+      });
+      bar.appendChild(tabs);
+      bar.appendChild(btn('Close, finish later', closeSheet, 'ai-no'));
+      sec.insertBefore(bar, sec.firstChild);
+      sec.scrollTop = 0;
+    });
+  }
+  function openSheet(step) { sheetWanted = true; sheetTicket = currentTicket; sheetStep = step || sheetStep || 0; sheetShows(); }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetWanted && !document.querySelector('.mdl')) closeSheet(); });
+  function updateBillLaunch() {
+    var L = $('billLaunch'), haveP = !$('billSection').hidden, haveC = !$('custSection').hidden;
+    clear($('blBtns'));
+    if (!haveP && !haveC) { L.hidden = true; if (sheetWanted) closeSheet(); return; }
+    L.hidden = false;
+    var st = billInfo.status, actionable = ['submitted', 'margin_review', 'provider_approved', 'customer_review', 'returned'].indexOf(st) >= 0 || (haveP && !st);
+    var txt = BILL_STAT[st] || (haveP && !st ? 'No bill has been submitted for this job yet.' : 'Bill in progress.');
+    if (billInfo.providerTotal != null) txt = 'Provider total ' + dollars(billInfo.providerTotal) + '. ' + txt;
+    $('blText').textContent = txt;
+    $('blBtns').appendChild(btn(actionable ? 'Review bill' : 'View bills', function () { openSheet(haveC ? 2 : 1); }, 'ai-btn'));
+    sheetShows();
+  }
+
   async function loadBill(id) {
-    var sec = $('billSection'); sec.hidden = true; clear($('billBody')); $('billBody').hidden = false; $('billTitle').textContent = 'Bill'; $('custSection').hidden = true; clear($('custBody'));
+    var sec = $('billSection'); sec.hidden = true; $('billLaunch').hidden = true; billInfo = {}; clear($('billBody')); $('billBody').hidden = false; $('billTitle').textContent = 'Bill'; $('custSection').hidden = true; clear($('custBody'));
     var oldSum = $('billSummary'); if (oldSum) oldSum.remove();
     try {
       var d = await api('/staff/tickets/' + id + '/bill');
       if (currentTicket !== id) return;
-      if (!d.bill) { return loadManualBill(id); }
+      billInfo = { status: d.bill ? d.bill.status : null, providerTotal: d.bill ? d.bill.provider_total : null };
+      if (!d.bill) { await loadManualBill(id); return updateBillLaunch(); }
       sec.hidden = false; renderBill(id, d);
       if (['provider_approved', 'customer_review', 'approved', 'invoiced'].indexOf(d.bill.status) >= 0) {
         // Page 2: the provider bill folds into one line and the customer bill takes over.
@@ -1003,6 +1107,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         await loadCustomerBill(id, d.bill.id);
       } else { $('billTitle').textContent = 'Step 1 of 2: Provider bill'; }
       if (d.bill.status === 'returned') await loadManualBill(id, true);
+      updateBillLaunch();
       // a returned/earlier bill never blocks this: the manual button only shows while the ticket is awaiting a bill
     } catch (er) { /* panel stays hidden */ }
   }
@@ -1428,14 +1533,14 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (d.canDecide && d.status === 'customer_review') { note = mk('input', 'bill-in'); note.placeholder = 'Note to the employee (required to send it back)'; note.maxLength = 1000; note.style.marginTop = '14px'; body.appendChild(note); }
     if (edit) bar.appendChild(btn('Save changes', async function () { try { await saveIt(); flash('Saved.', true); loadCustomerBill(id, billId); } catch (er) { flash(er.message, false); } }, 'ai-btn'));
     if (d.canSubmit && !d.isOwner) bar.appendChild(btn('Submit to Owner', async function () {
-      try { await api('/staff/bills/' + billId + '/customer-submit', 'POST', vals()); flash('Sent to the Owner for approval.', true); openTicket(id); loadAlerts(); maybeSurvey(id); } catch (er) { flash(er.message, false); }
+      try { await api('/staff/bills/' + billId + '/customer-submit', 'POST', vals()); flash('Sent to the Owner for approval.', true); closeSheet(); await openTicket(id); loadAlerts(); maybeSurvey(id); } catch (er) { flash(er.message, false); }
     }, 'ai-go'));
     if (d.canDecide) bar.appendChild(btn('Approve customer bill', async function () {
-      try { if (edit) await saveIt(); await api('/staff/bills/' + billId + '/customer-approve', 'POST', {}); flash('Customer bill approved. It is now in Ready to invoice.', true); maybeSurvey(id); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
+      try { if (edit) await saveIt(); await api('/staff/bills/' + billId + '/customer-approve', 'POST', {}); flash('Customer bill approved. It is now in Ready to invoice.', true); closeSheet(); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
     }, 'ai-go'));
     if (note) bar.appendChild(btn('Return to employee', async function () {
       if (note.value.trim().length < 3) return flash('Add a note telling the employee what to fix.', false);
-      try { await api('/staff/bills/' + billId + '/customer-return', 'POST', { note: note.value }); flash('Sent back to the employee.', true); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
+      try { await api('/staff/bills/' + billId + '/customer-return', 'POST', { note: note.value }); flash('Sent back to the employee.', true); closeSheet(); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
     }, 'ai-no'));
     api('/staff/tickets/' + id + '/rating').then(function (rt) { if (rt.canRate) bar.appendChild(btn('Rate provider', function () { openSurvey(id, rt); }, 'ai-btn')); }).catch(function () { /* optional */ });
     body.appendChild(bar);
@@ -1817,15 +1922,74 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     } catch (e) { box.remove(); }
   }
   function tkAge(t) { var m = Math.max(0, Math.floor((Date.now() - new Date(t.created_at).getTime()) / 60000)); return { mins: m, text: ageStr(m) }; }
+  // ---- daily touch marker ----
+  var MARKERS = [
+    ['in_progress', 'In progress today', '#1d4ed8', '<circle cx="8" cy="8" r="7"/>'],
+    ['waiting_parts', 'Waiting on parts', '#00d1b2', '<rect x="1.5" y="1.5" width="13" height="13"/>'],
+    ['needs_manager', 'Needs manager', '#950606', '<polygon points="8,1 15,14.5 1,14.5"/>'],
+    ['needs_attention', 'Needs attention', '#f48924', '<polygon points="8,0.5 15.5,8 8,15.5 0.5,8"/>'],
+    ['on_target', 'On target', '#2baf2b', '<polygon points="8,0.8 10.1,5.6 15.2,6 11.3,9.4 12.5,14.5 8,11.8 3.5,14.5 4.7,9.4 0.8,6 5.9,5.6"/>']
+  ];
+  function markerSvg(m) {
+    var color = m ? m[2] : '#6b7280';
+    var shape = m ? m[3] : '<circle cx="8" cy="8" r="6.5" fill="none" stroke="#6b7280" stroke-width="1.5" stroke-dasharray="3 2"/>';
+    return '<svg viewBox="0 0 16 16" aria-hidden="true" style="fill:' + (m ? color : 'none') + '">' + shape + '</svg>';
+  }
+  function markerFor(key) { for (var i = 0; i < MARKERS.length; i++) if (MARKERS[i][0] === key) return MARKERS[i]; return null; }
+  function touchText(t) {
+    if (!t.touched_at) return 'Not touched yet';
+    var d = new Date(t.touched_at), today = new Date().toDateString() === d.toDateString();
+    return 'Touched ' + (today ? 'today ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })) + (t.touched_by_name ? ' by ' + t.touched_by_name : '');
+  }
+  function markerWidget(t, withLast) {
+    var w = document.createElement('span'); w.className = 'mk-w';
+    function draw() {
+      clear(w);
+      var cur = markerFor(t.touch_marker);
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'mk-b'; b.title = touchText(t);
+      var ic = document.createElement('span'); ic.innerHTML = markerSvg(cur); ic.style.display = 'inline-flex'; b.appendChild(ic);
+      b.appendChild(document.createTextNode(cur ? cur[1] : 'Set marker'));
+      b.appendChild(document.createTextNode(' \u25BE'));
+      b.onclick = function (ev) {
+        ev.stopPropagation();
+        var open = w.querySelector('.mk-m');
+        document.querySelectorAll('.mk-m').forEach(function (x) { x.remove(); });
+        if (open) return;
+        var menu = document.createElement('div'); menu.className = 'mk-m'; menu.setAttribute('role', 'menu');
+        MARKERS.concat([[ '', 'Clear marker', '', '' ]]).forEach(function (m) {
+          var it = document.createElement('button'); it.type = 'button'; it.className = 'mk-i'; it.setAttribute('role', 'menuitem');
+          var i2 = document.createElement('span'); i2.innerHTML = m[0] ? markerSvg(m) : markerSvg(null); i2.style.display = 'inline-flex'; it.appendChild(i2);
+          it.appendChild(document.createTextNode(m[1]));
+          it.onclick = async function (e2) {
+            e2.stopPropagation(); menu.remove();
+            try {
+              var r = await api('/staff/tickets/' + t.id + '/touch', 'POST', { marker: m[0] });
+              t.touch_marker = r.marker; t.touched_at = r.touched_at; t.touched_by_name = r.touched_by; draw();
+              flash('Marker saved.', true);
+            } catch (er) { flash(er.message, false); }
+          };
+          menu.appendChild(it);
+        });
+        w.appendChild(menu);
+      };
+      w.appendChild(b);
+      if (withLast) { var l = document.createElement('span'); l.className = 'mk-last'; l.textContent = touchText(t); w.appendChild(l); }
+    }
+    draw();
+    return w;
+  }
+  document.addEventListener('click', function () { document.querySelectorAll('.mk-m').forEach(function (x) { x.remove(); }); });
+
   function tkCard(t) {
     var card = mk('div', 'tk2'), jc = mk('div', 'jc'), L = mk('div', 'jl'), R = mk('div', 'jr');
-    var hd = mk('div', 'hd'); hd.appendChild(mk('span', 'id', t.job_number));
+    var hd = mk('div', 'hd'); hd.appendChild(markerWidget(t, false)); hd.appendChild(mk('span', 'id', t.job_number));
     if (t.priority !== 'normal') hd.appendChild(mk('span', 'bdg ' + (t.priority === 'emergency' ? 'red' : 'amber'), t.priority));
     hd.appendChild(pill(t.status));
     if (t.increase_requested) hd.appendChild(mk('span', 'bdg amber', 'Increase requested'));
     if (t.awaiting_customer) hd.appendChild(mk('span', 'bdg violet', 'Awaiting customer'));
     if ((t.status === 'waiting_assignment' || t.status === 'needs_manual_match') && t.accepted_count > 0) hd.appendChild(mk('span', 'bdg green', t.accepted_count + ' accepted'));
     var ag = tkAge(t); hd.appendChild(mk('span', 'bdg ' + (ag.mins >= 4320 ? 'red' : ''), 'Age ' + ag.text));
+    if (t.pending_alerts > 0) hd.appendChild(mk('span', 'alcount', t.pending_alerts + (t.pending_alerts === 1 ? ' alert' : ' alerts')));
     L.appendChild(hd); L.appendChild(mk('h3', '', t.title));
     var pills = mk('div', 'pills');
     if (t.trade) pills.appendChild(tkPill('wrench', t.trade + (t.pricing_mode === 'flat' ? ' · Flat' : '')));
@@ -1897,11 +2061,13 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   window.addEventListener('beforeunload', function (e) { if (!$('viewTicket').hidden && !$('reviewPanel').hidden) { e.preventDefault(); e.returnValue = ''; } });
   $('backToTickets').onclick = function () { if (!stayToPost()) loadTickets(); };
   async function openTicket(id) {
+    if (sheetTicket && sheetTicket !== id) closeSheet();
     setHash('#ticket/' + id);
     try {
       var d = await api('/staff/tickets/' + id); var t = d.ticket;
       view('viewTicket');
       $('tkTitle').textContent = t.job_number + ' - ' + t.title;
+      var mkBox = $('tkMarker'); clear(mkBox); mkBox.appendChild(markerWidget(t, true));
       drawMeta(t);
       $('tkDesc').textContent = t.description; curTicket = t; $('editForm').hidden = true;
       currentTicket = id;
@@ -1953,6 +2119,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       loadNte(id, t);
       loadPhotos(id);
       loadCheckins(id);
+      loadTicketAlerts(id);
       loadCompletion(id);
       loadBill(id);
       loadNotes(id);
@@ -2015,6 +2182,22 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   function ckWhen(iso) { var d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
   function ckMiles(m) { return m == null ? '' : (m < 160 ? Math.round(m * 3.281) + ' ft' : (m / 1609.34).toFixed(1) + ' mi'); }
   var CK_FLAG = { outside: 'Outside the radius', no_location: 'No location shared', no_pin: 'Site has no pin', manual: 'Entered by TMG' };
+  async function loadTicketAlerts(id) {
+    var panel = $('tkAlertsPanel'), box = $('tkAlList');
+    panel.hidden = true;
+    var d; try { d = await api('/staff/tickets/' + id + '/alerts'); } catch (e) { return; }
+    if (currentTicket !== id || !d.alerts.length) return;
+    panel.hidden = false; clear(box);
+    $('tkAlN').textContent = '(' + d.alerts.length + ')';
+    d.alerts.forEach(function (a) {
+      var row = document.createElement('div'); row.className = 'tkal';
+      var m = document.createElement('div'); m.className = 'am'; m.textContent = a.message;
+      var sm = document.createElement('small'); sm.textContent = (a.for_owner ? 'For the Owner · ' : '') + new Date(a.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); m.appendChild(sm);
+      row.appendChild(m);
+      if (a.can_clear) row.appendChild(btn('Clear', async function () { try { await api('/staff/alerts/' + a.id + '/dismiss', 'POST'); loadTicketAlerts(id); loadAlerts(); } catch (e) { flash(e.message, false); } }));
+      box.appendChild(row);
+    });
+  }
   async function loadCheckins(id) {
     var panel = $('checkPanel');
     panel.hidden = true;
@@ -2674,6 +2857,41 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   $('backToProviders').onclick = loadProviders;
 
   var currentProvider = null;
+  async function loadProviderBank(id) {
+    var body = $('bankBody'); clear(body);
+    var b; try { b = await api('/staff/providers/' + id + '/bank'); } catch (e) { body.appendChild(mk('p', 'small', 'Bank details are not available.')); return; }
+    function line(prefix, o, full) {
+      return prefix + o.bankName + ' · ' + o.accountType + ' · routing ' + (full && o.routing ? o.routing : 'ending ' + o.routingLast4) + ' · account ' + (full && o.account ? o.account : 'ending ' + o.accountLast4);
+    }
+    if (b.confirmed) body.appendChild(mk('p', '', line('Confirmed: ', b.confirmed, false) + (b.confirmed.confirmedAt ? ' (confirmed ' + fmt(b.confirmed.confirmedAt) + ')' : ''))); else body.appendChild(mk('p', 'small', 'No confirmed bank account. Payouts cannot be sent yet.'));
+    if (b.pending) {
+      var pb = mk('div', 'ai-panel');
+      pb.appendChild(mk('p', '', line('Waiting for your confirmation: ', b.pending, false)));
+      pb.appendChild(mk('p', 'small', 'Submitted ' + fmt(b.pending.submittedAt) + ' by ' + b.pending.submittedBy + '. Call the provider at the number we already have on file (not a number from any email), confirm the last four digits of the account, then confirm here.'));
+      var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+      bar.appendChild(btn('I called and confirmed it', async function () {
+        if (!window.confirm('Confirm this account? Payouts will go to it.')) return;
+        try { await api('/staff/providers/' + id + '/bank/confirm', 'POST', {}); flash('Bank account confirmed.', true); loadProviderBank(id); } catch (e) { flash(e.message, false); }
+      }, 'ai-go'));
+      bar.appendChild(btn('Reject it', async function () {
+        if (!window.confirm('Discard this submitted account? The provider can submit again.')) return;
+        try { await api('/staff/providers/' + id + '/bank/reject', 'POST', {}); flash('Rejected.', true); loadProviderBank(id); } catch (e) { flash(e.message, false); }
+      }, 'ai-no'));
+      pb.appendChild(bar); body.appendChild(pb);
+    }
+    if (b.canSeeFull && (b.confirmed || b.pending)) {
+      var show = btn('Show full numbers', async function () {
+        try {
+          var f = await api('/staff/providers/' + id + '/bank?full=1');
+          clear(body);
+          if (f.confirmed) body.appendChild(mk('p', '', line('Confirmed: ', f.confirmed, true)));
+          if (f.pending) body.appendChild(mk('p', '', line('Pending: ', f.pending, true)));
+          body.appendChild(mk('p', 'small', 'This view was recorded. Do not copy these numbers into emails or messages.'));
+          body.appendChild(btn('Hide', function () { loadProviderBank(id); }));
+        } catch (e) { flash(e.message, false); }
+      }, 'btn-sm'); show.style.marginTop = '8px'; body.appendChild(show);
+    }
+  }
   async function openProvider(id) {
     setHash('#provider/' + id);
     currentProvider = id;
@@ -2710,11 +2928,13 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         }));
       }
 
+      loadProviderBank(id);
       var db = $('docTable').tBodies[0]; clear(db);
       $('docEmpty').hidden = d.documents.length > 0;
       d.documents.forEach(function (x) {
         var tr = document.createElement('tr');
         tr.appendChild(td(x.document_type)); tr.appendChild(td(x.original_filename)); tr.appendChild(td(fmt(x.uploaded_at))); tr.appendChild(td(fmt(x.expires_on)));
+        var dc = document.createElement('td'); dc.appendChild(btn('Open', async function () { try { await dlFile('/staff/providers/' + id + '/documents/' + x.id, x.original_filename); } catch (e) { flash(e.message, false); } })); tr.appendChild(dc);
         db.appendChild(tr);
       });
 

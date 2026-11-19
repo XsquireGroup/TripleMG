@@ -94,6 +94,7 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
 .job2 h3 { font-size:19px; margin:8px 0 8px; }
 .bdg { display:inline-block; font-family:'Oswald',sans-serif; letter-spacing:.05em; text-transform:uppercase; font-size:12px; font-weight:600; padding:3px 10px; color:#fff; background:var(--ink); }
 .bdg.urgent { background:#c2410c; } .bdg.emergency, .bdg.red { background:#950606; } .bdg.green { background:#15803d; } .bdg.amber { background:#eab308; color:#422006; } .bdg.blue { background:#1d4ed8; } .bdg.orange { background:#c2410c; } .bdg.gray { background:#6b7280; } .bdg.violet { background:#7c3aed; }
+.bdg.s-new { background:#49c0b6; color:#1a1a1a; } .bdg.s-waiting_assignment { background:#e4e932; color:#1a1a1a; } .bdg.s-needs_manual_match { background:#566127; color:#fff; } .bdg.s-completion_review { background:#6a3be4; color:#fff; } .bdg.s-needs_billing { background:#005670; color:#fff; } .bdg.s-margin_review { background:#d52685; color:#fff; } .bdg.s-assigned { background:#005387; color:#fff; } .bdg.s-dispatched { background:#fdb813; color:#1a1a1a; } .bdg.s-in_progress { background:#1d4ed8; color:#fff; } .bdg.s-awaiting_part { background:#00d1b2; color:#1a1a1a; } .bdg.s-awaiting_funds { background:#bc0024; color:#fff; } .bdg.s-billed { background:#2baf2b; color:#1a1a1a; } .bdg.s-completed { background:#262a3e; color:#fff; } .bdg.s-closed { background:#ff7243; color:#1a1a1a; } .bdg.s-canceled { background:#562e19; color:#fff; } .bdg.s-on_hold { background:#fff; color:#6b7280; box-shadow:inset 0 0 0 2px #6b7280; }
 .pills { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
 .pill { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:5px 10px; border:1px solid var(--border); background:#fff; color:var(--ink); text-decoration:none; max-width:100%; }
 .chk { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:10px 0; padding:10px 12px; border:1px solid var(--border); background:#fff; }
@@ -203,6 +204,18 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 .cform input, .cform select, .cform textarea { width:100%; box-sizing:border-box; padding:11px; border:1px solid #9a9890; font:inherit; font-size:16px; background:#fff; }
 .cform textarea { min-height:110px; }
 .crow { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
+.gearbtn { cursor:pointer; background:#fff; border:2px solid var(--ink); color:var(--ink); width:48px; height:48px; display:inline-flex; align-items:center; justify-content:center; flex:none; }
+.gearbtn { position:relative; } .gdot { position:absolute; top:6px; right:6px; width:11px; height:11px; border-radius:50%; background:#950606; border:2px solid #fff; }
+.gearbtn:hover { background:var(--concrete, #f3f2ee); } .gearbtn svg { width:24px; height:24px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+.chead { display:flex; align-items:center; gap:12px; } .chead h1 { flex:1; min-width:0; }
+.setrow { display:flex; gap:12px; align-items:flex-start; justify-content:space-between; padding:12px 0; border-top:1px solid var(--border, #d6d6d2); flex-wrap:wrap; }
+.setrow .sm { flex:1; min-width:200px; } .setrow small { display:block; color:var(--steel); font-size:13px; margin-top:2px; }
+.setrow .sb { display:flex; gap:8px; flex-wrap:wrap; }
+.sbtn { cursor:pointer; font:inherit; font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.04em; padding:9px 14px; min-height:42px; background:#fff; border:2px solid var(--ink); color:var(--ink); }
+.sbtn.go { background:#15803d; border-color:#15803d; color:#fff; } .sbtn.no { border-color:#950606; color:#950606; }
+.sfgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; } .sfgrid .full { grid-column:1 / -1; }
+@media (max-width:640px) { .sfgrid { grid-template-columns:1fr; } }
+.arch { color:var(--steel); font-size:12px; font-weight:700; text-transform:uppercase; }
 .back { font-size:14px; color:var(--steel); cursor:pointer; background:none; border:0; padding:6px 0; text-decoration:underline; }
 @media (max-width:640px) { .prog { font-size:10px; } .cmsg { max-width:94%; } .jcard { flex-direction:column; } .crow .bigbtn { flex:1; } }
 </style>
@@ -232,7 +245,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 
   <div class="board" id="board" hidden>
     <span class="role" id="role2"></span>
-    <h1 id="welcome2" style="font-size:28px;margin:0"></h1>
+    <div class="chead"><h1 id="welcome2" style="font-size:28px;margin:0"></h1><button type="button" class="gearbtn" id="pGear" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span class="gdot" id="pGearDot" hidden></span></button></div>
     <div id="msg" class="msg" hidden></div>
     <div id="smsCard" class="sms-box" hidden></div>
     <div class="kpis" id="kpis">
@@ -255,6 +268,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     <div class="chead">
       <h1 id="welcome3" style="font-size:28px;margin:0"></h1>
       <button type="button" class="newbtn big" id="cNew2">+ Request service</button>
+      <button type="button" class="gearbtn" id="cGear" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
     </div>
     <div id="msg3" class="msg" hidden></div>
     <div class="cpanel" id="cBill" hidden></div>
@@ -283,6 +297,27 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     <button class="back" id="cJobBack">&larr; All jobs</button>
     <div id="msg4" class="msg" hidden></div>
     <div id="cJobBody"></div>
+  </div>
+
+  <div class="cwrap" id="custSettings" hidden>
+    <button class="back" id="cSetBack">&larr; All jobs</button>
+    <div id="msg7" class="msg" hidden></div>
+    <div class="cpanel">
+      <h2>Settings</h2>
+      <p id="setWho" style="margin:0 0 4px"></p>
+    </div>
+    <div class="cpanel" id="setCard"></div>
+    <div class="cpanel cform" id="setSites"></div>
+  </div>
+
+  <div class="cwrap" id="provSettings" hidden>
+    <button class="back" id="pSetBack">&larr; Jobs</button>
+    <div id="msg8" class="msg" hidden></div>
+    <div class="cpanel"><h2>Settings</h2><p id="pSetWho" style="margin:0"></p></div>
+    <div class="cpanel" id="pSetIns" hidden></div>
+    <div class="cpanel cform" id="pSetDocs"></div>
+    <div class="cpanel cform" id="pSetProfile"></div>
+    <div class="cpanel cform" id="pSetBank"></div>
   </div>
 
   <div class="cwrap" id="custCard" hidden>
@@ -338,7 +373,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   var SCOPES = ['openid', 'profile', 'email'];
 
   function show(id) {
-    ['signedOut', 'loading', 'home', 'board', 'custBoard', 'custJob', 'custNew', 'custCard', 'problem'].forEach(function (x) {
+    ['signedOut', 'loading', 'home', 'board', 'custBoard', 'custJob', 'custNew', 'custCard', 'custSettings', 'provSettings', 'problem'].forEach(function (x) {
       document.getElementById(x).hidden = (x !== id);
     });
     document.getElementById('signOut').hidden = (id !== 'home' && id !== 'board' && id.indexOf('cust') !== 0);
@@ -348,6 +383,12 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     show('problem');
   }
 
+  // Phones and the installed app stay signed in; desktop browsers sign out when closed.
+  var ON_PHONE = false;
+  try {
+    ON_PHONE = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1) ||
+      (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+  } catch (e) { }
   var app = new msal.PublicClientApplication({
     auth: {
       clientId: CLIENT_ID,
@@ -355,7 +396,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       knownAuthorities: [SUBDOMAIN + '.ciamlogin.com'],
       redirectUri: window.location.origin + window.location.pathname
     },
-    cache: { cacheLocation: 'sessionStorage' }
+    cache: { cacheLocation: ON_PHONE ? 'localStorage' : 'sessionStorage' }
   });
 
   function signIn() { app.loginRedirect({ scopes: SCOPES }); }
@@ -637,8 +678,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var b = [];
     if (j.priority && j.priority !== 'normal') b.push(['bdg ' + j.priority, j.priority]);
     if (offer) { if (j.accepted) b.push(['bdg green', 'You accepted']); return b; }
-    var colors = { billed: 'green', completed: 'gray', closed: 'gray', canceled: 'gray', on_hold: 'gray', needs_billing: 'amber', margin_review: 'amber', completion_review: 'amber', awaiting_funds: 'violet', awaiting_part: 'amber' };
-    b.push(['bdg ' + (colors[j.status] === undefined ? 'blue' : colors[j.status]), j.status_label]);
+    b.push(['bdg s-' + j.status, j.status_label]);
     return b;
   }
   function clock(iso) { var d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + ' on ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' }); }
@@ -813,6 +853,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var b = e.target.closest('button[data-t]'); if (!b) return; boardTab = b.getAttribute('data-t'); drawBoard();
   });
   async function loadBoard() {
+    checkInsuranceDot();
     try { boardData = await api('/provider/jobs'); drawBoard(); }
     catch (e) { flash(e.message, false); }
   }
@@ -913,6 +954,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   function renderBillStrip() {
     var b = $('cBill'); b.textContent = '';
     if (!cBilling || !cBilling.enabled) { b.hidden = true; return; }
+    // The card bar only shows when something needs the customer's attention; otherwise card details live in Settings.
+    if (cBilling.card && cBilling.ready && !cardExpired(cBilling.card) && !(cBilling.owedNow > 0)) { b.hidden = true; return; }
     b.hidden = false; b.style.padding = '12px 16px';
     var row = el('div'); row.style.cssText = 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between';
     var left = el('div');
@@ -929,6 +972,222 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     btn.style.padding = '10px 18px'; btn.style.fontSize = '14px'; btn.onclick = function () { openCard(null); };
     row.appendChild(btn); b.appendChild(row);
   }
+  function cardExpired(c) {
+    if (!c || !c.expMonth || !c.expYear) return false;
+    var y = Number(c.expYear); if (y < 100) y += 2000;
+    var now = new Date(), cy = now.getFullYear(), cm = now.getMonth() + 1;
+    return y < cy || (y === cy && Number(c.expMonth) < cm);
+  }
+  // ---- customer settings (gear) ----
+  var setSites = [], cardFromSettings = false;
+  async function openSettings() {
+    if (!cBilling) await loadBilling();
+    show('custSettings'); history.pushState({ v: 'settings' }, ''); window.scrollTo(0, 0);
+    $('setWho').textContent = $('welcome3').textContent || '';
+    renderSetCard();
+    await loadSetSites();
+  }
+  function renderSetCard() {
+    var box = $('setCard'); box.textContent = '';
+    box.appendChild(el('h2', '', 'Payment card'));
+    if (!cBilling || !cBilling.enabled) { box.appendChild(el('p', '', 'Card payments are not available yet. Please call TMG.')); return; }
+    var row = el('div', 'setrow'); row.style.borderTop = '0';
+    var m = el('div', 'sm');
+    if (!cBilling.card) m.appendChild(el('strong', '', 'No card on file'));
+    else {
+      var c = cBilling.card, exp = c.expMonth ? ' (exp ' + c.expMonth + '/' + String(c.expYear).slice(-2) + ')' : '';
+      m.appendChild(el('strong', '', (c.brand || 'Card') + ' ending ' + (c.last4 || '----') + exp));
+      if (cardExpired(c)) m.appendChild(el('small', '', 'This card has expired. Please change it.'));
+    }
+    if (cBilling.creditBalance > 0) m.appendChild(el('small', '', 'Account credit: ' + money(cBilling.creditBalance) + ' (applied to your invoices first)'));
+    if (cBilling.owedNow > 0) m.appendChild(el('small', '', 'A retainer of ' + money(cBilling.owedNow) + ' is due before new requests.'));
+    row.appendChild(m);
+    var sb = el('div', 'sb'), b = el('button', 'sbtn', !cBilling.card ? 'Add card' : cBilling.owedNow > 0 ? 'Pay retainer' : 'Change card'); b.type = 'button'; b.onclick = function () { cardFromSettings = true; openCard(null); };
+    sb.appendChild(b); row.appendChild(sb); box.appendChild(row);
+  }
+  async function loadSetSites() {
+    try { var d = await api('/customer/my-sites'); setSites = d.sites; } catch (e) { setSites = []; cflash('msg7', e.message || 'Could not load your sites.', false); }
+    renderSetSites();
+  }
+  function renderSetSites() {
+    var box = $('setSites'); box.textContent = '';
+    var h = el('div'); h.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap';
+    h.appendChild(el('h2', '', 'Job sites')); var add = el('button', 'sbtn go', '+ Add a site'); add.type = 'button'; add.onclick = function () { siteForm(null); }; h.appendChild(add); box.appendChild(h);
+    var formBox = el('div'); formBox.id = 'siteFormBox'; box.appendChild(formBox);
+    if (!setSites.length) box.appendChild(el('p', '', 'No sites yet.'));
+    setSites.forEach(function (s) {
+      var row = el('div', 'setrow'), m = el('div', 'sm');
+      m.appendChild(el('strong', '', 'Site ' + s.site_number + ': ' + s.name));
+      m.appendChild(el('small', '', [s.address1, s.address2, s.city + ', ' + s.state + ' ' + s.zip].filter(Boolean).join(', ')));
+      if (s.on_site_contact_name || s.on_site_contact_phone) m.appendChild(el('small', '', 'On-site contact: ' + [s.on_site_contact_name, s.on_site_contact_phone].filter(Boolean).join(' · ')));
+      if (!s.active) m.appendChild(el('span', 'arch', 'Archived (hidden from new requests)'));
+      else if (s.open_jobs) m.appendChild(el('small', '', s.open_jobs + ' open job' + (s.open_jobs === 1 ? '' : 's')));
+      row.appendChild(m);
+      var sb = el('div', 'sb');
+      var ed = el('button', 'sbtn', 'Edit'); ed.type = 'button'; ed.onclick = function () { siteForm(s); }; sb.appendChild(ed);
+      var ar = el('button', s.active ? 'sbtn no' : 'sbtn', s.active ? 'Archive' : 'Restore'); ar.type = 'button';
+      ar.onclick = async function () {
+        if (s.active && !window.confirm('Archive site ' + s.site_number + '? It will be hidden from new requests. Past jobs and invoices stay on file.')) return;
+        try { await api('/customer/my-sites/' + s.id + '/archive', 'POST', { archive: !!s.active }); cflash('msg7', s.active ? 'Site archived.' : 'Site restored.', true); await loadSetSites(); } catch (e) { cflash('msg7', e.message, false); }
+      };
+      sb.appendChild(ar); row.appendChild(sb); box.appendChild(row);
+    });
+  }
+  function siteForm(s) {
+    var fb = $('siteFormBox'); fb.textContent = '';
+    var f = el('div', 'cform'); f.style.cssText = 'margin:12px 0;padding:14px;border:1px solid var(--border, #d6d6d2);background:#fafaf8';
+    f.appendChild(el('h3', '', s ? 'Edit site ' + s.site_number : 'Add a site'));
+    var g = el('div', 'sfgrid'), inputs = {};
+    [['name', 'Site name', 'full', 200], ['address1', 'Street address', 'full', 200], ['address2', 'Suite / unit (optional)', 'full', 200], ['city', 'City', '', 100], ['state', 'State (2 letters)', '', 2], ['zip', 'ZIP', '', 10], ['onSiteContactName', 'On-site contact (optional)', '', 150], ['onSiteContactPhone', 'On-site phone (optional)', '', 30]].forEach(function (x) {
+      var w = el('div', x[2]); var l = el('label', '', x[1]); var i = el('input'); i.maxLength = x[3]; i.id = 'sf_' + x[0]; l.htmlFor = i.id; inputs[x[0]] = i; w.appendChild(l); w.appendChild(i); g.appendChild(w);
+    });
+    if (s) { inputs.name.value = s.name || ''; inputs.address1.value = s.address1 || ''; inputs.address2.value = s.address2 || ''; inputs.city.value = s.city || ''; inputs.state.value = s.state || ''; inputs.zip.value = s.zip || ''; inputs.onSiteContactName.value = s.on_site_contact_name || ''; inputs.onSiteContactPhone.value = s.on_site_contact_phone || ''; }
+    f.appendChild(g);
+    var bar = el('div', 'sb'); bar.style.marginTop = '12px';
+    var save = el('button', 'sbtn go', s ? 'Save changes' : 'Add site'); save.type = 'button';
+    save.onclick = async function () {
+      var body = {}; Object.keys(inputs).forEach(function (k) { body[k] = inputs[k].value; });
+      try { await api('/customer/my-sites' + (s ? '/' + s.id : ''), 'POST', body); cflash('msg7', s ? 'Site saved.' : 'Site added.', true); await loadSetSites(); } catch (e) { cflash('msg7', e.message, false); }
+    };
+    var cancel = el('button', 'sbtn', 'Cancel'); cancel.type = 'button'; cancel.onclick = function () { fb.textContent = ''; };
+    bar.appendChild(save); bar.appendChild(cancel); f.appendChild(bar); fb.appendChild(f);
+    inputs.name.focus();
+  }
+  $('cGear').onclick = openSettings;
+  $('cSetBack').onclick = function () { loadCustBoard(); };
+
+  // ---- provider settings (gear) ----
+  var pSet = null;
+  var DOC_TYPES = [['insurance_coi', 'Insurance certificate'], ['trade_license', 'Trade license'], ['w9', 'W-9'], ['other', 'Other']];
+  async function openProvSettings() {
+    show('provSettings'); history.pushState({ v: 'psettings' }, ''); window.scrollTo(0, 0);
+    await loadProvSettings();
+  }
+  async function loadProvSettings() {
+    try { pSet = await api('/provider/settings'); } catch (e) { return cflash('msg8', e.message || 'Could not load settings.', false); }
+    $('pSetWho').textContent = pSet.profile.business_name || '';
+    renderPIns(); renderPDocs(); renderPProfile(); renderPBank();
+  }
+  function renderPIns() {
+    var b = $('pSetIns'), i = pSet.insurance; b.textContent = '';
+    if (!i.warn) { b.hidden = true; return; }
+    b.hidden = false; b.style.borderLeft = '6px solid #950606';
+    b.appendChild(el('h2', '', 'Insurance needs attention'));
+    b.appendChild(el('p', '', !i.hasDocument ? 'We do not have a current insurance certificate for you. Upload one below.' : i.daysLeft == null ? 'Your insurance certificate has no expiration date on file. Upload it again with the date.' : i.daysLeft < 0 ? 'Your insurance expired on ' + i.expiresOn + '. Upload a new certificate below to keep receiving jobs.' : 'Your insurance expires on ' + i.expiresOn + ' (' + i.daysLeft + ' day' + (i.daysLeft === 1 ? '' : 's') + '). Upload the renewed certificate below.'));
+  }
+  async function openPDoc(id) {
+    try {
+      var t = await token(false), r = await fetch(API + '/provider/settings/documents/' + id, { headers: { Authorization: 'Bearer ' + t } });
+      if (!r.ok) throw new Error('That document could not be opened.');
+      var u = URL.createObjectURL(await r.blob()); window.open(u, '_blank');
+    } catch (e) { cflash('msg8', e.message, false); }
+  }
+  function renderPDocs() {
+    var box = $('pSetDocs'); box.textContent = '';
+    box.appendChild(el('h2', '', 'Your documents'));
+    box.appendChild(el('p', 'small', 'A new upload replaces the current one right away. Earlier versions stay on file with TMG.'));
+    var cur = pSet.documents.filter(function (d) { return d.current; }), old = pSet.documents.filter(function (d) { return !d.current; });
+    if (!cur.length) box.appendChild(el('p', '', 'No documents on file yet.'));
+    cur.forEach(function (d) {
+      var row = el('div', 'setrow'), m = el('div', 'sm');
+      m.appendChild(el('strong', '', d.label));
+      m.appendChild(el('small', '', d.filename + ' · uploaded ' + String(d.uploadedAt).slice(0, 10) + (d.expiresOn ? ' · expires ' + d.expiresOn : '') + (d.verified ? ' · verified by TMG' : '')));
+      row.appendChild(m);
+      var sb = el('div', 'sb'), v = el('button', 'sbtn', 'View'); v.type = 'button'; v.onclick = function () { openPDoc(d.id); }; sb.appendChild(v);
+      var r = el('button', 'sbtn', 'Replace'); r.type = 'button'; r.onclick = function () { docForm(d.type); }; sb.appendChild(r);
+      row.appendChild(sb); box.appendChild(row);
+    });
+    var fbox = el('div'); fbox.id = 'pDocForm'; box.appendChild(fbox);
+    var add = el('button', 'sbtn go', '+ Upload a document'); add.type = 'button'; add.style.marginTop = '10px'; add.onclick = function () { docForm(null); }; box.appendChild(add);
+    if (old.length) {
+      var det = el('details'); det.style.marginTop = '14px'; det.appendChild(el('summary', '', 'Earlier versions (' + old.length + ')'));
+      old.forEach(function (d) { var p = el('p', 'small', d.label + ' · ' + d.filename + ' · uploaded ' + String(d.uploadedAt).slice(0, 10) + (d.expiresOn ? ' · expired/expires ' + d.expiresOn : '')); det.appendChild(p); });
+      box.appendChild(det);
+    }
+  }
+  function docForm(type) {
+    var fb = $('pDocForm'); fb.textContent = '';
+    var f = el('div'); f.style.cssText = 'margin:12px 0;padding:14px;border:1px solid var(--border, #d6d6d2);background:#fafaf8';
+    f.appendChild(el('h3', '', type ? 'Replace ' + (DOC_TYPES.filter(function (x) { return x[0] === type; })[0] || ['', 'document'])[1] : 'Upload a document'));
+    var sel = el('select'); sel.id = 'pdType'; DOC_TYPES.forEach(function (x) { var o = el('option', '', x[1]); o.value = x[0]; sel.appendChild(o); }); if (type) sel.value = type;
+    var l1 = el('label', '', 'Type of document'); l1.htmlFor = 'pdType'; f.appendChild(l1); f.appendChild(sel);
+    var file = el('input'); file.type = 'file'; file.id = 'pdFile'; file.accept = '.pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg';
+    var l2 = el('label', '', 'File (PDF, PNG or JPG, up to 10 MB)'); l2.htmlFor = 'pdFile'; f.appendChild(l2); f.appendChild(file);
+    var exp = el('input'); exp.type = 'date'; exp.id = 'pdExp';
+    var l3 = el('label', '', 'Expiration date (required for insurance and licenses)'); l3.htmlFor = 'pdExp'; f.appendChild(l3); f.appendChild(exp);
+    var bar = el('div', 'sb'); bar.style.marginTop = '12px';
+    var go = el('button', 'sbtn go', 'Upload'); go.type = 'button';
+    go.onclick = async function () {
+      if (!file.files.length) return cflash('msg8', 'Choose a file first.', false);
+      var fd = new FormData(); fd.append('documentType', sel.value); fd.append('file', file.files[0]); fd.append('expiresOn', exp.value || '');
+      go.disabled = true;
+      try {
+        var t = await token(false), r = await fetch(API + '/provider/settings/documents', { method: 'POST', headers: { Authorization: 'Bearer ' + t }, body: fd });
+        var d = await r.json().catch(function () { return {}; });
+        if (!r.ok) throw new Error(d.error || 'Upload failed. Please try again.');
+        cflash('msg8', 'Document uploaded. It is current now.', true); await loadProvSettings();
+      } catch (e) { cflash('msg8', e.message, false); go.disabled = false; }
+    };
+    var no = el('button', 'sbtn', 'Cancel'); no.type = 'button'; no.onclick = function () { fb.textContent = ''; };
+    bar.appendChild(go); bar.appendChild(no); f.appendChild(bar); fb.appendChild(f);
+  }
+  function renderPProfile() {
+    var box = $('pSetProfile'), p = pSet.profile; box.textContent = '';
+    box.appendChild(el('h2', '', 'Contact and service area'));
+    var g = el('div', 'sfgrid'), inp = {};
+    [['contactName', 'Contact name', p.contact_name, 'full', 150], ['phone', 'Phone', p.phone, '', 30], ['technicianCount', 'Number of technicians', p.technician_count == null ? '' : p.technician_count, '', 6], ['serviceStates', 'Service states (2-letter codes, comma separated)', p.service_states, 'full', 200], ['serviceAreas', 'Service areas (cities, counties)', p.service_areas || '', 'full', 500], ['otherTrades', 'Other trades you offer', p.other_trades || '', 'full', 300]].forEach(function (x) {
+      var w = el('div', x[3]), l = el('label', '', x[1]), i = el('input'); i.id = 'pp_' + x[0]; l.htmlFor = i.id; i.maxLength = x[4]; i.value = x[2] == null ? '' : x[2]; inp[x[0]] = i; w.appendChild(l); w.appendChild(i); g.appendChild(w);
+    });
+    box.appendChild(g);
+    box.appendChild(el('p', 'small', 'Your business name, email and main trade are set by TMG. Call us to change them.'));
+    var sv = el('button', 'sbtn go', 'Save'); sv.type = 'button'; sv.onclick = async function () {
+      var body = {}; Object.keys(inp).forEach(function (k) { body[k] = inp[k].value; });
+      try { await api('/provider/settings/profile', 'POST', body); cflash('msg8', 'Saved.', true); await loadProvSettings(); } catch (e) { cflash('msg8', e.message, false); }
+    };
+    box.appendChild(sv);
+  }
+  function renderPBank() {
+    var box = $('pSetBank'), b = pSet.bank; box.textContent = '';
+    box.appendChild(el('h2', '', 'Bank account for payouts'));
+    if (!pSet.bankReady) { box.appendChild(el('p', '', 'Bank details are not available yet. TMG will let you know when they are.')); return; }
+    if (b.confirmed) {
+      var c = b.confirmed;
+      box.appendChild(el('p', '', c.bankName + ' · ' + c.accountType + ' · routing ending ' + c.routingLast4 + ' · account ending ' + c.accountLast4));
+      box.appendChild(el('p', 'small', 'Confirmed by TMG. Payouts go to this account.'));
+    } else box.appendChild(el('p', '', 'No bank account on file yet. Add one so TMG can pay you.'));
+    if (b.pending) {
+      var q = el('p', '', 'Waiting for TMG to confirm by phone: ' + b.pending.bankName + ' ending ' + b.pending.accountLast4 + '.'); q.style.cssText = 'padding:10px;background:#fffbea;border:1px solid #eab308;font-weight:600';
+      box.appendChild(q);
+      box.appendChild(el('p', 'small', b.confirmed ? 'Until then, payouts keep going to the confirmed account above.' : 'Payouts start once TMG confirms this account.'));
+    }
+    var fb = el('div'); box.appendChild(fb);
+    var open = el('button', 'sbtn', b.confirmed || b.pending ? 'Change bank account' : 'Add bank account'); open.type = 'button'; open.onclick = function () { open.hidden = true; bankForm(fb, open); };
+    box.appendChild(open);
+  }
+  function bankForm(fb, openBtn) {
+    var f = el('div'); f.style.cssText = 'margin:12px 0;padding:14px;border:1px solid var(--border, #d6d6d2);background:#fafaf8';
+    f.appendChild(el('p', 'small', 'For your protection, a TMG team member will call you to confirm any new or changed bank account before payments go to it. We store these numbers encrypted and only show the last four digits.'));
+    var g = el('div', 'sfgrid'), inp = {};
+    [['bankName', 'Bank name', 'full', 150], ['routing', 'Routing number (9 digits)', '', 9], ['account', 'Account number', '', 17], ['routing2', 'Re-enter routing number', '', 9], ['account2', 'Re-enter account number', '', 17]].forEach(function (x) {
+      var w = el('div', x[2]), l = el('label', '', x[1]), i = el('input'); i.id = 'bk_' + x[0]; l.htmlFor = i.id; i.maxLength = x[3]; i.autocomplete = 'off'; if (x[0] !== 'bankName') i.inputMode = 'numeric'; inp[x[0]] = i; w.appendChild(l); w.appendChild(i); g.appendChild(w);
+    });
+    var tw = el('div'), tl = el('label', '', 'Account type'), ts = el('select'); ts.id = 'bk_type'; tl.htmlFor = 'bk_type';
+    [['checking', 'Checking'], ['savings', 'Savings']].forEach(function (x) { var o = el('option', '', x[1]); o.value = x[0]; ts.appendChild(o); });
+    tw.appendChild(tl); tw.appendChild(ts); g.insertBefore(tw, g.children[1]);
+    f.appendChild(g);
+    var bar = el('div', 'sb'); bar.style.marginTop = '12px';
+    var go = el('button', 'sbtn go', 'Submit for confirmation'); go.type = 'button';
+    go.onclick = async function () {
+      if (inp.routing.value !== inp.routing2.value || inp.account.value !== inp.account2.value) return cflash('msg8', 'The numbers you re-entered do not match.', false);
+      try { await api('/provider/settings/bank', 'POST', { bankName: inp.bankName.value, accountType: ts.value, routing: inp.routing.value, account: inp.account.value }); cflash('msg8', 'Received. TMG will call you to confirm it.', true); await loadProvSettings(); } catch (e) { cflash('msg8', e.message, false); }
+    };
+    var no = el('button', 'sbtn', 'Cancel'); no.type = 'button'; no.onclick = function () { fb.textContent = ''; openBtn.hidden = false; };
+    bar.appendChild(go); bar.appendChild(no); f.appendChild(bar); fb.appendChild(f);
+  }
+  $('pGear').onclick = openProvSettings;
+  $('pSetBack').onclick = function () { show('board'); loadBoard(); };
+  async function checkInsuranceDot() { try { var d = await api('/provider/settings'); $('pGearDot').hidden = !(d.insurance && d.insurance.warn); } catch (e) { /* optional */ } }
+
   function loadSquareSdk(url) {
     if (sqLoaded) return sqLoaded;
     sqLoaded = new Promise(function (res, rej) {
@@ -980,7 +1239,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     catch (e) { cflash('msg6', e.message, false); }
     bt.disabled = false;
   };
-  $('cCardBack').onclick = function () { loadCustBoard(); };
+  $('cCardBack').onclick = function () { if (cardFromSettings) { cardFromSettings = false; openSettings(); } else loadCustBoard(); };
   var cTab = null;
   function cNteWord(j) { return j.nte == null ? 'Not set' : money(j.nte); }
   function custCard(j) {
@@ -1227,7 +1486,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   $('cNew2').onclick = openCustNew;
   $('cJobBack').onclick = function () { loadCustBoard(); };
   $('cNewBack').onclick = function () { loadCustBoard(); };
-  window.addEventListener('popstate', function () { if (!$('custJob').hidden || !$('custNew').hidden || !$('custCard').hidden) loadCustBoard(); });
+  window.addEventListener('popstate', function () { if (!$('custJob').hidden || !$('custNew').hidden || !$('custCard').hidden || !$('custSettings').hidden) loadCustBoard();
+    if (!$('provSettings').hidden) { show('board'); loadBoard(); } });
   var nPicked = [];
   function drawPrev() {
     var box = $('nPrev'); box.textContent = '';
