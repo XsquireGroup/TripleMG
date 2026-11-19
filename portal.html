@@ -216,6 +216,13 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 .sfgrid { display:grid; grid-template-columns:1fr 1fr; gap:10px 14px; } .sfgrid .full { grid-column:1 / -1; }
 @media (max-width:640px) { .sfgrid { grid-template-columns:1fr; } }
 .arch { color:var(--steel); font-size:12px; font-weight:700; text-transform:uppercase; }
+.ckgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:4px 14px; margin:6px 0 12px; }
+.cform label.ck { display:flex; align-items:center; gap:8px; font-weight:400; font-size:15px; margin:0; padding:6px 0; min-height:36px; cursor:pointer; }
+.cform label.ck input { width:20px; height:20px; padding:0; flex:none; margin:0; }
+.stsec { border:1px solid var(--border, #d6d6d2); padding:10px 14px; margin:8px 0; background:#fafaf8; }
+.cityrow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:space-between; }
+.cityrow select { width:auto; min-width:150px; padding:6px 8px; font-size:14px; }
+@media (max-width:640px) { .ckgrid { grid-template-columns:1fr 1fr; } .cityrow select { flex:1 1 100%; } }
 .back { font-size:14px; color:var(--steel); cursor:pointer; background:none; border:0; padding:6px 0; text-decoration:underline; }
 @media (max-width:640px) { .prog { font-size:10px; } .cmsg { max-width:94%; } .jcard { flex-direction:column; } .crow .bigbtn { flex:1; } }
 </style>
@@ -308,6 +315,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     </div>
     <div class="cpanel" id="setCard"></div>
     <div class="cpanel cform" id="setSites"></div>
+    <div class="cpanel cform" id="setTeam"></div>
   </div>
 
   <div class="cwrap" id="provSettings" hidden>
@@ -986,6 +994,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     $('setWho').textContent = $('welcome3').textContent || '';
     renderSetCard();
     await loadSetSites();
+    loadSetTeam();
   }
   function renderSetCard() {
     var box = $('setCard'); box.textContent = '';
@@ -1004,6 +1013,33 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     row.appendChild(m);
     var sb = el('div', 'sb'), b = el('button', 'sbtn', !cBilling.card ? 'Add card' : cBilling.owedNow > 0 ? 'Pay retainer' : 'Change card'); b.type = 'button'; b.onclick = function () { cardFromSettings = true; openCard(null); };
     sb.appendChild(b); row.appendChild(sb); box.appendChild(row);
+  }
+  async function loadSetTeam() {
+    var box = $('setTeam'); box.textContent = '';
+    var d; try { d = await api('/customer/team'); } catch (e) { return; }
+    box.appendChild(el('h2', '', 'Team logins'));
+    box.appendChild(el('p', 'small', 'People who can sign in to see your jobs and invoices. TMG approves every new login before it works.'));
+    d.logins.forEach(function (l) {
+      var row = el('div', 'setrow'), m = el('div', 'sm'); m.appendChild(el('strong', '', l.name)); m.appendChild(el('small', '', l.email + (l.active ? '' : ' · turned off'))); row.appendChild(m); box.appendChild(row);
+    });
+    d.requests.filter(function (r) { return r.status !== 'approved'; }).forEach(function (r) {
+      var row = el('div', 'setrow'), m = el('div', 'sm'); m.appendChild(el('strong', '', r.name)); m.appendChild(el('small', '', r.email + ' · ' + (r.status === 'pending' ? 'waiting for TMG approval' : 'not approved'))); row.appendChild(m); box.appendChild(row);
+    });
+    var fb = el('div'); box.appendChild(fb);
+    var open = el('button', 'sbtn go', '+ Request a login'); open.type = 'button'; open.style.marginTop = '10px';
+    open.onclick = function () {
+      open.hidden = true; fb.textContent = '';
+      var f = el('div'); f.style.cssText = 'margin:12px 0;padding:14px;border:1px solid var(--border, #d6d6d2);background:#fafaf8';
+      var l1 = el('label', '', 'Name'), n = el('input'); n.id = 'tm_name'; n.maxLength = 150; l1.htmlFor = 'tm_name';
+      var l2 = el('label', '', 'Email they will sign in with'), e = el('input'); e.id = 'tm_email'; e.type = 'email'; e.maxLength = 200; l2.htmlFor = 'tm_email';
+      f.appendChild(l1); f.appendChild(n); f.appendChild(l2); f.appendChild(e);
+      var bar = el('div', 'sb'); bar.style.marginTop = '12px';
+      var go = el('button', 'sbtn go', 'Send request'); go.type = 'button';
+      go.onclick = async function () { try { await api('/customer/team/requests', 'POST', { displayName: n.value, email: e.value }); cflash('msg7', 'Request sent. TMG will review it.', true); loadSetTeam(); } catch (er) { cflash('msg7', er.message, false); } };
+      var no = el('button', 'sbtn', 'Cancel'); no.type = 'button'; no.onclick = function () { fb.textContent = ''; open.hidden = false; };
+      bar.appendChild(go); bar.appendChild(no); f.appendChild(bar); fb.appendChild(f);
+    };
+    box.appendChild(open);
   }
   async function loadSetSites() {
     try { var d = await api('/customer/my-sites'); setSites = d.sites; } catch (e) { setSites = []; cflash('msg7', e.message || 'Could not load your sites.', false); }
@@ -1131,17 +1167,67 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var no = el('button', 'sbtn', 'Cancel'); no.type = 'button'; no.onclick = function () { fb.textContent = ''; };
     bar.appendChild(go); bar.appendChild(no); f.appendChild(bar); fb.appendChild(f);
   }
+  var US = {"AL":["Alabama",["Birmingham","Montgomery","Mobile","Huntsville","Tuscaloosa","Hoover","Dothan","Auburn","Decatur","Madison"]],"AK":["Alaska",["Anchorage","Fairbanks","Juneau","Wasilla","Sitka","Ketchikan","Kenai","Kodiak"]],"AZ":["Arizona",["Phoenix","Tucson","Mesa","Chandler","Scottsdale","Glendale","Gilbert","Tempe","Peoria","Flagstaff","Yuma","Surprise"]],"AR":["Arkansas",["Little Rock","Fort Smith","Fayetteville","Springdale","Jonesboro","North Little Rock","Conway","Rogers","Bentonville","Pine Bluff"]],"CA":["California",["Los Angeles","San Diego","San Jose","San Francisco","Fresno","Sacramento","Long Beach","Oakland","Bakersfield","Anaheim","Riverside","Santa Ana","Stockton","Irvine","San Bernardino","Modesto","Santa Rosa","Santa Barbara"]],"CO":["Colorado",["Denver","Colorado Springs","Aurora","Fort Collins","Lakewood","Thornton","Arvada","Westminster","Pueblo","Boulder","Greeley","Grand Junction"]],"CT":["Connecticut",["Bridgeport","New Haven","Stamford","Hartford","Waterbury","Norwalk","Danbury","New Britain","Bristol","Meriden"]],"DE":["Delaware",["Wilmington","Dover","Newark","Middletown","Smyrna","Milford","Seaford","Georgetown"]],"DC":["District of Columbia",["Washington"]],"FL":["Florida",["Jacksonville","Miami","Tampa","Orlando","St. Petersburg","Hialeah","Tallahassee","Fort Lauderdale","Port St. Lucie","Cape Coral","Pembroke Pines","Gainesville","Lakeland","Clearwater","Pensacola","Sarasota","Daytona Beach","Naples"]],"GA":["Georgia",["Atlanta","Augusta","Columbus","Macon","Savannah","Athens","Sandy Springs","Roswell","Albany","Marietta","Alpharetta","Valdosta"]],"HI":["Hawaii",["Honolulu","Hilo","Kailua","Pearl City","Waipahu","Kaneohe","Kahului","Lihue"]],"ID":["Idaho",["Boise","Meridian","Nampa","Idaho Falls","Pocatello","Caldwell","Coeur d'Alene","Twin Falls","Lewiston"]],"IL":["Illinois",["Chicago","Aurora","Naperville","Joliet","Rockford","Springfield","Elgin","Peoria","Champaign","Waukegan","Cicero","Bloomington"]],"IN":["Indiana",["Indianapolis","Fort Wayne","Evansville","South Bend","Carmel","Fishers","Bloomington","Hammond","Gary","Lafayette","Muncie","Terre Haute","Lawrenceburg","Greensburg"]],"IA":["Iowa",["Des Moines","Cedar Rapids","Davenport","Sioux City","Iowa City","Waterloo","Ames","West Des Moines","Council Bluffs","Dubuque"]],"KS":["Kansas",["Wichita","Overland Park","Kansas City","Olathe","Topeka","Lawrence","Shawnee","Manhattan","Lenexa","Salina"]],"KY":["Kentucky",["Louisville","Lexington","Bowling Green","Owensboro","Covington","Florence","Newport","Richmond","Hopkinsville","Frankfort","Paducah","Elizabethtown"]],"LA":["Louisiana",["New Orleans","Baton Rouge","Shreveport","Lafayette","Lake Charles","Kenner","Bossier City","Monroe","Alexandria","Houma"]],"ME":["Maine",["Portland","Lewiston","Bangor","South Portland","Auburn","Biddeford","Augusta","Saco"]],"MD":["Maryland",["Baltimore","Frederick","Rockville","Gaithersburg","Bowie","Hagerstown","Annapolis","Salisbury","Columbia","Germantown"]],"MA":["Massachusetts",["Boston","Worcester","Springfield","Cambridge","Lowell","Brockton","New Bedford","Quincy","Lynn","Fall River"]],"MI":["Michigan",["Detroit","Grand Rapids","Warren","Sterling Heights","Ann Arbor","Lansing","Flint","Dearborn","Livonia","Troy","Kalamazoo","Traverse City"]],"MN":["Minnesota",["Minneapolis","St. Paul","Rochester","Duluth","Bloomington","Brooklyn Park","Plymouth","Woodbury","Maple Grove","St. Cloud"]],"MS":["Mississippi",["Jackson","Gulfport","Southaven","Biloxi","Hattiesburg","Olive Branch","Tupelo","Meridian","Madison","Oxford"]],"MO":["Missouri",["Kansas City","St. Louis","Springfield","Columbia","Independence","Lee's Summit","O'Fallon","St. Charles","St. Joseph","Joplin"]],"MT":["Montana",["Billings","Missoula","Great Falls","Bozeman","Butte","Helena","Kalispell"]],"NE":["Nebraska",["Omaha","Lincoln","Bellevue","Grand Island","Kearney","Fremont","Norfolk","North Platte"]],"NV":["Nevada",["Las Vegas","Henderson","Reno","North Las Vegas","Sparks","Carson City","Elko"]],"NH":["New Hampshire",["Manchester","Nashua","Concord","Derry","Dover","Rochester","Salem","Portsmouth"]],"NJ":["New Jersey",["Newark","Jersey City","Paterson","Elizabeth","Edison","Trenton","Camden","Clifton","Toms River","Cherry Hill"]],"NM":["New Mexico",["Albuquerque","Las Cruces","Rio Rancho","Santa Fe","Roswell","Farmington","Clovis","Hobbs"]],"NY":["New York",["New York City","Buffalo","Rochester","Yonkers","Syracuse","Albany","New Rochelle","Mount Vernon","Schenectady","Utica","White Plains","Long Island"]],"NC":["North Carolina",["Charlotte","Raleigh","Greensboro","Durham","Winston-Salem","Fayetteville","Cary","Wilmington","High Point","Asheville","Concord","Greenville"]],"ND":["North Dakota",["Fargo","Bismarck","Grand Forks","Minot","West Fargo","Williston","Dickinson"]],"OH":["Ohio",["Columbus","Cleveland","Cincinnati","Toledo","Akron","Dayton","Parma","Canton","Youngstown","Lorain","Hamilton","Springfield","Mason","Middletown","Lima","Mansfield"]],"OK":["Oklahoma",["Oklahoma City","Tulsa","Norman","Broken Arrow","Edmond","Lawton","Moore","Midwest City","Stillwater","Enid"]],"OR":["Oregon",["Portland","Salem","Eugene","Gresham","Hillsboro","Beaverton","Bend","Medford","Springfield","Corvallis"]],"PA":["Pennsylvania",["Philadelphia","Pittsburgh","Allentown","Erie","Reading","Scranton","Bethlehem","Lancaster","Harrisburg","Altoona","York","State College"]],"RI":["Rhode Island",["Providence","Warwick","Cranston","Pawtucket","East Providence","Woonsocket","Newport"]],"SC":["South Carolina",["Charleston","Columbia","North Charleston","Mount Pleasant","Rock Hill","Greenville","Summerville","Spartanburg","Sumter","Florence","Myrtle Beach"]],"SD":["South Dakota",["Sioux Falls","Rapid City","Aberdeen","Brookings","Watertown","Mitchell","Yankton"]],"TN":["Tennessee",["Nashville","Memphis","Knoxville","Chattanooga","Clarksville","Murfreesboro","Franklin","Jackson","Johnson City","Bartlett"]],"TX":["Texas",["Houston","San Antonio","Dallas","Austin","Fort Worth","El Paso","Arlington","Corpus Christi","Plano","Lubbock","Laredo","Irving","Garland","Frisco","McKinney","Amarillo","Brownsville","Waco"]],"UT":["Utah",["Salt Lake City","West Valley City","Provo","West Jordan","Orem","Sandy","Ogden","St. George","Layton","Logan"]],"VT":["Vermont",["Burlington","South Burlington","Rutland","Essex Junction","Barre","Montpelier","St. Albans"]],"VA":["Virginia",["Virginia Beach","Norfolk","Chesapeake","Richmond","Newport News","Alexandria","Hampton","Roanoke","Portsmouth","Lynchburg","Arlington","Fairfax"]],"WA":["Washington",["Seattle","Spokane","Tacoma","Vancouver","Bellevue","Kent","Everett","Renton","Federal Way","Yakima","Kirkland","Bellingham","Olympia","Redmond"]],"WV":["West Virginia",["Charleston","Huntington","Morgantown","Parkersburg","Wheeling","Weirton","Fairmont","Martinsburg"]],"WI":["Wisconsin",["Milwaukee","Madison","Green Bay","Kenosha","Racine","Appleton","Waukesha","Eau Claire","Oshkosh","Janesville"]],"WY":["Wyoming",["Cheyenne","Casper","Laramie","Gillette","Rock Springs","Sheridan","Jackson"]]};
+  var MILES = [10, 25, 50, 75, 100];
   function renderPProfile() {
     var box = $('pSetProfile'), p = pSet.profile; box.textContent = '';
     box.appendChild(el('h2', '', 'Contact and service area'));
     var g = el('div', 'sfgrid'), inp = {};
-    [['contactName', 'Contact name', p.contact_name, 'full', 150], ['phone', 'Phone', p.phone, '', 30], ['technicianCount', 'Number of technicians', p.technician_count == null ? '' : p.technician_count, '', 6], ['serviceStates', 'Service states (2-letter codes, comma separated)', p.service_states, 'full', 200], ['serviceAreas', 'Service areas (cities, counties)', p.service_areas || '', 'full', 500], ['otherTrades', 'Other trades you offer', p.other_trades || '', 'full', 300]].forEach(function (x) {
+    [['contactName', 'Contact name', p.contact_name, 'full', 150], ['phone', 'Phone', p.phone, '', 30], ['technicianCount', 'Number of technicians', p.technician_count == null ? '' : p.technician_count, '', 6]].forEach(function (x) {
       var w = el('div', x[3]), l = el('label', '', x[1]), i = el('input'); i.id = 'pp_' + x[0]; l.htmlFor = i.id; i.maxLength = x[4]; i.value = x[2] == null ? '' : x[2]; inp[x[0]] = i; w.appendChild(l); w.appendChild(i); g.appendChild(w);
     });
     box.appendChild(g);
-    box.appendChild(el('p', 'small', 'Your business name, email and main trade are set by TMG. Call us to change them.'));
-    var sv = el('button', 'sbtn go', 'Save'); sv.type = 'button'; sv.onclick = async function () {
-      var body = {}; Object.keys(inp).forEach(function (k) { body[k] = inp[k].value; });
+    // working copy of the choices
+    var states = {}; String(p.service_states || '').split(',').forEach(function (c) { c = c.trim().toUpperCase(); if (US[c]) states[c] = true; });
+    var areas = {}; (pSet.areas || []).forEach(function (a) { areas[a.state + '|' + a.city] = a.miles; });
+    var trades = {}; String(p.other_trades || '').split(',').forEach(function (t) { t = t.trim(); if (t) trades[t] = true; });
+    function chk(label, on, fn, cls) {
+      var l = el('label', 'ck' + (cls ? ' ' + cls : '')); var c = el('input'); c.type = 'checkbox'; c.checked = !!on; c.onchange = function () { fn(c.checked); };
+      l.appendChild(c); l.appendChild(document.createTextNode(' ' + label)); return l;
+    }
+    box.appendChild(el('h3', '', 'States you work in'));
+    box.appendChild(el('p', 'small', 'Check every state where you take jobs.'));
+    var sg = el('div', 'ckgrid'); box.appendChild(sg);
+    Object.keys(US).sort(function (x, y) { return US[x][0] < US[y][0] ? -1 : 1; }).forEach(function (c) {
+      sg.appendChild(chk(US[c][0], states[c], function (on) { if (on) states[c] = true; else delete states[c]; drawCities(); }));
+    });
+    box.appendChild(el('h3', '', 'Cities and how far you will travel'));
+    box.appendChild(el('p', 'small', 'For each state, check the major cities you want jobs near, then choose how many miles from that city you will go. Pick the nearest big city if yours is not listed.'));
+    var cityBox = el('div'); box.appendChild(cityBox);
+    var legacy = (!(pSet.areas || []).length && p.service_areas) ? p.service_areas : '';
+    if (legacy) box.appendChild(el('p', 'small', 'On file from signup: ' + legacy + '. Choose your cities above to replace it.'));
+    function drawCities() {
+      cityBox.textContent = '';
+      var codes = Object.keys(states).sort(function (x, y) { return US[x][0] < US[y][0] ? -1 : 1; });
+      if (!codes.length) { cityBox.appendChild(el('p', 'small', 'Check a state above to choose its cities.')); return; }
+      codes.forEach(function (c) {
+        var sec = el('div', 'stsec'); sec.appendChild(el('strong', '', US[c][0]));
+        US[c][1].forEach(function (city) {
+          var key = c + '|' + city, row = el('div', 'cityrow');
+          var on = areas[key] != null;
+          row.appendChild(chk(city, on, function (v) { if (v) areas[key] = areas[key] || 25; else delete areas[key]; drawCities(); }));
+          if (on) {
+            var sel = el('select'); sel.setAttribute('aria-label', 'Miles from ' + city);
+            MILES.forEach(function (m) { var o = el('option', '', 'within ' + m + ' miles'); o.value = m; sel.appendChild(o); });
+            sel.value = areas[key]; sel.onchange = function () { areas[key] = Number(sel.value); };
+            row.appendChild(sel);
+          }
+          sec.appendChild(row);
+        });
+        cityBox.appendChild(sec);
+      });
+    }
+    drawCities();
+    box.appendChild(el('h3', '', 'Other trades you offer'));
+    box.appendChild(el('p', 'small', 'Your main trade is ' + (p.primary_trade || 'set by TMG') + '. Check any others you also do.'));
+    var tg = el('div', 'ckgrid');
+    (pSet.trades || []).filter(function (t) { return t !== p.primary_trade && t !== 'Other'; }).forEach(function (t) {
+      tg.appendChild(chk(t, trades[t], function (on) { if (on) trades[t] = true; else delete trades[t]; }));
+    });
+    box.appendChild(tg);
+    var sv = el('button', 'sbtn go', 'Save'); sv.type = 'button'; sv.style.marginTop = '16px'; sv.onclick = async function () {
+      var list = Object.keys(areas).filter(function (k) { return states[k.split('|')[0]]; }).map(function (k) { var pr = k.split('|'); return { state: pr[0], city: pr.slice(1).join('|'), miles: areas[k] }; });
+      var body = { contactName: inp.contactName.value, phone: inp.phone.value, technicianCount: inp.technicianCount.value, states: Object.keys(states), areas: list, otherTrades: Object.keys(trades) };
       try { await api('/provider/settings/profile', 'POST', body); cflash('msg8', 'Saved.', true); await loadProvSettings(); } catch (e) { cflash('msg8', e.message, false); }
     };
     box.appendChild(sv);

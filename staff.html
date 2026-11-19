@@ -692,6 +692,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           <div><button type="submit">Add worksite</button></div>
         </form>
       </div>
+      <div class="panel" id="loginReqPanel" hidden><h2>Login requests</h2><p class="small">The customer asked for these logins. Approving creates the login right away.</p><div id="loginReqBody"></div></div>
       <div class="panel">
         <h2>Approved logins</h2>
         <p class="small">Only these email addresses can sign in for this customer. TMG never sees their password.</p>
@@ -1791,6 +1792,24 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   };
 
   var currentCustomer = null;
+  async function loadLoginRequests(id) {
+    var panel = $('loginReqPanel'), body = $('loginReqBody'); panel.hidden = true; clear(body);
+    var d; try { d = await api('/staff/customers/' + id + '/login-requests'); } catch (e) { return; }
+    if (currentCustomer !== id || !d.requests.length) return;
+    panel.hidden = false;
+    d.requests.forEach(function (r) {
+      var row = mk('div', 'tkal'), m = mk('div', 'am', r.display_name + ' (' + r.email + ')');
+      m.appendChild(mk('small', '', r.status === 'pending' ? 'Requested by ' + r.requested_by + ' on ' + fmt(r.created_at) : (r.status === 'approved' ? 'Approved' : 'Declined') + ' by ' + (r.decided_by || '') + ' on ' + fmt(r.decided_at)));
+      row.appendChild(m);
+      if (r.status === 'pending') {
+        var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+        bar.appendChild(btn('Approve', async function () { try { await api('/staff/customer-login-requests/' + r.id + '/decide', 'POST', { approve: true }); flash('Login approved.', true); openCustomer(id); loadAlerts(); } catch (e) { flash(e.message, false); } }, 'ai-go'));
+        bar.appendChild(btn('Decline', async function () { if (!window.confirm('Decline this login request?')) return; try { await api('/staff/customer-login-requests/' + r.id + '/decide', 'POST', { approve: false }); flash('Declined.', true); openCustomer(id); loadAlerts(); } catch (e) { flash(e.message, false); } }, 'ai-no'));
+        row.appendChild(bar);
+      }
+      body.appendChild(row);
+    });
+  }
   async function openCustomer(id) {
     setHash('#customer/' + id);
     currentCustomer = id;
@@ -1799,6 +1818,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       view('viewCustomer');
       $('cName').textContent = d.customer.name;
       setupCustDocs(id);
+      loadLoginRequests(id);
       setupCustCard(id);
       loadBillTerms(id);
 
@@ -2660,6 +2680,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         var t = document.createElement('span'); t.textContent = a.message; r.appendChild(t);
         var b = document.createElement('span');
         if (a.ticket_id) b.appendChild(btn('Open', function () { openTicket(a.ticket_id); }));
+        else if (a.kind === 'customer_login_request' && a.ref_id) b.appendChild(btn('Open', function () { openCustomer(a.ref_id); }));
         b.appendChild(btn('Clear', async function () { try { await api('/staff/alerts/' + a.id + '/dismiss', 'POST'); loadAlerts(); } catch (e) { flash(e.message, false); } }));
         r.appendChild(b); box.appendChild(r);
       });
