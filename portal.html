@@ -484,6 +484,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 
     var laborMark = sh.lastChild, isFlat = f.pricingMode === 'flat';
     sh.appendChild(el('label', 'l', 'Labor'));
+    if (f.onSite && !isFlat) { var osBox = el('div', 'box'); osBox.textContent = f.onSite.hasCheckins ? 'Your check-ins show ' + (Math.floor(f.onSite.minutes / 60) ? Math.floor(f.onSite.minutes / 60) + ' hours ' : '') + (f.onSite.minutes % 60) + ' minutes on site (' + f.onSite.hours.toFixed(2) + ' hours). TMG compares your hours to this.' + (f.onSite.open ? ' You did not check out of one visit, so TMG will review your bill.' : '') : 'No check-ins are on record for this job, so TMG will review your bill.'; osBox.style.borderLeft = '5px solid ' + ((f.onSite.hasCheckins && !f.onSite.open) ? '#15803d' : '#c2410c'); sh.appendChild(osBox); }
     if (f.tripPay > 0) sh.appendChild(el('div', 'box', 'Initial trip (flat rate): ' + money(f.tripPay)));
     var hoursRow = el('div'); hoursRow.style.marginTop = '8px';
     hoursRow.appendChild(el('b', null, 'Lead Tech')); hoursRow.appendChild(document.createElement('br'));
@@ -516,20 +517,22 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
 
     sh.appendChild(el('label', 'l', 'Materials'));
     var tbl = el('table'); var hr0 = tbl.createTHead().insertRow();
-    ['Material', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(el('th', null, h)); });
+    ['Material / equipment', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(el('th', null, h)); });
     var tb = tbl.createTBody(), rows = [];
-    function addRow() {
-      var o = { d: el('input'), q: el('input'), u: el('input'), a: el('span') };
-      o.d.placeholder = 'Description'; o.d.maxLength = 300; o.q.placeholder = 'Qty'; o.u.placeholder = 'Price per unit';
+    function addRow(kind) {
+      var o = { d: el('input'), q: el('input'), u: el('input'), a: el('span'), kind: kind === 'equipment' ? 'equipment' : 'material' };
+      o.d.placeholder = o.kind === 'equipment' ? 'Equipment (description)' : 'Description'; o.d.maxLength = 300; o.q.placeholder = 'Qty'; o.u.placeholder = 'Price per unit';
       [o.q, o.u].forEach(function (i) { i.type = 'number'; i.min = '0'; i.step = '0.01'; });
       o.q.style.width = '80px'; o.u.style.width = '110px';
       var tr = tb.insertRow(), rm = el('button', 'b b-red-o b-sm', 'Remove');
       rm.onclick = function () { rows.splice(rows.indexOf(o), 1); tr.remove(); calc(); };
       [o.d, o.q, o.u, o.a, rm].forEach(function (x) { tr.insertCell().appendChild(x); });
+      if (o.kind === 'equipment') { var tg = el('small', null, 'EQUIPMENT'); tg.style.cssText = 'display:block;font-weight:700;color:#6b7280;font-size:11px'; tr.cells[0].insertBefore(tg, o.d); }
       [o.d, o.q, o.u].forEach(function (i) { i.oninput = calc; }); rows.push(o);
     }
     sh.appendChild(tbl);
     var addB = el('button', 'b b-blue-o', 'Add material line'); addB.style.marginTop = '8px'; addB.onclick = function () { addRow(); }; sh.appendChild(addB);
+    var addE = el('button', 'b b-blue-o', 'Add equipment line'); addE.style.cssText = 'margin:8px 0 0 8px'; addE.onclick = function () { addRow('equipment'); }; sh.appendChild(addE);
 
     var flatIn = el('input'); flatIn.type = 'number'; flatIn.min = '0'; flatIn.step = '0.01'; flatIn.placeholder = 'Flat price'; flatIn.style.width = '180px';
     if (isFlat) {
@@ -563,7 +566,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
       if (t.sum <= 0) return flash(isFlat ? 'Enter your flat price.' : 'Add your hours or materials.', false);
       if (t.sum > f.providerNte) return flash('Your bill is higher than the approved amount. Request an increase first.', false);
-      var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
+      var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value, kind: o.kind }; });
       go.disabled = true; go.textContent = 'Sending...';
       try { await api('/provider/jobs/' + j.id + '/bill', 'POST', { description: ta.value, flatAmount: flatIn.value, hours: hrs.value || 0, helpers: helpers.filter(function (o) { return o.hi.value; }).map(function (o) { return { hours: o.hi.value }; }), materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
       catch (e) { flash(e.message, false); go.disabled = false; go.textContent = 'Submit bill'; }

@@ -1052,16 +1052,17 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     box.appendChild(btn('Add helper', function () { if (mHelpers.length >= 2) return flash('A bill can have up to 2 helpers.', false); addMHelper(); }, 'btn-sm'));
     box.appendChild(mk('p', 'small', 'The trip pay and hourly rate come from the saved terms. Change them here only for this one bill.'));
     box.appendChild(lab('Materials'));
-    var tbl = mk('table', 't'), hr0 = tbl.createTHead().insertRow(); ['Material', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(mk('th', null, h)); });
+    var tbl = mk('table', 't'), hr0 = tbl.createTHead().insertRow(); ['Material / equipment', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(mk('th', null, h)); });
     var tb = tbl.createTBody(), rows = [];
-    function addRow() {
-      var o = { d: mk('input', 'bill-in'), q: mk('input', 'bill-in'), u: mk('input', 'bill-in'), a: mk('span') };
-      o.d.placeholder = 'Description'; [o.q, o.u].forEach(function (i) { i.type = 'number'; i.min = '0'; i.step = '0.01'; });
+    function addRow(kind) {
+      var o = { d: mk('input', 'bill-in'), q: mk('input', 'bill-in'), u: mk('input', 'bill-in'), a: mk('span'), kind: kind === 'equipment' ? 'equipment' : 'material' };
+      o.d.placeholder = o.kind === 'equipment' ? 'Equipment (description)' : 'Description'; [o.q, o.u].forEach(function (i) { i.type = 'number'; i.min = '0'; i.step = '0.01'; });
       var tr = tb.insertRow(); [o.d, o.q, o.u, o.a].forEach(function (x) { tr.insertCell().appendChild(x); });
+      if (o.kind === 'equipment') { var tg = mk('small', null, 'EQUIPMENT'); tg.style.cssText = 'display:block;font-weight:700;color:#6b7280;font-size:11px'; tr.cells[0].insertBefore(tg, o.d); }
       var rm = btn('Remove', function () { rows.splice(rows.indexOf(o), 1); tr.remove(); calc(); }, 'btn-sm'); tr.insertCell().appendChild(rm);
       [o.d, o.q, o.u].forEach(function (i) { i.oninput = calc; }); rows.push(o);
     }
-    box.appendChild(tbl); box.appendChild(btn('Add material line', function () { addRow(); }, 'btn-sm'));
+    box.appendChild(tbl); box.appendChild(btn('Add material line', function () { addRow(); }, 'btn-sm')); var addEqM = btn('Add equipment line', function () { addRow('equipment'); }, 'btn-sm'); addEqM.style.marginLeft = '8px'; box.appendChild(addEqM);
     var flatIn = mk('input', 'bill-in'); flatIn.type = 'number'; flatIn.min = '0'; flatIn.step = '0.01';
     if (isFlat) {
       var kids = Array.prototype.slice.call(box.children), i0 = kids.indexOf(laborMark) + 1;
@@ -1095,7 +1096,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
       var t = sum(); if (t.total <= 0) return flash('Add hours or materials.', false);
       if (t.total > f.providerNte) return flash('Over the Provider NTE. Raise the NTE first.', false);
-      var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value }; });
+      var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value, kind: o.kind }; });
       try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, flatAmount: flatIn.value, hours: hrs.value || 0, tripPay: tripIn.value, rate: rateIn.value, helperRate: mHelperRate || 0, helpers: mHelpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }), materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
       catch (er) { flash(er.message, false); }
     });
@@ -1159,6 +1160,14 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       body.appendChild(aiBtn); body.appendChild(aiPanel);
     }
 
+    if (d.onSite) {
+      var os = d.onSite, osb = mk('div', 'issue'); osb.style.borderLeftColor = os.notes.length ? '#c2410c' : '#15803d';
+      osb.appendChild(mk('small', '', 'On-site time (from check-ins)'));
+      var osHrs = Math.floor(os.minutes / 60), osMin = os.minutes % 60;
+      osb.appendChild(mk('p', '', os.hasCheckins ? (osHrs ? osHrs + 'h ' : '') + osMin + 'm on site across ' + os.visits + ' visit' + (os.visits === 1 ? '' : 's') + ' (' + os.hours.toFixed(2) + ' hours). The bill claims ' + Number(b.hours).toFixed(2) + ' hours.' : 'No check-ins on record.'));
+      os.notes.forEach(function (n) { var np = mk('p', '', n); np.style.cssText = 'color:#c2410c;font-size:14px;margin-top:4px'; osb.appendChild(np); });
+      body.appendChild(osb);
+    }
     var flat = b.pricing_mode === 'flat';
     function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
     var flatIn = num(b.flat_amount);
@@ -1187,8 +1196,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     var mats = [], matBody = tb;
     function addMat(m) {
       var o = { desc: mk('input', 'bill-in'), qty: num(m.quantity), unit: num(m.unit_price), p: mk('span'), c: mk('span') };
-      o.desc.value = m.description || ''; o.desc.disabled = !edit; o.desc.placeholder = 'Material';
-      var first = mk('div'); first.appendChild(o.desc);
+      o.kind = m.kind === 'equipment' ? 'equipment' : 'material'; o.desc.value = m.description || ''; o.desc.disabled = !edit; o.desc.placeholder = o.kind === 'equipment' ? 'Equipment' : 'Material';
+      var first = mk('div'); if (o.kind === 'equipment') { var tg = mk('small', null, 'EQUIPMENT'); tg.style.cssText = 'display:block;font-weight:700;color:#6b7280;font-size:11px'; first.appendChild(tg); } first.appendChild(o.desc);
       if (edit) { var rm = btn('Remove', function () { mats.splice(mats.indexOf(o), 1); o.tr.remove(); upd(); }); rm.style.marginTop = '4px'; first.appendChild(rm); }
       o.tr = row(first, o.qty, o.unit, o.p, o.c); mats.push(o);
       [o.qty, o.unit, o.desc].forEach(function (i) { i.oninput = upd; });
@@ -1197,7 +1206,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (!flat) body.appendChild(tbl);
     if (edit && !flat) {
       var addH = btn('Add helper', function () { if (helpers.length >= 2) return flash('A bill can have up to 2 helpers.', false); addHelper({}); upd(); }); addH.style.cssText = 'margin-top:8px;margin-right:8px'; body.appendChild(addH);
-      var add = btn('Add material line', function () { addMat({}); upd(); }); add.style.marginTop = '8px'; body.appendChild(add);
+      var add = btn('Add material line', function () { addMat({}); upd(); }); add.style.marginTop = '8px'; body.appendChild(add); var addEq = btn('Add equipment line', function () { addMat({ kind: 'equipment' }); upd(); }); addEq.style.cssText = 'margin:8px 0 0 8px'; body.appendChild(addEq);
     }
 
     var tot = mk('div'); tot.style.marginTop = '14px'; body.appendChild(tot);
@@ -1206,7 +1215,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       if (flat) return { description: ta.value, flatAmount: flatIn.value };
       return { description: ta.value, tripPay: tripPay.value, tripCharge: tripCharge.value, hours: hours.value, rate: rate.value, helperRate: helperRateVal || 0,
         helpers: helpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }),
-        materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value }; }) };
+        materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value, kind: o.kind }; }) };
     }
     var approveBtn = null;
     function upd() {
@@ -1362,8 +1371,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     var mats = [];
     function addMat(m) {
       var o = { desc: mk('input', 'bill-in'), qty: num(m.quantity), unit: num(m.unitPrice), a: mk('span') };
-      o.desc.value = m.description || ''; o.desc.disabled = !edit; o.desc.placeholder = 'Material';
-      var first = mk('div'); first.appendChild(o.desc);
+      o.kind = m.kind === 'equipment' ? 'equipment' : 'material'; o.desc.value = m.description || ''; o.desc.disabled = !edit; o.desc.placeholder = o.kind === 'equipment' ? 'Equipment' : 'Material';
+      var first = mk('div'); if (o.kind === 'equipment') { var tg = mk('small', null, 'EQUIPMENT'); tg.style.cssText = 'display:block;font-weight:700;color:#6b7280;font-size:11px'; first.appendChild(tg); } first.appendChild(o.desc);
       if (edit) { var rm = btn('Remove', function () { mats.splice(mats.indexOf(o), 1); o.tr.remove(); upd(); }, 'ai-no'); rm.style.cssText += ';margin-top:4px;min-height:30px;padding:4px 10px'; first.appendChild(rm); }
       o.tr = row(first, o.qty, o.unit, o.a); mats.push(o);
       [o.desc, o.qty, o.unit].forEach(function (i) { i.oninput = upd; });
@@ -1373,7 +1382,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (edit) {
       var addH = btn('Add helper', function () { if (helpers.length >= 2) return flash('A bill can have up to 2 helpers.', false); addHelper(0); upd(); }, 'ai-btn'); addH.style.cssText += ';margin:8px 8px 0 0';
       var addM = btn('Add material line', function () { addMat({}); upd(); }, 'ai-btn'); addM.style.marginTop = '8px';
-      body.appendChild(addH); body.appendChild(addM);
+      var addEqC = btn('Add equipment line', function () { addMat({ kind: 'equipment' }); upd(); }, 'ai-btn'); addEqC.style.cssText += ';margin:8px 0 0 8px';
+      body.appendChild(addH); body.appendChild(addM); body.appendChild(addEqC);
     }
     var rb = mk('div'); rb.style.cssText = 'display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;align-items:flex-end';
     function rateIn(label, val, formula) {
@@ -1388,7 +1398,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     function vals() {
       return { tripCharge: trip.value, hours: hours.value || 0, rate: cRate.value, helperRate: cHelp.value,
         helpers: helpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }),
-        materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value }; }) };
+        materials: mats.filter(function (o) { return o.desc.value.trim() || o.qty.value || o.unit.value; }).map(function (o) { return { description: o.desc.value, quantity: o.qty.value, unitPrice: o.unit.value, kind: o.kind }; }) };
     }
     function upd() {
       var mt = 0, custLabor = 0;
