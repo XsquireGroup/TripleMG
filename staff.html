@@ -6,6 +6,14 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Staff Sign-in | Triple Maintenance Group</title>
 <link rel="stylesheet" href="base.css">
+<link rel="manifest" href="manifest-staff.webmanifest">
+<link rel="apple-touch-icon" href="tmg-icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="tmg-icon-192.png">
+<meta name="theme-color" content="#131413">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TMG Staff">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="icon" href="favicon.ico" sizes="any">
 <style>
 body { background: var(--concrete); }
@@ -343,6 +351,12 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           <label class="drop" id="tkDrop" for="tkPhAdd"><b>+ Add Photo(s)</b><span>Drag photos here or tap to choose. Up to 10.</span><input id="tkPhAdd" type="file" accept="image/*" multiple></label>
           <div class="slots" id="tkPhotos"></div></div>
         <div class="panel"><h2>Money</h2><div id="tkMoney"></div></div>
+      </div>
+      <div class="panel" id="checkPanel" hidden><h2>Check-in / Check-out</h2>
+        <p class="small" id="ckSum"></p>
+        <div id="ckBtns" style="margin:10px 0"></div>
+        <div id="ckList"></div>
+        <p class="small" id="ckSite"></p>
       </div>
       <div class="panel" id="reviewPanel" hidden><h2>Customer request: review and release</h2>
         <p class="small">Please verify customer information.</p>
@@ -1928,6 +1942,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       loadCancel(id, t);
       loadNte(id, t);
       loadPhotos(id);
+      loadCheckins(id);
       loadCompletion(id);
       loadBill(id);
       loadNotes(id);
@@ -1985,6 +2000,92 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     $('qEdit').hidden = closed;
   }
   // quick actions
+
+  // ---- provider check-in / check-out (geo fence) ----
+  function ckWhen(iso) { var d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  function ckMiles(m) { return m == null ? '' : (m < 160 ? Math.round(m * 3.281) + ' ft' : (m / 1609.34).toFixed(1) + ' mi'); }
+  var CK_FLAG = { outside: 'Outside the radius', no_location: 'No location shared', no_pin: 'Site has no pin', manual: 'Entered by TMG' };
+  async function loadCheckins(id) {
+    var panel = $('checkPanel');
+    panel.hidden = true;
+    var d; try { d = await api('/staff/tickets/' + id + '/checkins'); } catch (e) { return; }
+    if (currentTicket !== id) return;
+    if (!d.hasProvider) return;
+    panel.hidden = false;
+    var last = d.entries[0];
+    $('ckSum').textContent = d.state === 'in' ? (d.provider || 'The provider') + ' is checked in.' : (d.entries.length ? (d.provider || 'The provider') + ' is checked out.' : 'No check-ins yet.');
+    var bx = $('ckBtns'); clear(bx);
+    if (d.mayRecord && d.eligible) {
+      var dir = d.state === 'in' ? 'out' : 'in';
+      bx.appendChild(btn(dir === 'in' ? 'Check provider in' : 'Check provider out', function () { askManualCheckin(id, dir, d.provider); }, 'btn-sm'));
+    } else if (!d.mayRecord) {
+      bx.appendChild(mk('span', 'small', 'Only the assigned employee, a manager or the Owner can record this.'));
+    }
+    var list = $('ckList'); clear(list);
+    d.entries.forEach(function (e) {
+      var r = mk('div', 'issue'); r.style.marginTop = '8px'; r.style.borderLeftColor = (e.flag === 'outside' || e.flag === 'no_location') ? '#c2410c' : (e.direction === 'in' ? '#15803d' : '#6b7280');
+      var head = (e.direction === 'in' ? 'Checked in' : 'Checked out') + ' · ' + ckWhen(e.occurred_at);
+      r.appendChild(mk('small', '', head));
+      var bits = [];
+      if (e.source === 'staff') bits.push('Entered by ' + (e.recorded_by || 'TMG'));
+      else if (e.distance_m != null) bits.push(ckMiles(e.distance_m) + ' from the site' + (e.accuracy_m != null ? ' (phone accuracy about ' + ckMiles(e.accuracy_m) + ')' : ''));
+      if (e.flag && e.flag !== 'manual') bits.push(CK_FLAG[e.flag] || e.flag);
+      if (e.note) bits.push('Note: ' + e.note);
+      var p = mk('p', '', bits.join('. ') || 'On site.'); p.style.fontSize = '14px';
+      if (e.flag === 'outside' || e.flag === 'no_location') p.style.color = '#c2410c';
+      r.appendChild(p); list.appendChild(r);
+    });
+    var sl = $('ckSite'); clear(sl);
+    var s = d.site || {};
+    sl.appendChild(document.createTextNode(s.hasPin ? 'Job-site pin is set (radius ' + ckMiles(s.radiusM) + '). ' : 'This job site has no pin yet, so distance cannot be checked. '));
+    var a = mk('button', 'btn-sm', s.hasPin ? 'Change site location' : 'Set site location'); a.type = 'button'; a.onclick = function () { askSiteLocation(s.id, function () { loadCheckins(id); }); };
+    sl.appendChild(a);
+  }
+  function askManualCheckin(id, dir, who) {
+    var note = document.createElement('input'); note.maxLength = 300; note.placeholder = 'Note (optional), for example: called to confirm they arrived';
+    note.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;margin:8px 0';
+    var when = document.createElement('input'); when.type = 'datetime-local'; when.style.cssText = 'padding:10px;border:1px solid var(--border);font:inherit;margin:4px 0 8px';
+    var acts = mk('div', 'acts'), close;
+    acts.appendChild(mbtn(dir === 'in' ? 'Check in' : 'Check out', 'red', async function () {
+      var body = { direction: dir }; if (note.value.trim()) body.note = note.value.trim();
+      if (when.value) { var dt = new Date(when.value); if (isNaN(dt.getTime())) return flash('That time is not valid.', false); body.at = dt.toISOString(); }
+      try { await api('/staff/tickets/' + id + '/checkin', 'POST', body); close(); flash('Recorded.', true); loadCheckins(id); }
+      catch (e) { flash(e.message, false); }
+    }));
+    acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+    close = openModal((dir === 'in' ? 'Check in ' : 'Check out ') + (who || 'provider') + '?',
+      [mk('p', '', 'This is recorded as entered by you, without GPS. Leave the time blank for right now, or enter when it actually happened (up to 72 hours ago).'), mk('small', '', 'Time (optional)'), when, note, acts]);
+  }
+  function askSiteLocation(siteId, done) {
+    api('/staff/worksites/' + siteId + '/location').then(function (L) {
+      var info = mk('p', '', (L.name || 'This site') + (L.address ? ' · ' + L.address : '') + '. In Google Maps, right-click the building and click the numbers at the top of the menu to copy them, then paste here (for example 39.103118, -84.512020).');
+      var coord = document.createElement('input'); coord.placeholder = 'Latitude, longitude'; coord.value = L.hasPin ? L.latitude + ', ' + L.longitude : '';
+      coord.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;margin:8px 0';
+      var gps = mbtn('Use my current location', '', function () {
+        if (!navigator.geolocation) return flash('This device cannot share its location.', false);
+        navigator.geolocation.getCurrentPosition(function (p) { coord.value = p.coords.latitude.toFixed(6) + ', ' + p.coords.longitude.toFixed(6); }, function () { flash('Location was not shared. Paste the numbers from Google Maps instead.', false); }, { enableHighAccuracy: true, timeout: 15000 });
+      });
+      var rad = document.createElement('input'); rad.type = 'number'; rad.min = 30; rad.max = 8000; rad.value = L.radiusM || L.defaultRadiusM; rad.disabled = !L.mayChangeRadius; rad.style.cssText = 'width:120px;padding:10px;border:1px solid var(--border);font:inherit;margin:4px 8px 8px 0';
+      var radRow = mk('div', ''); radRow.appendChild(mk('small', '', 'Radius in meters (402 = a quarter mile)')); radRow.appendChild(document.createElement('br')); radRow.appendChild(rad);
+      if (!L.mayChangeRadius) radRow.appendChild(mk('small', '', 'A manager or the Owner can change the radius.'));
+      var acts = mk('div', 'acts'), close;
+      acts.appendChild(mbtn('Save location', 'red', async function () {
+        var m = coord.value.match(/^\s*(-?\d+(?:\.\d+)?)\s*[, ]\s*(-?\d+(?:\.\d+)?)\s*$/);
+        if (!m) return flash('Enter it as latitude, longitude, for example 39.103118, -84.512020.', false);
+        var body = { latitude: Number(m[1]), longitude: Number(m[2]) };
+        if (L.mayChangeRadius && Number(rad.value) !== (L.radiusM || L.defaultRadiusM)) body.radiusM = Number(rad.value);
+        try { await api('/staff/worksites/' + siteId + '/location', 'POST', body); close(); flash('Site location saved.', true); if (done) done(); }
+        catch (e) { flash(e.message, false); }
+      }));
+      acts.appendChild(gps);
+      if (L.hasPin && L.mayChangeRadius) acts.appendChild(mbtn('Remove pin', '', async function () {
+        if (!window.confirm('Remove the pin for this site? Check-ins will no longer be distance-checked.')) return;
+        try { await api('/staff/worksites/' + siteId + '/location', 'POST', { clear: true }); close(); flash('Pin removed.', true); if (done) done(); } catch (e) { flash(e.message, false); }
+      }));
+      acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+      close = openModal('Job-site location', [info, coord, radRow, acts]);
+    }).catch(function (e) { flash(e.message, false); });
+  }
   // ---- canceling a ticket ----
   function openModal(title, nodes) {
     var ov = document.createElement('div'); ov.className = 'mdl'; var bx = document.createElement('div'); bx.className = 'box';

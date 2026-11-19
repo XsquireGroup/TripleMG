@@ -6,6 +6,14 @@
 <meta name="robots" content="noindex, nofollow">
 <title>Sign in | Triple Maintenance Group</title>
 <link rel="stylesheet" href="base.css">
+<link rel="manifest" href="manifest-portal.webmanifest">
+<link rel="apple-touch-icon" href="tmg-icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="tmg-icon-192.png">
+<meta name="theme-color" content="#131413">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TMG">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <link rel="icon" href="favicon.ico" sizes="any">
 <style>
 body { background: var(--concrete); }
@@ -88,6 +96,8 @@ button.b-blue-o { background:#fff; border-color:#1d4ed8; color:#1d4ed8; }
 .bdg.urgent { background:#c2410c; } .bdg.emergency, .bdg.red { background:#950606; } .bdg.green { background:#15803d; } .bdg.amber { background:#eab308; color:#422006; } .bdg.blue { background:#1d4ed8; } .bdg.orange { background:#c2410c; } .bdg.gray { background:#6b7280; } .bdg.violet { background:#7c3aed; }
 .pills { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 10px; }
 .pill { display:inline-flex; align-items:center; gap:6px; font-size:13px; padding:5px 10px; border:1px solid var(--border); background:#fff; color:var(--ink); text-decoration:none; max-width:100%; }
+.chk { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:10px 0; padding:10px 12px; border:1px solid var(--border); background:#fff; }
+.chk-l { font-weight:600; font-size:14px; flex:1 1 160px; } .chk-h { flex:1 1 100%; font-size:12px; color:#4a4a48; }
 .pill.site { background:#ecfeff; border-color:#0e7490; color:#155e75; font-weight:600; }
 .pill svg { width:15px; height:15px; flex:none; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3ff; }
@@ -628,6 +638,41 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     b.push(['bdg ' + (colors[j.status] === undefined ? 'blue' : colors[j.status]), j.status_label]);
     return b;
   }
+  function clock(iso) { var d = new Date(iso); return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) + ' on ' + d.toLocaleDateString([], { month: 'short', day: 'numeric' }); }
+  function here() {
+    return new Promise(function (res) {
+      if (!navigator.geolocation) return res(null);
+      navigator.geolocation.getCurrentPosition(function (p) { res({ lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy }); }, function () { res(null); }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 });
+    });
+  }
+  // Check in / check out. The phone shares its position once, when the button is tapped. A check-in is never refused for location: TMG is just told when it looks off.
+  function checkinBox(j) {
+    var box = el('div', 'chk'); box.hidden = true;
+    var line = el('div', 'chk-l'), btn = el('button', 'b b-sm'), state = 'out';
+    btn.type = 'button';
+    box.appendChild(line); box.appendChild(btn); box.appendChild(el('div', 'chk-h', 'Your phone shares its location one time, when you tap. TMG does not track you.'));
+    function paint(d) {
+      state = d.state;
+      if (!d.eligible) { box.hidden = true; return; }
+      box.hidden = false;
+      if (d.state === 'in') { line.textContent = 'Checked in at ' + clock(d.since); btn.textContent = 'Check out'; btn.className = 'b b-sm b-red-o'; }
+      else { line.textContent = d.since ? 'Last checked out at ' + clock(d.since) : 'Not checked in yet'; btn.textContent = 'Check in'; btn.className = 'b b-sm b-green'; }
+    }
+    function load() { api('/provider/jobs/' + j.id + '/checkins').then(paint).catch(function () { box.hidden = true; }); }
+    btn.onclick = async function () {
+      var dir = state === 'in' ? 'out' : 'in', old = btn.textContent;
+      btn.disabled = true; btn.textContent = 'Getting your location…';
+      try {
+        var pos = await here();
+        if (!pos && !confirm('Your phone did not share its location. You can still check ' + dir + ', but TMG will be asked to review it. Continue?')) { btn.disabled = false; btn.textContent = old; return; }
+        var r = await api('/provider/jobs/' + j.id + '/checkin', 'POST', pos ? { direction: dir, lat: pos.lat, lng: pos.lng, accuracy: pos.accuracy } : { direction: dir });
+        flash(r.message || 'Done.', !r.flagged);
+      } catch (e) { flash(e.message, false); }
+      btn.disabled = false; load();
+    };
+    load();
+    return box;
+  }
   function jobCard(j, offer, history) {
     var card = el('div', 'job2'), jc = el('div', 'jc'), L = el('div', 'jl'), R = el('div', 'jr');
     var hd = el('div', 'hd'); hd.appendChild(el('span', 'id', j.job_number));
@@ -652,6 +697,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       if (j.bill_return_note && j.can_bill) note('TMG returned your bill: ' + j.bill_return_note, 'bad');
       if (j.bill_approved_total != null) note('Bill approved: ' + money(j.bill_approved_total) + '.', 'good');
     }
+    if (!offer && !history && ['assigned', 'dispatched', 'in_progress', 'awaiting_part', 'awaiting_funds'].indexOf(j.status) >= 0) L.appendChild(checkinBox(j));
     var strip = el('div', 'strip'); L.appendChild(strip); loadStrip(j.id, strip);
     if (!offer && (j.on_site_contact_name || j.on_site_contact_phone || j.employee_name)) {
       var cb = el('div', 'contacts');
