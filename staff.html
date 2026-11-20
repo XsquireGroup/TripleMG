@@ -1924,9 +1924,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   $('loginForm').onsubmit = async function (ev) {
     ev.preventDefault();
     try {
-      await api('/staff/customers/' + currentCustomer + '/logins', 'POST', { email: $('lEmail').value, displayName: $('lName').value });
+      var lr = await api('/staff/customers/' + currentCustomer + '/logins', 'POST', { email: $('lEmail').value, displayName: $('lName').value });
       $('loginForm').reset();
-      flash('Login approved. Tell them to open the TMG sign-in page and create their password with this email.', true);
+      flash(lr.emailed ? 'Login approved. They were emailed how to sign in.' : 'Login approved, but the email could not be sent. Tell them to open the TMG sign-in page and create their password with this email.', true);
       openCustomer(currentCustomer);
     } catch (e) { flash(e.message, false); }
   };
@@ -3210,7 +3210,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       function setStatus(st, label) {
         act.appendChild(btn(label, async function () {
           if (!window.confirm(label + ' for ' + p.business_name + '?')) return;
-          try { var rs = await api('/staff/providers/' + id + '/status', 'POST', { status: st, note: $('pNote').value }); $('pNote').value = ''; flash(st === 'documents_requested' ? (rs.emailed ? 'Updated. The provider was emailed.' : 'Updated, but no email could be sent. Contact them directly.') : 'Updated.', !(st === 'documents_requested' && !rs.emailed)); loadCounts(true); openProvider(id); }
+          try { var rs = await api('/staff/providers/' + id + '/status', 'POST', { status: st, note: $('pNote').value }); $('pNote').value = ''; flash((st === 'documents_requested' || st === 'approved') ? (rs.emailed ? 'Updated. The provider was emailed.' : 'Updated, but no email could be sent. Contact them directly.') : 'Updated.', !((st === 'documents_requested' || st === 'approved') && !rs.emailed)); loadCounts(true); openProvider(id); }
           catch (e) { flash(e.message, false); }
         }));
       }
@@ -3279,8 +3279,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   $('plForm').onsubmit = async function (ev) {
     ev.preventDefault();
     try {
-      await api('/staff/providers/' + currentProvider + '/logins', 'POST', { email: $('plEmail').value, displayName: $('plName').value });
-      $('plForm').reset(); flash('Login approved.', true); openProvider(currentProvider);
+      var lr = await api('/staff/providers/' + currentProvider + '/logins', 'POST', { email: $('plEmail').value, displayName: $('plName').value });
+      $('plForm').reset(); flash(lr.emailed ? 'Login approved. They were emailed how to sign in.' : 'Login approved, but the email could not be sent. Tell them to create their password with this email.', true); openProvider(currentProvider);
     } catch (e) { flash(e.message, false); }
   };
   $('limForm').onsubmit = async function (ev) {
