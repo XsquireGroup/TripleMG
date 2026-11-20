@@ -3261,7 +3261,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       }
       if (isMgr()) {
         if (p.status !== 'approved') setStatus('approved', 'Approve');
-        if (p.status === 'pending_review') setStatus('documents_requested', 'Request documents');
+        if (p.status !== 'rejected') setStatus('documents_requested', p.status === 'documents_requested' ? 'Resend document request' : 'Request documents');
         if (p.status !== 'rejected' && p.status !== 'approved') setStatus('rejected', 'Reject');
         if (p.status === 'approved') setStatus('suspended', 'Suspend');
       }
