@@ -848,7 +848,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var sum = function (arr, k) { return arr.reduce(function (t, j) { return t + (Number(j[k]) || 0); }, 0); };
     $('kOpen').textContent = d.offers.length; $('kActive').textContent = active.length;
     $('kPend').textContent = money(sum(d.mine, 'bill_pending_total')); $('kPaid').textContent = money(sum(d.mine, 'bill_approved_total'));
-    $('nOpen').textContent = d.offers.length; $('nActive').textContent = active.length; $('nDone').textContent = done.length;
+    $('nOpen').textContent = d.offers.length; $('nActive').textContent = active.length; $('nDone').textContent = done.length + (d.settlements || []).length;
     if (boardTab === null) boardTab = d.offers.length || !active.length ? 'open' : 'active';
     ['open', 'active', 'done'].forEach(function (t) { var b = $('jobTabs').querySelector('[data-t=' + t + ']'); b.className = boardTab === t ? 'on' : ''; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', boardTab === t ? 'true' : 'false'); });
     var list = $('jobList'); list.textContent = '';
@@ -856,6 +856,21 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var empty = { open: 'No open jobs right now. New jobs appear here as soon as they are posted.', active: 'You have no active jobs.', done: 'No completed jobs yet.' }[boardTab];
     $('listEmpty').hidden = rows.length > 0; $('listEmpty').textContent = empty;
     rows.forEach(function (j) { list.appendChild(jobCard(j, boardTab === 'open', boardTab === 'done')); });
+    // jobs that were reassigned to another provider after this provider started: what TMG approved for the work done
+    var st = d.settlements || [];
+    if (boardTab === 'done' && st.length) {
+      $('listEmpty').hidden = true;
+      st.forEach(function (x) {
+        var c = el('div', 'job2'); c.style.padding = '14px 16px';
+        c.appendChild(el('h3', null, (x.job_number ? x.job_number + ' - ' : '') + (x.title || 'Job')));
+        c.appendChild(el('p', 'small', 'This job was reassigned to another provider.'));
+        var line = el('p', null, x.label + (x.kind !== 'no_pay' && x.amount != null ? ': ' + money(x.amount) : ''));
+        line.style.fontWeight = '700'; if (x.kind === 'no_pay') line.style.color = '#950606';
+        c.appendChild(line);
+        if (x.kind === 'no_pay' && x.reason) c.appendChild(el('p', null, 'Reason: ' + x.reason));
+        list.appendChild(c);
+      });
+    }
   }
   $('jobTabs').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-t]'); if (!b) return; boardTab = b.getAttribute('data-t'); drawBoard();

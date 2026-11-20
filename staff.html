@@ -444,10 +444,14 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="panel sheet" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
       <div class="panel sheet" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p><div id="provInfo"></div>
+        <div id="repostBox"></div>
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Completed jobs</th><th>Score</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
-        <form class="f" id="assignForm"><div><label for="asSel">Assign any approved provider</label><select id="asSel" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"></select></div><div><button type="submit">Assign</button></div></form>
+        <form class="f" id="assignForm"><div><label for="asSel">Assign any approved provider (managers and the Owner)</label><select id="asSel" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"></select></div><div><button type="submit">Assign</button></div></form>
+        <div id="cvRow" hidden style="margin-top:10px"></div>
       </div>
+      <div class="panel" id="priorPanel" hidden><h2>First provider on this job</h2><p class="small">This job was reposted or the provider was replaced. Decide what to pay for the work already done once the new provider has billed.</p><div id="priorBody"></div></div>
+      <div class="panel" id="cardPanel" hidden><h2>Credit card provider payments</h2><div id="cardBody"></div></div>
       <div class="panel" id="nteSection" hidden>
         <h2>NTE increase</h2>
         <div id="nteReq"></div>
@@ -491,13 +495,24 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           <label for="askQ" style="display:block;font-weight:700;margin-bottom:6px">Ask A.R.C.H. for a report</label>
           <div style="display:flex;gap:8px;flex-wrap:wrap"><input id="askQ" maxlength="600" style="flex:1;min-width:260px" placeholder="Example: every unpaid invoice over 45 days, by customer"><button type="button" class="ai-btn" id="askGo">A.R.C.H.</button></div>
         </div>
-        <div class="subtabs" id="repSub" style="display:flex;gap:18px;margin:6px 0 10px"><b data-sub="fin" class="on">Financial summary</b><b data-sub="all">All tickets</b></div>
+        <div class="subtabs" id="repSub" style="display:flex;gap:18px;margin:6px 0 10px"><b data-sub="fin" class="on">Financial summary</b><b data-sub="all">All tickets</b><b data-sub="card">Card payments</b></div>
         <div id="repFin">
           <div class="per" id="repPer" style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0"></div>
           <div id="repCustom" hidden style="display:flex;gap:10px;align-items:flex-end;margin-bottom:10px"><div><label for="finFrom">From</label><input id="finFrom" type="date"></div><div><label for="finTo">To</label><input id="finTo" type="date"></div><button type="button" id="finGo">Show</button></div>
           <p class="small" id="finRange"></p>
           <div id="finCards" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:12px 0"></div>
           <div id="finBody"></div>
+        </div>
+        <div id="repCard" hidden>
+          <p class="small">Every company card payment to a credit card provider, by customer and ticket. Voided payments stay listed.</p>
+          <div class="relrow">
+            <div class="nf"><label for="cpQ">Search</label><input id="cpQ" maxlength="100" placeholder="Ticket number, customer or vendor"></div>
+            <div class="nf"><label for="cpFrom">From</label><input id="cpFrom" type="date"></div>
+            <div class="nf"><label for="cpTo">To</label><input id="cpTo" type="date"></div>
+            <div class="go"><button type="button" id="cpGo">Search</button></div>
+          </div>
+          <p id="cpTotal" style="font-weight:700;margin:10px 0"></p>
+          <div style="overflow-x:auto"><table class="t" id="cpTable"><thead><tr><th>Paid</th><th>Customer</th><th>Ticket</th><th>Vendor</th><th>Amount</th><th>Card</th><th>Approval</th><th>Entered by</th></tr></thead><tbody></tbody></table></div>
         </div>
         <div id="repAll" hidden>
         <p class="small">Every ticket ever created, active or finished. Owner only.</p>
@@ -1197,13 +1212,18 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       warn.textContent = t.total > f.providerNte ? 'This is over the Provider NTE. Raise the NTE first.' : '';
     }
     flatIn.oninput = calc; hrs.oninput = calc; tripIn.oninput = calc; rateIn.oninput = calc; addRow(); calc();
+    var cvOv = null;
+    if (f.cardVendor) {
+      box.appendChild(mk('p', 'small', 'This job was done by a credit card provider. The bill total has to match the company card payments recorded for the job exactly.'));
+      if (isMgr()) { box.appendChild(lab('Override reason (only if the total will not match the card payments)')); cvOv = mk('input', 'bill-in'); cvOv.maxLength = 1000; cvOv.style.width = '100%'; box.appendChild(cvOv); }
+    }
     var go = btn('Submit for the provider', async function () {
       if (why.value.trim().length < 5) return flash('Say why you are submitting this for the provider.', false);
       if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
       var t = sum(); if (t.total <= 0) return flash('Add hours or materials.', false);
       if (t.total > f.providerNte) return flash('Over the Provider NTE. Raise the NTE first.', false);
       var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value, kind: o.kind }; });
-      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, flatAmount: flatIn.value, hours: hrs.value || 0, tripPay: tripIn.value, rate: rateIn.value, helperRate: mHelperRate || 0, helpers: mHelpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }), materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
+      try { await api('/staff/tickets/' + id + '/manual-bill', 'POST', { reason: why.value, description: ta.value, flatAmount: flatIn.value, hours: hrs.value || 0, tripPay: tripIn.value, rate: rateIn.value, cardOverrideReason: cvOv ? cvOv.value : '', helperRate: mHelperRate || 0, helpers: mHelpers.filter(function (o) { return o.hrs.value; }).map(function (o) { return { hours: o.hrs.value }; }), materials: mats }); flash('Bill submitted for the provider. It is now in the review inbox.', true); openTicket(id); loadAlerts(); }
       catch (er) { flash(er.message, false); }
     });
     go.style.marginTop = '12px'; box.appendChild(go);
@@ -1654,10 +1674,24 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   function showSub(k) {
     repSubCur = k;
     document.querySelectorAll('#repSub b').forEach(function (x) { x.className = x.getAttribute('data-sub') === k ? 'on' : ''; x.style.cssText = 'cursor:pointer;font-size:14px;text-transform:uppercase;padding-bottom:3px;border-bottom:3px solid ' + (x.getAttribute('data-sub') === k ? '#950606' : 'transparent'); });
-    $('repFin').hidden = k !== 'fin'; $('repAll').hidden = k !== 'all';
-    if (k === 'all') runReport(); else runFinancial();
+    $('repFin').hidden = k !== 'fin'; $('repAll').hidden = k !== 'all'; $('repCard').hidden = k !== 'card';
+    if (k === 'all') runReport(); else if (k === 'card') runCardPayments(); else runFinancial();
   }
   document.querySelectorAll('#repSub b').forEach(function (x) { x.onclick = function () { showSub(x.getAttribute('data-sub')); }; });
+  async function runCardPayments() {
+    var qs = '?q=' + encodeURIComponent($('cpQ').value) + '&from=' + $('cpFrom').value + '&to=' + $('cpTo').value;
+    try {
+      var d = await api('/staff/card-payments' + qs), tb = $('cpTable').tBodies[0]; clear(tb);
+      $('cpTotal').textContent = d.payments.length + ' payments. Total (not counting voided): ' + money2(d.total);
+      d.payments.forEach(function (x) {
+        var r = tb.insertRow(); r.appendChild(td(fmt(x.paid_on))); r.appendChild(td(x.customer_name));
+        var tc = document.createElement('td'), a = document.createElement('a'); a.href = '#ticket/' + x.ticket_id; a.textContent = x.job_number; tc.appendChild(a); r.appendChild(tc);
+        r.appendChild(td(x.vendor_name)); r.appendChild(td(money2(x.amount) + (x.voided_at ? ' (voided)' : ''))); r.appendChild(td('...' + x.card_last4)); r.appendChild(td(x.approval_code || '')); r.appendChild(td(x.recorded_by));
+        if (x.voided_at) r.style.opacity = '.55';
+      });
+    } catch (e) { flash(e.message, false); }
+  }
+  $('cpGo').onclick = runCardPayments;
   function money2(n) { return '$' + Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function marginCell(m) { var c = td(m == null ? '' : m + '%'); if (m != null) c.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#a16207' : '#950606'); return c; }
   function finTable(box, title, heads, rows, clicks) {
@@ -2007,6 +2041,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     hd.appendChild(pill(t.status));
     if (t.increase_requested) hd.appendChild(mk('span', 'bdg amber', 'Increase requested'));
     if (t.awaiting_customer) hd.appendChild(mk('span', 'bdg violet', 'Awaiting customer'));
+    if (t.repost_open) hd.appendChild(mk('span', 'bdg red', 'REPOSTED'));
     if ((t.status === 'waiting_assignment' || t.status === 'needs_manual_match') && t.accepted_count > 0) hd.appendChild(mk('span', 'bdg green', t.accepted_count + ' accepted'));
     var ag = tkAge(t); hd.appendChild(mk('span', 'bdg ' + (ag.mins >= 4320 ? 'red' : ''), 'Age ' + ag.text));
     if (t.pending_alerts > 0) hd.appendChild(mk('span', 'alcount', t.pending_alerts + (t.pending_alerts === 1 ? ' alert' : ' alerts')));
@@ -2091,9 +2126,12 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       drawMeta(t);
       $('tkDesc').textContent = t.description; curTicket = t; $('editForm').hidden = true;
       currentTicket = id;
-      var open = (t.status === 'waiting_assignment' || t.status === 'needs_manual_match');
-      $('tkAssignNote').textContent = open ? '' : (t.provider_name ? 'Assigned to ' + t.provider_name + '.' : '');
-      $('assignForm').hidden = !open;
+      var open = (t.status === 'waiting_assignment' || t.status === 'needs_manual_match' || !!t.repost_open);
+      $('tkAssignNote').textContent = t.repost_open ? 'Reposted. ' + (t.provider_name || 'The first provider') + ' still has the job.' : (open ? '' : (t.provider_name ? 'Assigned to ' + t.provider_name + '.' : ''));
+      $('assignForm').hidden = !open || !isMgr();
+      var cv = $('cvRow'); clear(cv); cv.hidden = !open || !!t.assigned_provider_id;
+      if (!cv.hidden) cv.appendChild(btn('Assign a credit card provider', function () { askCardVendor(currentTicket, t, false); }, 'btn-sm'));
+      curProviders = d.providers || [];
       $('tkAssignPanel').hidden = t.status === 'new';
       var pi = $('provInfo'); clear(pi);
       if (t.provider_name) {
@@ -2142,6 +2180,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       loadTicketAlerts(id);
       loadCompletion(id);
       loadBill(id);
+      loadRepost(id, t);
+      loadCard(id);
       loadNotes(id);
       loadHandler(t);
       var isNew = t.status === 'new';
@@ -2394,6 +2434,221 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (!$('asSel').value) return flash('Choose a provider.', false);
     doAssign($('asSel').value, sel('asSel').replace(/ \u2605.*| - .*/, ''));
   };
+
+  // ---- repost, replace a provider, credit card providers, the first provider's bill ----
+  var curProviders = [];
+  function inp(ph, type) { var i = document.createElement('input'); if (type) i.type = type; i.placeholder = ph || ''; i.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;margin:4px 0 8px;box-sizing:border-box'; return i; }
+  function lab2(t) { var l = mk('small', '', t); l.style.cssText = 'display:block;font-weight:700;margin-top:6px'; return l; }
+  function reasonModal(title, intro, label, needed, okLabel, go) {
+    var ta = document.createElement('textarea'); ta.maxLength = 1000; ta.placeholder = label;
+    var acts = mk('div', 'acts'), close;
+    acts.appendChild(mbtn(okLabel, 'red', async function () {
+      if (ta.value.trim().length < needed) return flash('Please type a reason.', false);
+      try { await go(ta.value.trim()); close(); } catch (e) { flash(e.message, false); }
+    }));
+    acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+    close = openModal(title, [mk('p', '', intro), ta, acts]);
+  }
+  async function loadRepost(id, t) {
+    var box = $('repostBox'), pp = $('priorPanel'), pb = $('priorBody'); clear(box); pp.hidden = true; clear(pb);
+    var d; try { d = await api('/staff/tickets/' + id + '/repost'); } catch (e) { return; }
+    if (currentTicket !== id) return;
+    var line = function (cls, text) { var p = mk('div', cls || 'issue', text); p.style.marginTop = '8px'; return p; };
+    if (d.repostOpen) {
+      var b = line('issue', 'REPOSTED. This job is open to providers now. ' + (t.provider_name || 'The first provider') + ' still has it, and does not see the repost, until you choose a replacement below.');
+      b.style.borderLeft = '4px solid #950606';
+      if (d.isManager) b.appendChild(document.createElement('br')), b.appendChild(btn('Take it off the portal', function () {
+        if (!window.confirm('Take this job off the portal? ' + (t.provider_name || 'The first provider') + ' keeps the job.')) return;
+        api('/staff/tickets/' + id + '/repost-cancel', 'POST', {}).then(function () { flash('Taken off the portal.', true); openTicket(id); }).catch(function (e) { flash(e.message, false); });
+      }));
+      box.appendChild(b);
+    }
+    if (d.pending) {
+      var pq = line('issue', 'Repost requested by ' + d.pending.requestedBy + ' (' + fmt(d.pending.requestedAt) + '). Reason: ' + d.pending.reason);
+      pq.style.borderLeft = '4px solid #f48924';
+      if (d.canDecide) {
+        pq.appendChild(document.createElement('br'));
+        pq.appendChild(btn('Confirm repost', function () {
+          if (!window.confirm('Open this job to providers? ' + (t.provider_name || 'The first provider') + ' will not see the repost.')) return;
+          api('/staff/repost-requests/' + d.pending.id + '/decide', 'POST', { approve: true }).then(function () { flash('Reposted. Providers can see it now.', true); openTicket(id); }).catch(function (e) { flash(e.message, false); });
+        }, 'btn-sm'));
+        pq.appendChild(document.createTextNode(' '));
+        pq.appendChild(btn('Decline', function () {
+          reasonModal('Decline the repost?', 'Tell the employee why. They will get this note.', 'Note to the employee', 3, 'Decline', function (note) {
+            return api('/staff/repost-requests/' + d.pending.id + '/decide', 'POST', { approve: false, note: note }).then(function () { flash('Declined.', true); openTicket(id); });
+          });
+        }, 'btn-sm'));
+      } else {
+        pq.appendChild(document.createElement('br'));
+        pq.appendChild(document.createTextNode('Waiting for a manager or the Owner to confirm. '));
+        pq.appendChild(btn('Withdraw', function () { api('/staff/tickets/' + id + '/repost-cancel', 'POST', {}).then(function () { flash('Withdrawn.', true); openTicket(id); }).catch(function (e) { flash(e.message, false); }); }, 'btn-sm'));
+      }
+      box.appendChild(pq);
+    }
+    var row = mk('div', ''); row.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:10px';
+    if (d.canRequest) row.appendChild(btn(d.isManager ? 'Repost this job' : 'Request repost', function () {
+      reasonModal(d.isManager ? 'Repost this job?' : 'Request a repost?',
+        d.isManager ? 'The job opens to providers right away. ' + (t.provider_name || 'The first provider') + ' keeps it, and does not see the repost, until you choose a replacement.'
+          : 'A manager or the Owner has to confirm before the job opens to providers. ' + (t.provider_name || 'The first provider') + ' will not see it.',
+        'Why does this job need to be reposted?', 5, d.isManager ? 'Repost' : 'Send request', function (why) {
+          return api('/staff/tickets/' + id + '/repost-request', 'POST', { reason: why }).then(function (r) { flash(r.opened ? 'Reposted. Providers can see it now.' : 'Sent to a manager or the Owner.', true); openTicket(id); });
+        });
+    }, 'btn-sm'));
+    if (d.canDirect) {
+      row.appendChild(btn('Replace provider directly', function () { askReplaceDirect(id, t); }, 'btn-sm'));
+      row.appendChild(btn('Replace with a credit card provider', function () { askCardVendor(id, t, true); }, 'btn-sm'));
+    }
+    if (row.firstChild) box.appendChild(row);
+    drawPriors(id, t, d);
+  }
+  function askReplaceDirect(id, t) {
+    var sel = document.createElement('select'); sel.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;margin:6px 0';
+    opt(sel, '', 'Choose a provider...');
+    curProviders.forEach(function (p) { if (String(p.id).toLowerCase() !== String(t.assigned_provider_id || '').toLowerCase()) opt(sel, p.id, p.business_name + (p.preferred ? ' ★' : '') + ' - ' + p.primary_trade + (p.covers_state ? '' : ' (not in this state)')); });
+    var ta = document.createElement('textarea'); ta.maxLength = 1000; ta.placeholder = 'Why is the provider being replaced?';
+    var acts = mk('div', 'acts'), close;
+    acts.appendChild(mbtn('Replace provider', 'red', async function () {
+      if (!sel.value) return flash('Choose a provider.', false);
+      if (ta.value.trim().length < 5) return flash('Type the reason.', false);
+      try { await api('/staff/tickets/' + id + '/replace-provider', 'POST', { providerId: sel.value, reason: ta.value.trim() }); close(); flash('Provider replaced.', true); openTicket(id); }
+      catch (e) { flash(e.message, false); }
+    }));
+    acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+    close = openModal('Replace the provider?', [mk('p', '', (t.provider_name || 'The first provider') + ' comes off this job now. Their work so far goes through billing after the new provider bills. You tell them they are no longer needed.'), sel, ta, acts]);
+  }
+  function askCardVendor(id, t, replacing) {
+    var saved = [], pick = document.createElement('select'); pick.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;margin:4px 0 8px';
+    var fields = mk('div', ''), co = inp('Company name'), ct = inp('Contact name'), ph = inp('Phone', 'tel'), em = inp('Email (optional)', 'email'), ad = inp('Address (street, city, state, zip)');
+    var tr = document.createElement('select'); tr.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;margin:4px 0 8px'; fillTradeSelect(tr);
+    var hr = inp('Hourly rate, if quoted', 'number'), fee = inp('Dispatch fee ($): the fee to get out and look at the problem', 'number');
+    hr.step = fee.step = '0.01'; hr.min = fee.min = '0';
+    var nf = document.createElement('input'); nf.type = 'checkbox'; var nfl = mk('label', '', ' No dispatch fee'); nfl.insertBefore(nf, nfl.firstChild); nfl.style.cssText = 'display:block;margin:0 0 8px;font-size:15px';
+    nf.onchange = function () { fee.disabled = nf.checked; if (nf.checked) fee.value = ''; };
+    [['Company', co], ['Contact', ct], ['Phone', ph], ['Email', em], ['Address', ad], ['Trade', tr], ['Hourly rate', hr]].forEach(function (x) { fields.appendChild(lab2(x[0])); fields.appendChild(x[1]); });
+    var why = replacing ? document.createElement('textarea') : null;
+    if (why) { why.maxLength = 1000; why.placeholder = 'Why is the provider being replaced?'; }
+    function setPick() {
+      var v = pick.value; fields.hidden = !!v;
+    }
+    pick.onchange = setPick;
+    api('/staff/card-vendors').then(function (r) {
+      saved = r.vendors || []; clear(pick); opt(pick, '', 'New vendor (enter details below)');
+      saved.forEach(function (v) { opt(pick, v.id, v.business_name + ' - ' + (v.primary_trade || '') + (v.phone ? ' - ' + v.phone : '')); });
+      pick.parentNode && (pick.hidden = !saved.length);
+    }).catch(function () { pick.hidden = true; });
+    var acts = mk('div', 'acts'), close;
+    acts.appendChild(mbtn('Assign vendor', 'red', async function () {
+      if (!nf.checked && fee.value === '') return flash('Say whether there is a dispatch fee. Enter the amount, or check "No dispatch fee".', false);
+      var body = { vendorId: pick.value || undefined, company: co.value, contact: ct.value, phone: ph.value, email: em.value, address: ad.value, trade: tr.value, hourlyRate: hr.value, dispatchFee: fee.value, noDispatchFee: nf.checked };
+      if (why) { if (why.value.trim().length < 5) return flash('Type the reason.', false); body.reason = why.value.trim(); }
+      try { await api('/staff/tickets/' + id + '/assign-card-vendor', 'POST', body); close(); flash('Credit card provider assigned. Record the card payment next.', true); openTicket(id); }
+      catch (e) { flash(e.message, false); }
+    }));
+    acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+    var nodes = [mk('p', '', 'A credit card provider is a vendor outside our system who takes our company card before starting. They get no alerts and no login, and have not signed our terms. You move them along: check-in and out, the bill, and the card payments.'), lab2('Saved vendors'), pick, fields, lab2('Dispatch fee'), fee, nfl];
+    if (why) { nodes.push(lab2('Reason')); nodes.push(why); }
+    nodes.push(acts);
+    close = openModal(replacing ? 'Replace with a credit card provider' : 'Assign a credit card provider', nodes);
+  }
+  function drawPriors(id, t, d) {
+    var pp = $('priorPanel'), pb = $('priorBody');
+    if (!d.priors || !d.priors.length) return;
+    pp.hidden = false;
+    d.priors.forEach(function (p) {
+      var c = mk('div', 'issue'); c.style.marginTop = '8px';
+      var h = mk('p', '', p.name + (p.cardVendor ? ' (credit card provider)' : '') + (p.phone ? ' - ' + p.phone : '')); h.style.fontWeight = '700'; c.appendChild(h);
+      c.appendChild(mk('p', 'small', 'Replaced ' + fmt(p.replacedAt) + '. Reason: ' + (p.repostReason || '')));
+      if (p.hasBill && !p.stub && p.bill) c.appendChild(mk('p', '', 'Their bill: ' + dollars(p.bill.total) + (p.bill.tripPay ? ' (trip ' + dollars(p.bill.tripPay) + ')' : '') + (p.bill.hours ? ', ' + p.bill.hours + ' hours' : '') + '. ' + (p.bill.description || '')));
+      else c.appendChild(mk('p', '', 'No bill was submitted by this provider.'));
+      if (p.settled) {
+        var KIND = { full: 'Approved in full', trip_only: 'Trip fee only', reduced: 'Reduced amount', no_pay: 'No pay' };
+        var r = mk('p', '', KIND[p.kind] + ': ' + dollars(p.amount || 0) + ' approved by ' + (p.settledBy || '') + ' on ' + fmt(p.settledAt) + '.' + (p.kind === 'no_pay' ? ' The provider sees this reason: ' + (p.reason || '') : (p.reason ? ' Internal note: ' + p.reason : '')));
+        r.style.fontWeight = '700'; c.appendChild(r);
+        if (p.offset) c.appendChild(mk('p', '', 'Owner offset ' + dollars(p.offset.amount) + ' (' + (p.offset.note || '') + ').' + (p.offset.amount > (p.amount || 0) ? ' ' + dollars(p.offset.amount - (p.amount || 0)) + ' carries forward against their future payouts.' : '')));
+        var owed = (d.balances || []).filter(function (x) { return x.providerId === p.providerId; })[0];
+        if (owed) { var ob = mk('p', '', 'They owe TMG ' + dollars(owed.owed) + ', carried against their future payouts.'); ob.style.cssText = 'color:#950606;font-weight:700'; c.appendChild(ob); }
+      } else if (!d.newBillReady) {
+        c.appendChild(mk('p', 'small', 'Decide what to pay after the new provider has finished and billed. It comes up here then.'));
+      }
+      if (p.tripDoubleWarning) { var w = mk('p', '', 'Their trip fee is being paid. The new provider’s bill also has trip pay. Set it to $0 on their bill unless you mean to pay two trips.'); w.style.cssText = 'color:#950606;font-weight:700'; c.appendChild(w); }
+      var acts = mk('div', ''); acts.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:8px';
+      var canSet = d.settleOpen && d.canSettle && (!p.settled || d.isManager);
+      if (canSet) {
+        if (p.hasBill && !p.stub) acts.appendChild(btn('Approve in full', function () { doSettle(id, p, { kind: 'full' }); }, 'btn-sm'));
+        acts.appendChild(btn('Trip fee only', function () { if (window.confirm('Pay ' + p.name + ' the trip fee only?')) doSettle(id, p, { kind: 'trip_only' }); }, 'btn-sm'));
+        acts.appendChild(btn(p.hasBill && !p.stub ? 'Pay a reduced amount' : 'Pay an amount', function () { askReduced(id, p); }, 'btn-sm'));
+        acts.appendChild(btn('No pay', function () {
+          reasonModal('Mark as no pay?', p.name + ' will see "Not approved: marked no pay" and the reason you type here. Nothing is paid for this work.', 'Reason (the provider will see this)', 3, 'Mark no pay', function (why) { return doSettle(id, p, { kind: 'no_pay', reason: why }); });
+        }, 'btn-sm'));
+      }
+      if (p.settled && d.canOffset) acts.appendChild(btn(p.offset ? 'Change offset' : 'Apply offset', function () { askOffset(id, p); }, 'btn-sm'));
+      if (acts.firstChild) c.appendChild(acts);
+      pb.appendChild(c);
+    });
+  }
+  async function doSettle(id, p, body) {
+    try { await api('/staff/tickets/' + id + '/prior-providers/' + p.providerId + '/settle', 'POST', body); flash('Saved.', true); openTicket(id); }
+    catch (e) { flash(e.message, false); throw e; }
+  }
+  function askReduced(id, p) {
+    var amt = inp('Amount to pay ($)', 'number'); amt.step = '0.01'; amt.min = '0.01';
+    var note = inp('Internal note (optional). The provider does NOT see this.');
+    var acts = mk('div', 'acts'), close;
+    acts.appendChild(mbtn('Save', 'red', async function () { try { await doSettle(id, p, { kind: 'reduced', amount: amt.value, reason: note.value }); close(); } catch (e) { /* shown */ } }));
+    acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+    close = openModal('Pay an amount to ' + p.name, [mk('p', '', 'They will see the approved amount, not a reason.'), lab2('Amount'), amt, lab2('Note'), note, acts]);
+  }
+  function askOffset(id, p) {
+    var amt = inp('Offset amount ($)', 'number'); amt.step = '0.01'; amt.min = '0'; if (p.offset) amt.value = p.offset.amount;
+    var note = inp('Replacement repair cost and Terms section (7.6 / 10.7)'); if (p.offset) note.value = p.offset.note || '';
+    var calc = mk('p', 'small', ''), upd = function () { var a = Number(amt.value) || 0, pay = p.amount || 0; calc.textContent = a ? (a <= pay ? dollars(a) + ' comes off this payout.' : dollars(pay) + ' comes off this payout and ' + dollars(a - pay) + ' carries forward against their future payouts.') : 'Enter 0 to clear an offset.'; };
+    amt.oninput = upd; upd();
+    var acts = mk('div', 'acts'), close;
+    acts.appendChild(mbtn('Save offset', 'red', async function () {
+      try { var r = await api('/staff/tickets/' + id + '/prior-providers/' + p.providerId + '/offset', 'POST', { amount: amt.value, note: note.value }); close(); flash('Offset saved.', true); openTicket(id); }
+      catch (e) { flash(e.message, false); }
+    }));
+    acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+    close = openModal('Offset for ' + p.name, [mk('p', '', 'Owner only. Approved payout: ' + dollars(p.amount || 0) + '.'), lab2('Amount'), amt, calc, lab2('Note'), note, acts]);
+  }
+  async function loadCard(id) {
+    var pn = $('cardPanel'), bd = $('cardBody'); pn.hidden = true; clear(bd);
+    var d; try { d = await api('/staff/tickets/' + id + '/card-payments'); } catch (e) { return; }
+    if (currentTicket !== id || !d.vendor) return;
+    pn.hidden = false;
+    bd.appendChild(mk('p', '', d.vendorName + ' is a credit card provider. Dispatch fee: ' + (d.dispatchFee == null ? 'not recorded' : dollars(d.dispatchFee)) + '. Record every company card payment below. The vendor’s bill has to match the card payments exactly.'));
+    var tb = mk('table', 't'), hr = tb.createTHead().insertRow(); ['Date', 'Amount', 'Card', 'Approval', 'Entered by', ''].forEach(function (x) { hr.appendChild(mk('th', null, x)); });
+    var bo = tb.createTBody();
+    d.payments.forEach(function (x) {
+      var r = bo.insertRow(); r.appendChild(td(fmt(x.paid_on))); r.appendChild(td(dollars(x.amount) + (!x.voided_at && Number(x.amount) > d.flagLimit ? ' (over limit, flagged)' : '') + (x.voided_at ? ' (voided: ' + (x.void_reason || '') + ')' : '')));
+      r.appendChild(td('...' + x.card_last4)); r.appendChild(td(x.approval_code || '')); r.appendChild(td(x.recorded_by));
+      var c = document.createElement('td');
+      if (!x.voided_at && d.canVoid) c.appendChild(btn('Void', function () { reasonModal('Void this payment?', 'It stays on record, marked void.', 'Reason', 3, 'Void', function (why) { return api('/staff/card-payments/' + x.id + '/void', 'POST', { reason: why }).then(function () { flash('Voided.', true); loadCard(id); loadBill(id); }); }); }, 'btn-sm'));
+      r.appendChild(c); if (x.voided_at) r.style.opacity = '.55';
+    });
+    if (d.payments.length) bd.appendChild(tb); else bd.appendChild(mk('p', 'small', 'No card payments recorded yet.'));
+    var sum = mk('p', '', 'Card payments: ' + dollars(d.paidTotal) + (d.bill ? '   |   Vendor bill: ' + dollars(d.bill.total) + '   |   ' + (d.bill.equal ? 'MATCH' : (d.bill.override ? 'MISMATCH, overridden by ' + d.bill.override.by : 'DOES NOT MATCH')) : '   |   No bill entered yet'));
+    sum.style.cssText = 'font-weight:700;margin-top:10px;color:' + (d.bill ? (d.bill.matches ? '#15803d' : '#950606') : 'inherit'); bd.appendChild(sum);
+    if (d.bill && d.bill.override) bd.appendChild(mk('p', 'small', 'Override reason: ' + (d.bill.override.reason || '')));
+    if (d.bill && !d.bill.matches && d.canOverride && ['submitted', 'margin_review'].indexOf(d.bill.status) >= 0) {
+      bd.appendChild(btn('Override the mismatch', function () {
+        reasonModal('Override the mismatch?', 'The bill is ' + dollars(d.bill.total) + ' and the card payments are ' + dollars(d.paidTotal) + '. This lets the bill move forward and is recorded with your name.', 'Reason for the override', 5, 'Override', function (why) {
+          return api('/staff/bills/' + d.bill.id + '/card-override', 'POST', { reason: why }).then(function () { flash('Override recorded.', true); loadCard(id); loadBill(id); });
+        });
+      }, 'btn-sm'));
+    }
+    var f = mk('div', ''); f.style.marginTop = '12px'; f.appendChild(lab2('Record a company card payment'));
+    var a = inp('Amount charged ($)', 'number'); a.step = '0.01'; a.min = '0.01';
+    var dt = inp('', 'date'); dt.value = iso(new Date());
+    var l4 = inp('Last four digits of the card'); l4.maxLength = 4; l4.inputMode = 'numeric';
+    var ap = inp('Approval code (optional)'); ap.maxLength = 40;
+    var go = btn('Record payment', async function () {
+      try { var r = await api('/staff/tickets/' + id + '/card-payments', 'POST', { amount: a.value, paidOn: dt.value, last4: l4.value, approvalCode: ap.value });
+        flash(r.flagged ? 'Recorded. It is over $' + d.flagLimit.toLocaleString('en-US') + ', so managers and the Owner were flagged.' : 'Recorded.', true); loadCard(id); loadBill(id); }
+      catch (e) { flash(e.message, false); }
+    }, 'btn-sm');
+    [a, dt, l4, ap].forEach(function (x) { f.appendChild(x); }); f.appendChild(go); bd.appendChild(f);
+  }
 
   // ---- reassign (managers and Owner) ----
   async function loadHandler(t) {
