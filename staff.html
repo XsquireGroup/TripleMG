@@ -134,6 +134,7 @@ body.sheet-lock { overflow:hidden; }
 .wiz .nav button.sec { background:none; color:var(--ink); border:1px solid var(--steel); }
 .wiz dl { display:grid; grid-template-columns:160px 1fr; gap:6px 12px; margin:10px 0; } .wiz dt { color:var(--steel); font-size:13px; }
 [hidden] { display:none !important; }
+.panel.nudge { box-shadow:0 0 0 4px #1d4ed8; transition:box-shadow .3s; }
 
 /* ticket page layout v17 */
 .pills{display:grid;gap:8px;margin-top:12px}
@@ -621,7 +622,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         </form>
       </div>
       <div class="panel" id="bankPanel"><h2>Bank account for payouts</h2><div id="bankBody"></div></div>
-      <div class="panel">
+      <div class="panel" id="plPanel">
         <h2>Logins</h2>
         <p class="small" id="pLimit"></p>
         <table class="t" id="plTable"><thead><tr><th>Email</th><th>Contact</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
@@ -719,7 +720,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         </form>
       </div>
       <div class="panel" id="loginReqPanel" hidden><h2>Login requests</h2><p class="small">The customer asked for these logins. Approving creates the login right away.</p><div id="loginReqBody"></div></div>
-      <div class="panel">
+      <div class="panel" id="loginPanel">
         <h2>Approved logins</h2>
         <p class="small">Only these email addresses can sign in for this customer. TMG never sees their password.</p>
         <table class="t" id="loginTable"><thead><tr><th>Email</th><th>Contact</th><th>Status</th><th></th></tr></thead><tbody></tbody></table>
@@ -1844,6 +1845,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       var d = await api('/staff/customers', 'POST', { name: $('custName').value });
       $('custName').value = '';
       flash('Customer added.', true);
+      loginNudge = { customer: d.id };
       openCustomer(d.id);
     } catch (e) { flash(e.message, false); }
   };
@@ -1909,6 +1911,13 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         act.appendChild(b); tr.appendChild(act);
         lb.appendChild(tr);
       });
+      if (loginNudge && loginNudge.customer === id) {
+        loginNudge = null;
+        if (!d.logins.length) {
+          jumpTo('loginPanel', $('lEmail'));
+          flash('Customer added. Add their worksites, then approve a login below so they can sign in.', true);
+        }
+      }
     } catch (e) { flash(e.message, false); }
   }
   $('backToCustomers').onclick = loadCustomers;
@@ -2423,6 +2432,13 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   }
   $('qCancel').onclick = askCancelReason;
   function goTo(id) { var n = $(id); n.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+  // After approving a provider or adding a customer: jump to the logins box so the login is not forgotten.
+  var loginNudge = null;
+  function jumpTo(panelId, focusEl) {
+    var pn = $(panelId); pn.scrollIntoView({ behavior: 'smooth', block: 'center' }); pn.classList.add('nudge');
+    setTimeout(function () { pn.classList.remove('nudge'); }, 4000);
+    if (focusEl) setTimeout(function () { try { focusEl.focus({ preventScroll: true }); } catch (e) { focusEl.focus(); } }, 500);
+  }
   $('qComment').onclick = function () { $('ntVis').value = 'internal'; goTo('ntBody'); $('ntBody').focus(); };
   $('qContact').onclick = function () { $('ntVis').value = 'customer'; goTo('ntBody'); $('ntBody').focus(); flash('Your comment will be visible to the customer. Their site contact is in the Site box above.', true); };
   $('qHandled').onclick = function () {
@@ -3231,6 +3247,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         return api('/staff/providers/' + id + '/status', 'POST', { status: st, note: note, emailProvider: !!emailProvider }).then(function (rs) {
           var mailed = (st === 'documents_requested' || st === 'approved' || (st === 'rejected' && emailProvider));
           flash(mailed ? (rs.emailed ? 'Updated. The provider was emailed.' : 'Updated, but no email could be sent. Contact them directly.') : 'Updated.', !(mailed && !rs.emailed));
+          if (st === 'approved') loginNudge = { provider: id, emailed: !!rs.emailed };
           loadCounts(true); openProvider(id);
         });
       }
@@ -3303,6 +3320,18 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         }));
         tr.appendChild(c); lb.appendChild(tr);
       });
+      if (loginNudge && loginNudge.provider === id) {
+        var ok = loginNudge.emailed; loginNudge = null;
+        var lead = ok ? 'Approved and emailed. ' : 'Approved, but the approval email could not be sent. ';
+        if (!d.logins.length) {
+          $('plEmail').value = p.email || ''; $('plName').value = p.contact_name || '';
+          jumpTo('plPanel', $('plForm').querySelector('button[type=submit]'));
+          flash(lead + 'Now click Approve login below so they can sign in.', ok);
+        } else if (!active) {
+          jumpTo('plPanel', null);
+          flash(lead + 'Their login is turned off. Turn it back on below so they can sign in.', ok);
+        }
+      }
 
       var rb = $('lrTable').tBodies[0]; clear(rb);
       $('lrEmpty').hidden = d.loginRequests.length > 0;
