@@ -1426,9 +1426,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     // The true provider cost includes what was approved for a first provider on a reposted job (Rich, Nov 20 2026).
     var priorC = Number(d.priorCost) || 0, PT = r2(Number(d.providerTotal) + priorC);
     body.appendChild(mk('p', '', 'Provider total: ' + dollars(PT) + (priorC ? ' (new provider ' + dollars(d.providerTotal) + ' + first provider ' + dollars(priorC) + ')' : ''))).style.cssText = 'font-size:22px;font-weight:700;color:#15803d;margin:0 0 4px';
-    body.appendChild(mk('p', '', 'Customer NTE: ' + dollars(d.customerNte))).style.cssText = 'font-size:22px;font-weight:700;color:#1d4ed8;margin:0 0 10px';
+    body.appendChild(mk('p', '', 'Customer NTE: ' + dollars(d.customerNte))).style.cssText = 'font-size:22px;font-weight:700;color:#6d28d9;margin:0 0 10px';
     function nteRow(box, ct) {
-      var diff = r2(Number(d.customerNte) - ct), r = mk('div', 'nte cust'); r.appendChild(mk('b', null, 'Customer NTE ' + dollars(d.customerNte)));
+      var diff = r2(Number(d.customerNte) - ct), r = mk('div', 'nte'); r.style.cssText = 'background:#f3e8ff;border-left:6px solid #6d28d9;color:#4c1d95'; r.appendChild(mk('b', null, 'Customer NTE ' + dollars(d.customerNte)));
       var sp = mk('span', null, diff >= 0 ? 'Under by ' + dollars(diff) : 'Over by ' + dollars(-diff)); sp.style.color = diff >= 0 ? '#15803d' : '#950606'; r.appendChild(sp); box.appendChild(r);
     }
     if (me && d.isOwner && (d.status === 'approved' || d.status === 'invoiced')) {
@@ -1594,7 +1594,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       try { await api('/staff/bills/' + billId + '/customer-submit', 'POST', vals()); flash('Sent to the Owner for approval.', true); closeSheet(); await openTicket(id); loadAlerts(); maybeSurvey(id); } catch (er) { flash(er.message, false); }
     }, 'ai-go'));
     if (d.canDecide) bar.appendChild(btn('Approve customer bill', async function () {
-      try { if (edit) await saveIt(); await api('/staff/bills/' + billId + '/customer-approve', 'POST', {}); flash('Customer bill approved. It is now in Ready to invoice.', true); closeSheet(); openTicket(id); loadAlerts(); } catch (er) { flash(er.message, false); }
+      try { if (edit) await saveIt(); await api('/staff/bills/' + billId + '/customer-approve', 'POST', {}); flash('Customer bill approved. It is now in Ready to invoice.', true); closeSheet(); await openTicket(id); loadAlerts(); maybeSurvey(id); } catch (er) { flash(er.message, false); }
     }, 'ai-go'));
     if (note) bar.appendChild(btn('Return to employee', async function () {
       if (note.value.trim().length < 3) return flash('Add a note telling the employee what to fix.', false);
