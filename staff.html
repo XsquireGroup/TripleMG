@@ -32,6 +32,8 @@ button.btn { cursor:pointer; background:var(--red); color:var(--paper); border-c
 .bar .wrap { display:flex; gap:4px; padding-top:0; padding-bottom:0; flex-wrap:wrap; }
 .bar span { font-family:'Oswald',sans-serif; letter-spacing:0.06em; text-transform:uppercase; font-size:13px; font-weight:600; color:var(--paper); padding:14px 18px; opacity:.85; }
 .bar span.on { background:var(--red); opacity:1; }
+.bar .cnt { display:inline-block; min-width:20px; height:20px; line-height:20px; border-radius:10px; background:#fff; color:#950606; font:700 12px/20px 'Inter',Arial,sans-serif; font-style:normal; letter-spacing:0; text-align:center; margin-left:7px; padding:0 6px; box-sizing:border-box; vertical-align:middle; }
+.bar .cnt[hidden] { display:none; }
 .panel { background: var(--paper); border:1px solid var(--border); margin:28px auto; padding:28px 32px; max-width:980px; }
 .panel h2 { font-size:22px; margin-bottom:6px; }
 .panel p { color: var(--steel); margin:0; }
@@ -225,6 +227,7 @@ form.f .ai-btn,.rr .ai-btn{font-size:14px;background:#1d4ed8;border:2px solid #1
 .kpis { grid-template-columns:repeat(5,minmax(0,1fr)) !important; }
 button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 .kpi.k0 { border-top-color:#6b7280; } .kpi.k0:hover { background:#fafaf8; }
+.kpi.k5 { border-top-color:#950606; } .kpis.six { grid-template-columns:repeat(6,minmax(0,1fr)) !important; } button.kpi.k5:hover { background:#fafaf8; } .kpi.k5.has { background:#fff5f5; } .kpi.k5.has .kv { color:#950606; } .kpi.k5[aria-pressed=true] { outline:2px solid var(--ink); }
 .kpi.k0.has { border-top-color:#950606; background:#fff5f5; } .kpi.k0.has .kv { color:#950606; }
 .kpi.k0[aria-expanded=true] { outline:2px solid var(--ink); }
 .alertsbox { background:var(--paper); border:1px solid var(--border); border-top:4px solid #950606; padding:16px 20px; margin:12px 0 6px; }
@@ -308,7 +311,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   <img src="index-1-ce390515eb.png" alt="Triple Maintenance Group">
   <button class="linkbtn" id="signOut" hidden>Sign out</button>
 </div></div>
-<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers</span><span data-tab="providers">Providers</span><span data-tab="team" id="teamTab" hidden>Team</span><span data-tab="reports" id="repTab" hidden>Reports</span></div></div>
+<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers<i class="cnt" id="cntCust" hidden></i></span><span data-tab="providers">Providers<i class="cnt" id="cntProv" hidden></i></span><span data-tab="team" id="teamTab" hidden>Team</span><span data-tab="reports" id="repTab" hidden>Reports</span></div></div>
 
 <div class="wrap">
   <div class="card" id="signedOut" hidden>
@@ -329,6 +332,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="board2">
         <div class="kpis">
           <button type="button" class="kpi k0" id="kAlerts" aria-expanded="false" aria-controls="alertsPanel"><div class="kl">Alerts</div><div class="kv" id="kAl">0</div></button>
+          <button type="button" class="kpi k5" id="kMgrCard" hidden><div class="kl">Needs manager</div><div class="kv" id="kMgr">0</div></button>
           <div class="kpi k1"><div class="kl">Waiting for assignment</div><div class="kv" id="kWait">0</div></div>
           <div class="kpi k2"><div class="kl">My tickets</div><div class="kv" id="kMine">0</div></div>
           <div class="kpi k3"><div class="kl">In billing</div><div class="kv" id="kBill">0</div></div>
@@ -341,6 +345,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <div class="panel" id="invoicePanel" style="margin:18px 0 0;max-width:none" hidden><h2>Ready to invoice</h2><table class="t" id="invTable"><thead><tr><th>Job #</th><th>Customer</th><th>Provider</th><th>Customer total</th><th>Margin</th><th>Approved</th><th>Invoice #</th></tr></thead><tbody></tbody></table><p class="small" id="invEmpty">Nothing waiting to be invoiced.</p></div>
         <div class="tabbar">
           <div class="tabs" id="tkTabs" role="tablist">
+            <button type="button" data-t="mgr" id="tbMgr" hidden>Needs manager<span class="n" id="nMgr">0</span></button>
             <button type="button" data-t="waiting">Waiting for assignment<span class="n" id="nWait">0</span></button>
             <button type="button" data-t="mine">My tickets<span class="n" id="nMine">0</span></button>
             <button type="button" data-t="billing">Billing<span class="n" id="nBill">0</span></button>
@@ -589,7 +594,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <p class="small" id="pPref"></p>
         <div id="pActions" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
         <form class="f" id="noteForm" hidden>
-          <div><label for="pNote">Note (optional, kept on record)</label><input id="pNote" maxlength="1000"></div>
+          <div><label for="pNote">Note (kept on record). For Request documents, this is emailed to the provider, so say what you need.</label><input id="pNote" maxlength="1000"></div>
         </form>
       </div>
       <div class="panel">
@@ -1593,12 +1598,24 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   // ---- tabs ----
   function view(name) {
     ['viewTickets', 'viewWizard', 'viewTicket', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam', 'viewReports', 'viewReportResult'].forEach(function (v) { $(v).hidden = true; });
-    $(name).hidden = false;
+    $(name).hidden = false; loadCounts(false);
     var tab = ({viewTickets:'tickets', viewWizard:'tickets', viewTicket:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team', viewReports:'reports', viewReportResult:'reports'})[name] || 'customers';
     document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
       s.className = (s.getAttribute('data-tab') === tab) ? 'on' : '';
     });
   }
+  // red circles on the Providers and Customers tabs: things waiting for a manager or the Owner
+  var cntAt = 0;
+  async function loadCounts(force) {
+    if (typeof me === 'undefined' || !me || !isMgr()) return;
+    if (!force && Date.now() - cntAt < 20000) return;
+    cntAt = Date.now();
+    try {
+      var c = await api('/staff/pending-counts');
+      [['cntProv', c.providers], ['cntCust', c.customers]].forEach(function (x) { var e = $(x[0]); e.textContent = x[1] > 99 ? '99+' : x[1]; e.hidden = !(x[1] > 0); e.title = x[1] + ' waiting'; });
+    } catch (e) { }
+  }
+  setInterval(function () { loadCounts(true); }, 60000);
   document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
     s.onclick = function () {
       if (stayToPost()) return;
@@ -2042,10 +2059,12 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (t.increase_requested) hd.appendChild(mk('span', 'bdg amber', 'Increase requested'));
     if (t.awaiting_customer) hd.appendChild(mk('span', 'bdg violet', 'Awaiting customer'));
     if (t.repost_open) hd.appendChild(mk('span', 'bdg red', 'REPOSTED'));
+    if (t.repost_req_reason) hd.appendChild(mk('span', 'bdg red', 'REPOST REQUESTED'));
     if ((t.status === 'waiting_assignment' || t.status === 'needs_manual_match') && t.accepted_count > 0) hd.appendChild(mk('span', 'bdg green', t.accepted_count + ' accepted'));
     var ag = tkAge(t); hd.appendChild(mk('span', 'bdg ' + (ag.mins >= 4320 ? 'red' : ''), 'Age ' + ag.text));
     if (t.pending_alerts > 0) hd.appendChild(mk('span', 'alcount', t.pending_alerts + (t.pending_alerts === 1 ? ' alert' : ' alerts')));
     L.appendChild(hd); L.appendChild(mk('h3', '', t.title));
+    if (t.repost_req_reason) { var rq = mk('p', 'issue', 'Repost requested by ' + t.repost_req_by + ': ' + t.repost_req_reason); rq.style.cssText = 'border-left:4px solid #950606;margin:6px 0'; L.appendChild(rq); }
     var pills = mk('div', 'pills');
     if (t.trade) pills.appendChild(tkPill('wrench', t.trade + (t.pricing_mode === 'flat' ? ' · Flat' : '')));
     pills.appendChild(tkPill('building', t.customer_name + ' / ' + [t.site_number ? '#' + t.site_number : '', t.site_name].filter(Boolean).join(' ')));
@@ -2080,19 +2099,23 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     card.style.cursor = 'default';
     return card;
   }
-  var tkTab = null, tkData = { waiting: [], mine: [], billing: [], active: [] };
+  var tkTab = null, tkData = { waiting: [], mine: [], billing: [], active: [], mgr: [] };
   function drawTickets() {
     var d = tkData;
+    var mgrOn = !!(me && isMgr()); $('kMgrCard').hidden = !mgrOn; $('tbMgr').hidden = !mgrOn; document.querySelector('.kpis').classList.toggle('six', mgrOn);
+    if (!mgrOn && tkTab === 'mgr') tkTab = null;
+    $('nMgr').textContent = (d.mgr || []).length; $('kMgr').textContent = (d.mgr || []).length; $('kMgrCard').classList.toggle('has', (d.mgr || []).length > 0); $('kMgrCard').setAttribute('aria-pressed', tkTab === 'mgr' ? 'true' : 'false');
     $('nWait').textContent = d.waiting.length; $('nMine').textContent = d.mine.length; $('nBill').textContent = d.billing.length; $('nAct').textContent = d.active.length;
     $('kWait').textContent = d.waiting.length; $('kMine').textContent = d.mine.length; $('kBill').textContent = d.billing.length;
     if (!(me && me.role === 'owner')) { $('k4l').textContent = 'All active'; $('k4v').textContent = d.active.length; $('k4v').className = 'kv'; }
     if (tkTab === null) tkTab = d.waiting.length ? 'waiting' : d.mine.length ? 'mine' : 'active';
     Array.prototype.forEach.call($('tkTabs').querySelectorAll('button'), function (b) { var on = b.getAttribute('data-t') === tkTab; b.className = on ? 'on' : ''; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
     var rows = d[tkTab] || [], list = $('tkList'); clear(list);
-    var empty = { waiting: 'Nothing waiting.', mine: 'No tickets assigned to you yet.', billing: 'Nothing to bill.', active: 'No active tickets yet.' }[tkTab];
+    var empty = { mgr: 'Nothing is waiting on a manager.', waiting: 'Nothing waiting.', mine: 'No tickets assigned to you yet.', billing: 'Nothing to bill.', active: 'No active tickets yet.' }[tkTab];
     $('tkListE').hidden = rows.length > 0; $('tkListE').textContent = empty;
     rows.forEach(function (t) { list.appendChild(tkCard(t)); });
   }
+  $('kMgrCard').onclick = function () { tkTab = 'mgr'; drawTickets(); $('tkTabs').scrollIntoView({ block: 'center', behavior: 'smooth' }); };
   $('tkTabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-t]'); if (!b) return; tkTab = b.getAttribute('data-t'); drawTickets(); });
   async function loadTickets() {
     setHash('#tickets');
@@ -2101,7 +2124,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       var d = await api('/staff/tickets');
       var isB = function (t) { return t.status === 'needs_billing'; }, seen = {}, bill = [];
       (d.mine || []).concat(d.active || [], d.waiting || []).forEach(function (t) { if (isB(t) && !seen[t.id]) { seen[t.id] = 1; bill.push(t); } });
-      tkData = { billing: bill, waiting: d.waiting.filter(function (t) { return !isB(t); }), mine: d.mine.filter(function (t) { return !isB(t); }), active: d.active.filter(function (t) { return !isB(t); }) };
+      tkData = { mgr: d.mgr || [], billing: bill, waiting: d.waiting.filter(function (t) { return !isB(t); }), mine: d.mine.filter(function (t) { return !isB(t); }), active: d.active.filter(function (t) { return !isB(t); }) };
       drawTickets();
       loadAlerts();
       loadInvoiceQueue();
@@ -3187,7 +3210,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       function setStatus(st, label) {
         act.appendChild(btn(label, async function () {
           if (!window.confirm(label + ' for ' + p.business_name + '?')) return;
-          try { await api('/staff/providers/' + id + '/status', 'POST', { status: st, note: $('pNote').value }); $('pNote').value = ''; flash('Updated.', true); openProvider(id); }
+          try { var rs = await api('/staff/providers/' + id + '/status', 'POST', { status: st, note: $('pNote').value }); $('pNote').value = ''; flash(st === 'documents_requested' ? (rs.emailed ? 'Updated. The provider was emailed.' : 'Updated, but no email could be sent. Contact them directly.') : 'Updated.', !(st === 'documents_requested' && !rs.emailed)); loadCounts(true); openProvider(id); }
           catch (e) { flash(e.message, false); }
         }));
       }

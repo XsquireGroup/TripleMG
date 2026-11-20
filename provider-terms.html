@@ -26,6 +26,8 @@ body{background:#fff;color:#0a0a0a;font-family:'Inter',Arial,sans-serif;line-hei
 .sign .done{background:#f2f1ee;border-left:4px solid #950606;padding:18px;}
 .sign .done code{font-size:15px;background:#fff;padding:3px 7px;border:1px solid #dedcd5;word-break:break-all;}
 .terms .back{margin-top:30px;}
+.sign .go-btn{display:inline-block;background:#950606;color:#fff;padding:14px 26px;font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;text-decoration:none;}
+.sign .go-btn:hover{filter:brightness(1.12);}
 </style><link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -238,7 +240,8 @@ body{background:#fff;color:#0a0a0a;font-family:'Inter',Arial,sans-serif;line-hei
 <p id="sg-detail"></p>
 <p>Your signature code: <code id="sg-code"></code></p>
 <p>Keep this code. You will need it on your application if it is not filled in for you.</p>
-<p><a href="providers.html#apply" id="sg-next"><strong>Continue to your application &rarr;</strong></a> &nbsp;|&nbsp; <a href="#" onclick="window.print();return false;">Print or save this page</a></p>
+<p><a href="providers.html#apply" id="sg-next" class="go-btn">Continue to your application &rarr;</a></p>
+<p><a href="#" onclick="window.print();return false;">Print or save this page</a></p>
 </div>
 </section>
 <script src="tmg-forms.js"></script>

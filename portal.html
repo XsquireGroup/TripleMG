@@ -1189,7 +1189,15 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     box.appendChild(el('h2', '', 'Contact and service area'));
     var g = el('div', 'sfgrid'), inp = {};
     [['contactName', 'Contact name', p.contact_name, 'full', 150], ['phone', 'Phone', p.phone, '', 30], ['technicianCount', 'Number of technicians', p.technician_count == null ? '' : p.technician_count, '', 6]].forEach(function (x) {
-      var w = el('div', x[3]), l = el('label', '', x[1]), i = el('input'); i.id = 'pp_' + x[0]; l.htmlFor = i.id; i.maxLength = x[4]; i.value = x[2] == null ? '' : x[2]; inp[x[0]] = i; w.appendChild(l); w.appendChild(i); g.appendChild(w);
+      var w = el('div', x[3]), l = el('label', '', x[1]), i;
+      if (x[0] === 'technicianCount') {
+        // company size ranges; stored as the low end of the range
+        i = el('select'); var cur = x[2] === '' || x[2] == null ? 0 : Number(x[2]);
+        [[0, 'Select...'], [1, '1 person (owner and operator)'], [2, '2-5 techs'], [6, '6-10 techs'], [11, '11-20 techs'], [21, '21-50 techs'], [51, 'More than 50 techs']].forEach(function (o) { var op = el('option', '', o[1]); op.value = o[0] || ''; i.appendChild(op); });
+        var b = cur >= 51 ? 51 : cur >= 21 ? 21 : cur >= 11 ? 11 : cur >= 6 ? 6 : cur >= 2 ? 2 : cur >= 1 ? 1 : '';
+        i.value = b; i.id = 'pp_' + x[0]; l.htmlFor = i.id;
+      } else { i = el('input'); i.id = 'pp_' + x[0]; l.htmlFor = i.id; i.maxLength = x[4]; i.value = x[2] == null ? '' : x[2]; }
+      inp[x[0]] = i; w.appendChild(l); w.appendChild(i); g.appendChild(w);
     });
     box.appendChild(g);
     // working copy of the choices
@@ -1200,12 +1208,37 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       var l = el('label', 'ck' + (cls ? ' ' + cls : '')); var c = el('input'); c.type = 'checkbox'; c.checked = !!on; c.onchange = function () { fn(c.checked); };
       l.appendChild(c); l.appendChild(document.createTextNode(' ' + label)); return l;
     }
+    // checkbox dropdown with search (pick any number)
+    function msel(items, chosen, onChange, noun) {
+      var wrap = el('div', 'ms'), open = false;
+      wrap.style.cssText = 'position:relative;margin:6px 0 14px;max-width:520px';
+      var b = el('button', 'ms-b'); b.type = 'button';
+      b.style.cssText = 'width:100%;text-align:left;padding:11px 12px;border:1px solid var(--border,#dedcd5);background:#fff;font:inherit;cursor:pointer;display:flex;justify-content:space-between;gap:10px';
+      var txt = el('span'), arr = el('span', '', '▾'); b.appendChild(txt); b.appendChild(arr);
+      var panel = el('div', 'ms-p'); panel.hidden = true;
+      panel.style.cssText = 'position:absolute;left:0;right:0;top:100%;z-index:20;background:#fff;border:1px solid var(--border,#dedcd5);box-shadow:0 8px 20px rgba(0,0,0,.15);max-height:300px;overflow:auto';
+      var q = el('input'); q.type = 'search'; q.placeholder = 'Search'; q.style.cssText = 'width:calc(100% - 16px);margin:8px;padding:9px;border:1px solid var(--border,#dedcd5);font:inherit;box-sizing:border-box';
+      panel.appendChild(q);
+      var rows = [];
+      items.forEach(function (it) {
+        var l = el('label'); l.style.cssText = 'display:flex;gap:10px;align-items:center;padding:9px 12px;cursor:pointer;font-size:15px;text-transform:none;letter-spacing:0;margin:0';
+        var c = el('input'); c.type = 'checkbox'; c.checked = !!chosen[it.value];
+        c.onchange = function () { if (c.checked) chosen[it.value] = true; else delete chosen[it.value]; sum(); onChange(); };
+        l.appendChild(c); l.appendChild(el('span', '', it.label)); panel.appendChild(l); rows.push({ l: l, label: it.label.toLowerCase() });
+      });
+      q.oninput = function () { var v = q.value.trim().toLowerCase(); rows.forEach(function (r) { r.l.style.display = !v || r.label.indexOf(v) >= 0 ? 'flex' : 'none'; }); };
+      function sum() {
+        var n = items.filter(function (it) { return chosen[it.value]; });
+        txt.textContent = !n.length ? 'Select all that apply' : n.length <= 3 ? n.map(function (x) { return x.label; }).join(', ') : n.length + ' ' + noun + ' selected';
+        txt.style.color = n.length ? 'inherit' : '#767676';
+      }
+      b.onclick = function () { open = !open; panel.hidden = !open; arr.textContent = open ? '▴' : '▾'; if (open) { q.value = ''; q.oninput(); q.focus(); } };
+      document.addEventListener('click', function (e) { if (open && !wrap.contains(e.target)) { open = false; panel.hidden = true; arr.textContent = '▾'; } });
+      sum(); wrap.appendChild(b); wrap.appendChild(panel); return wrap;
+    }
     box.appendChild(el('h3', '', 'States you work in'));
-    box.appendChild(el('p', 'small', 'Check every state where you take jobs.'));
-    var sg = el('div', 'ckgrid'); box.appendChild(sg);
-    Object.keys(US).sort(function (x, y) { return US[x][0] < US[y][0] ? -1 : 1; }).forEach(function (c) {
-      sg.appendChild(chk(US[c][0], states[c], function (on) { if (on) states[c] = true; else delete states[c]; drawCities(); }));
-    });
+    box.appendChild(el('p', 'small', 'Open the list and check every state where you take jobs.'));
+    box.appendChild(msel(Object.keys(US).sort(function (x, y) { return US[x][0] < US[y][0] ? -1 : 1; }).map(function (c) { return { value: c, label: US[c][0] }; }), states, function () { drawCities(); }, 'states'));
     box.appendChild(el('h3', '', 'Cities and how far you will travel'));
     box.appendChild(el('p', 'small', 'For each state, check the major cities you want jobs near, then choose how many miles from that city you will go. Pick the nearest big city if yours is not listed.'));
     var cityBox = el('div'); box.appendChild(cityBox);
@@ -1234,12 +1267,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     }
     drawCities();
     box.appendChild(el('h3', '', 'Other trades you offer'));
-    box.appendChild(el('p', 'small', 'Your main trade is ' + (p.primary_trade || 'set by TMG') + '. Check any others you also do.'));
-    var tg = el('div', 'ckgrid');
-    (pSet.trades || []).filter(function (t) { return t !== p.primary_trade && t !== 'Other'; }).forEach(function (t) {
-      tg.appendChild(chk(t, trades[t], function (on) { if (on) trades[t] = true; else delete trades[t]; }));
-    });
-    box.appendChild(tg);
+    box.appendChild(el('p', 'small', 'Your main trade is ' + (p.primary_trade || 'set by TMG') + '. Open the list and check any others you also do.'));
+    box.appendChild(msel((pSet.trades || []).filter(function (t) { return t !== p.primary_trade && t !== 'Other'; }).map(function (t) { return { value: t, label: t }; }), trades, function () { }, 'trades'));
     var sv = el('button', 'sbtn go', 'Save'); sv.type = 'button'; sv.style.marginTop = '16px'; sv.onclick = async function () {
       var list = Object.keys(areas).filter(function (k) { return states[k.split('|')[0]]; }).map(function (k) { var pr = k.split('|'); return { state: pr[0], city: pr.slice(1).join('|'), miles: areas[k] }; });
       var body = { contactName: inp.contactName.value, phone: inp.phone.value, technicianCount: inp.technicianCount.value, states: Object.keys(states), areas: list, otherTrades: Object.keys(trades) };

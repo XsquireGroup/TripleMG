@@ -103,6 +103,24 @@
 .mf input[type=text], .mf input[type=email], .mf input[type=tel], .mf input[type=number], .mf select, .mf textarea { width:100%; padding:12px; border:1px solid var(--border); background:var(--concrete); font-family:'Inter',sans-serif; font-size:15px; }
 .mf input[type=file] { width:100%; font-size:14px; }
 .mf input:focus, .mf select:focus, .mf textarea:focus { outline:2px solid var(--red); outline-offset:-1px; }
+.ms { position:relative; }
+.ms-b { width:100%; text-align:left; padding:12px; border:1px solid var(--border); background:var(--concrete); font:inherit; font-size:15px; cursor:pointer; display:flex; justify-content:space-between; gap:10px; color:var(--ink); }
+.ms-b .ph { color:#767676; }
+.ms-p { position:absolute; left:0; right:0; top:100%; z-index:30; background:#fff; border:1px solid var(--border); box-shadow:0 10px 24px rgba(0,0,0,.18); max-height:280px; overflow:auto; }
+.ms-p[hidden] { display:none; }
+.ms-p input[type=search] { width:calc(100% - 16px); margin:8px; padding:10px; border:1px solid var(--border); font:inherit; font-size:15px; box-sizing:border-box; }
+.ms-p label { display:flex !important; gap:10px; align-items:center; padding:10px 12px; margin:0 !important; cursor:pointer; font-family:'Inter',sans-serif !important; font-size:15px !important; letter-spacing:0 !important; text-transform:none !important; color:var(--ink) !important; }
+.ms-p label[hidden] { display:none !important; }
+.ms-p label:hover { background:var(--concrete); }
+.ms.has-error .ms-b { border-color:var(--red); }
+.terms-cta-text { margin:0 0 10px; font-size:16px; }
+.terms-cta { width:100%; background:var(--red); color:#fff; border:0; padding:15px 18px; font-family:'Oswald',sans-serif; font-size:16px; letter-spacing:.06em; text-transform:uppercase; font-weight:600; cursor:pointer; }
+.terms-cta:hover { filter:brightness(1.1); }
+.terms-ok { margin:10px 0 0; padding:12px; background:#e8f4ea; border-left:4px solid #1b7a34; font-size:14px; }
+.mf.has-error .terms-cta { outline:3px solid var(--red); outline-offset:2px; }
+.sign-body { border:1px solid var(--border); padding:16px 18px; max-height:42vh; overflow:auto; font-size:14.5px; line-height:1.55; margin:0 0 18px; background:#fff; }
+.sign-body h1 { font-size:20px; margin:0 0 4px; } .sign-body p { margin:0 0 12px; } .sign-body ul { margin:0 0 12px 20px; }
+.sign-body table { border-collapse:collapse; width:100%; margin:8px 0 14px; font-size:13.5px; } .sign-body th, .sign-body td { border:1px solid var(--border); padding:6px 8px; text-align:left; vertical-align:top; }
 .mf-err { display:none; color:var(--red); font-size:12px; margin-top:5px; }
 .mf.has-error .mf-err { display:block; }
 .mf.has-error input[type=text], .mf.has-error input[type=email], .mf.has-error input[type=tel], .mf.has-error select { border-color:var(--red); }
@@ -291,18 +309,16 @@
           <div class="mf" data-f="email"><label for="ap-email">Email</label><input id="ap-email" name="email" type="email" autocomplete="email"><span class="mf-err">Enter a valid email.</span></div>
           <div class="mf" data-f="phone"><label for="ap-phone">Phone</label><input id="ap-phone" name="phone" type="tel" autocomplete="tel"><span class="mf-err">Enter a valid phone.</span></div>
         </div>
-        <div class="mf"><label for="ap-ein">EIN <span class="opt">(optional)</span></label><input id="ap-ein" name="ein" type="text" inputmode="numeric" autocomplete="off"></div>
+        <div class="mf"><label for="ap-ein">EIN</label><input id="ap-ein" name="ein" type="text" inputmode="numeric" autocomplete="off" placeholder="12-3456789" maxlength="12"></div>
 
         <div class="mf-section">Your work</div>
         <div class="mf" data-f="primaryTrade"><label for="ap-trade">Primary trade</label>
-          <select id="ap-trade" name="primaryTrade"><option value="">Select&hellip;</option><option>Building maintenance (general)</option><option>Plumbing</option><option>Electrical</option><option>HVAC</option><option>Grounds &amp; landscaping</option><option>Janitorial</option><option>Painting &amp; finishes</option><option>Roofing</option><option>Other</option></select>
+          <select id="ap-trade" name="primaryTrade"><option value="">Select&hellip;</option><option>Building maintenance (general)</option><option>Handyman</option><option>Plumbing</option><option>Electrical</option><option>HVAC</option><option>Fire life safety</option><option>Roofing</option><option>Carpentry</option><option>Flooring</option><option>Painting &amp; finishes</option><option>Locksmith / doors</option><option>Grounds &amp; landscaping</option><option>Irrigation repair</option><option>Lot sweeping</option><option>Snow removal</option><option>Pressure washing</option><option>Janitorial</option><option>Capital projects</option><option>Other</option></select>
           <span class="mf-err">Please choose a primary trade.</span></div>
-        <div class="mf"><label for="ap-other">Other trades you perform <span class="opt">(optional)</span></label><input id="ap-other" name="otherTrades" type="text"></div>
-        <div class="mf" data-f="serviceStates"><span class="mf-label">States you serve</span>
-          <div class="mf-states"><label><input type="checkbox" name="state" value="AL"> AL</label><label><input type="checkbox" name="state" value="FL"> FL</label><label><input type="checkbox" name="state" value="GA"> GA</label><label><input type="checkbox" name="state" value="IN"> IN</label><label><input type="checkbox" name="state" value="KY"> KY</label><label><input type="checkbox" name="state" value="MI"> MI</label><label><input type="checkbox" name="state" value="NC"> NC</label><label><input type="checkbox" name="state" value="OH"> OH</label><label><input type="checkbox" name="state" value="PA"> PA</label><label><input type="checkbox" name="state" value="SC"> SC</label><label><input type="checkbox" name="state" value="TN"> TN</label><label><input type="checkbox" name="state" value="VA"> VA</label><label><input type="checkbox" name="state" value="WV"> WV</label></div>
-          <span class="mf-err">Select at least one state.</span></div>
+        <div class="mf"><label>Other trades you perform <span class="opt">(optional)</span></label><div class="ms" id="ms-trades"></div><input type="hidden" id="ap-other" name="otherTrades"></div>
+        <div class="mf" data-f="serviceStates"><span class="mf-label">States you serve</span><div class="ms" id="ms-states"></div><span class="mf-err">Select at least one state.</span></div>
         <div class="mf"><label for="ap-areas">Cities or counties you cover <span class="opt">(optional)</span></label><input id="ap-areas" name="serviceAreas" type="text" placeholder="e.g. Greater Cincinnati, Columbus"></div>
-        <div class="mf"><label for="ap-techs">Number of technicians <span class="opt">(optional)</span></label><input id="ap-techs" name="technicianCount" type="number" min="0" max="9999" inputmode="numeric"></div>
+        <div class="mf"><label for="ap-techs">Number of technicians <span class="opt">(optional)</span></label><select id="ap-techs" name="technicianCount"><option value="">Select&hellip;</option><option value="1">1 person (I am the owner and operator)</option><option value="2">2-5 techs</option><option value="6">6-10 techs</option><option value="11">11-20 techs</option><option value="21">21-50 techs</option><option value="51">More than 50 techs</option></select></div>
 
         <div class="mf-section">Documents</div>
         <p class="mf-hint" style="margin:-4px 0 14px;">PDF, PNG or JPG, up to 10 MB each. You can also send these after you apply.</p>
@@ -312,10 +328,11 @@
 
         <div class="mf-section">Provider Terms &amp; Conditions</div>
         <div class="mf mf-terms" data-f="termsCode">
-          <p id="ap-signed" style="margin:0 0 10px;font-size:14px;">Before you apply, <a href="provider-terms.html#sign"><strong>read and sign the Provider Terms</strong></a>. Then come back here and your signature code fills in automatically.</p>
-          <label for="ap-code" style="display:block;margin:0 0 6px;">Signature code</label>
-          <input id="ap-code" name="termsSignatureId" type="text" autocomplete="off" placeholder="Paste the code shown after you sign">
-          <span class="mf-err">Sign the Provider Terms first, then enter your signature code.</span>
+          <p class="terms-cta-text">Before you apply, <strong>read and sign the Provider Terms.</strong></p>
+          <button type="button" class="btn terms-cta" id="ap-terms-btn" onclick="openSign()">Click here to read and sign the Provider Terms</button>
+          <p id="ap-signed" class="terms-ok" hidden></p>
+          <input type="hidden" id="ap-code" name="termsSignatureId" value="">
+          <span class="mf-err" id="ap-terms-err">Please read and sign the Provider Terms before you submit.</span>
         </div>
 
         <div style="position:absolute;left:-9999px;" aria-hidden="true"><label>Leave this empty<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
@@ -354,6 +371,28 @@ function toggleNav(btn){
   btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 </script>
+<div class="modal" id="signModal" role="dialog" aria-modal="true" aria-labelledby="signTitle" style="z-index:110" hidden>
+  <div class="modal-backdrop" onclick="closeSign()"></div>
+  <div class="modal-card" style="max-width:760px">
+    <button type="button" class="modal-close" aria-label="Close" onclick="closeSign()">&times;</button>
+    <span class="eyebrow">Provider Terms &amp; Conditions</span>
+    <h2 id="signTitle">Read and sign.</h2>
+    <p class="modal-sub">Read the full agreement below, then sign at the bottom. Your electronic signature has the same effect as a handwritten one.</p>
+    <div id="signBody" class="sign-body" tabindex="0"><p>Loading the Provider Terms&hellip;</p></div>
+    <form id="signForm2" novalidate class="sign-form">
+      <div class="mf"><label for="sg2-biz">Legal business name</label><input id="sg2-biz" type="text" autocomplete="organization"></div>
+      <div class="mf-row">
+        <div class="mf"><label for="sg2-name">Your full name (your signature)</label><input id="sg2-name" type="text" autocomplete="name"></div>
+        <div class="mf"><label for="sg2-title">Your title</label><input id="sg2-title" type="text" autocomplete="organization-title"></div>
+      </div>
+      <div class="mf"><label for="sg2-email">Email (matches your application)</label><input id="sg2-email" type="email" readonly></div>
+      <div class="mf mf-terms"><label><input type="checkbox" id="sg2-ok"> <span>I have read and agree to the Provider Terms &amp; Conditions, and I am authorized to sign for the business named above.</span></label></div>
+      <p id="sg2-err" class="mf-err" role="alert" style="margin:0 0 10px;"></p>
+      <button type="submit" id="sg2-btn" class="btn btn-primary" style="width:100%;">Sign electronically</button>
+    </form>
+  </div>
+</div>
+
 <script src="tmg-forms.js"></script>
 <script>
 var reqModal = document.getElementById('reqModal'), applyModal = document.getElementById('applyModal');
@@ -366,27 +405,113 @@ function openApply(){
   setTimeout(function(){ document.getElementById('ap-biz').focus(); }, 30);
 }
 function closeApply(){ applyModal.hidden = true; document.body.style.overflow = ''; }
-/* Fill in the signature code if this browser has a saved signature from the terms page. */
-function loadTermsSignature(){
-  try{
-    var s = JSON.parse(localStorage.getItem('tmgTermsSignature') || 'null');
-    if(s && s.id){
-      document.getElementById('ap-code').value = s.id;
-      document.getElementById('ap-signed').innerHTML = 'Provider Terms signed by <strong>' + String(s.name).replace(/</g,'&lt;') + '</strong>. Use the same email on this application (<strong>' + String(s.email).replace(/</g,'&lt;') + '</strong>).';
-    }
-  }catch(x){}
+/* Checkbox dropdown with search (pick any number). */
+function makeMS(host, items, noun){
+  var chosen = {}, open = false;
+  var b = document.createElement('button'); b.type = 'button'; b.className = 'ms-b';
+  var txt = document.createElement('span'), arr = document.createElement('span'); arr.textContent = '▾'; b.appendChild(txt); b.appendChild(arr);
+  var panel = document.createElement('div'); panel.className = 'ms-p'; panel.hidden = true;
+  var q = document.createElement('input'); q.type = 'search'; q.placeholder = 'Search'; panel.appendChild(q);
+  var rows = [];
+  items.forEach(function(it){
+    var l = document.createElement('label'), c = document.createElement('input'); c.type = 'checkbox';
+    c.onchange = function(){ if(c.checked) chosen[it.v] = true; else delete chosen[it.v]; sum(); host.classList.remove('has-error'); var box = host.closest('.mf'); if(box) box.classList.remove('has-error'); };
+    l.appendChild(c); l.appendChild(document.createTextNode(it.l)); panel.appendChild(l); rows.push({l:l, t:it.l.toLowerCase()});
+  });
+  q.oninput = function(){ var v = q.value.trim().toLowerCase(); rows.forEach(function(r){ r.l.hidden = !(!v || r.t.indexOf(v) >= 0); }); };
+  function sum(){
+    var n = items.filter(function(it){ return chosen[it.v]; });
+    txt.className = n.length ? '' : 'ph';
+    txt.textContent = !n.length ? 'Select all that apply' : (n.length <= 3 ? n.map(function(x){ return x.l; }).join(', ') : n.length + ' ' + noun + ' selected');
+  }
+  function shut(){ open = false; panel.hidden = true; arr.textContent = '▾'; }
+  b.onclick = function(){ open = !open; panel.hidden = !open; arr.textContent = open ? '▴' : '▾'; if(open){ q.value = ''; q.oninput(); q.focus(); } };
+  document.addEventListener('click', function(e){ if(open && !host.contains(e.target)) shut(); });
+  host.appendChild(b); host.appendChild(panel); sum();
+  return { values: function(){ return items.filter(function(it){ return chosen[it.v]; }).map(function(it){ return it.v; }); },
+           clear: function(){ chosen = {}; panel.querySelectorAll('input[type=checkbox]').forEach(function(c){ c.checked = false; }); sum(); } };
 }
-loadTermsSignature();
+var TRADE_LIST = ["Building maintenance (general)", "Handyman", "Plumbing", "Electrical", "HVAC", "Fire life safety", "Roofing", "Carpentry", "Flooring", "Painting & finishes", "Locksmith / doors", "Grounds & landscaping", "Irrigation repair", "Lot sweeping", "Snow removal", "Pressure washing", "Janitorial", "Capital projects", "Other"];
+var STATE_LIST = [["AL", "Alabama"], ["AK", "Alaska"], ["AZ", "Arizona"], ["AR", "Arkansas"], ["CA", "California"], ["CO", "Colorado"], ["CT", "Connecticut"], ["DE", "Delaware"], ["DC", "District of Columbia"], ["FL", "Florida"], ["GA", "Georgia"], ["HI", "Hawaii"], ["ID", "Idaho"], ["IL", "Illinois"], ["IN", "Indiana"], ["IA", "Iowa"], ["KS", "Kansas"], ["KY", "Kentucky"], ["LA", "Louisiana"], ["ME", "Maine"], ["MD", "Maryland"], ["MA", "Massachusetts"], ["MI", "Michigan"], ["MN", "Minnesota"], ["MS", "Mississippi"], ["MO", "Missouri"], ["MT", "Montana"], ["NE", "Nebraska"], ["NV", "Nevada"], ["NH", "New Hampshire"], ["NJ", "New Jersey"], ["NM", "New Mexico"], ["NY", "New York"], ["NC", "North Carolina"], ["ND", "North Dakota"], ["OH", "Ohio"], ["OK", "Oklahoma"], ["OR", "Oregon"], ["PA", "Pennsylvania"], ["RI", "Rhode Island"], ["SC", "South Carolina"], ["SD", "South Dakota"], ["TN", "Tennessee"], ["TX", "Texas"], ["UT", "Utah"], ["VT", "Vermont"], ["VA", "Virginia"], ["WA", "Washington"], ["WV", "West Virginia"], ["WI", "Wisconsin"], ["WY", "Wyoming"]];
+var msTrades = makeMS(document.getElementById('ms-trades'), TRADE_LIST.map(function(t){ return {v:t, l:t}; }), 'trades');
+var msStates = makeMS(document.getElementById('ms-states'), STATE_LIST.map(function(x){ return {v:x[0], l:x[1]}; }), 'states');
+
+/* Read and sign the Provider Terms, in a window on top of the application. */
+var signModal = document.getElementById('signModal'), termsLoaded = false, signed = null;
+function loadTermsText(){
+  var body = document.getElementById('signBody');
+  fetch('provider-terms.html', {cache:'no-cache'}).then(function(r){ if(!r.ok) throw 0; return r.text(); }).then(function(html){
+    var doc = new DOMParser().parseFromString(html, 'text/html'), main = doc.querySelector('main.terms');
+    if(!main) throw 0;
+    body.textContent = '';
+    Array.prototype.slice.call(main.children).forEach(function(n){
+      if(n.classList.contains('sign') || n.classList.contains('back')) return;
+      body.appendChild(document.importNode(n, true));
+    });
+    termsLoaded = true;
+  }).catch(function(){
+    body.innerHTML = '<p>The terms could not load here. <a href="provider-terms.html" target="_blank" rel="noopener"><strong>Open the Provider Terms in a new tab</strong></a>, read them, then come back and sign.</p>';
+    termsLoaded = true;
+  });
+}
+function openSign(){
+  var f = document.getElementById('applyForm'), bad = false;
+  [['businessName', f.businessName.value.trim() !== ''], ['contactName', f.contactName.value.trim() !== ''], ['email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.value.trim())]].forEach(function(c){
+    var box = f.querySelector('[data-f="'+c[0]+'"]'); box.classList.toggle('has-error', !c[1]); if(!c[1] && !bad){ bad = true; box.scrollIntoView({block:'center'}); }
+  });
+  if(bad) return;
+  document.getElementById('sg2-biz').value = f.businessName.value.trim();
+  document.getElementById('sg2-name').value = signed ? signed.name : f.contactName.value.trim();
+  document.getElementById('sg2-email').value = f.email.value.trim();
+  document.getElementById('sg2-ok').checked = false; document.getElementById('sg2-err').style.display = 'none';
+  signModal.hidden = false;
+  if(!termsLoaded) loadTermsText();
+  document.getElementById('signBody').scrollTop = 0;
+}
+function closeSign(){ signModal.hidden = true; }
+function markSigned(){
+  var el = document.getElementById('ap-signed');
+  el.textContent = '';
+  var strong = document.createElement('strong'); strong.textContent = 'Signed by ' + signed.name;
+  el.appendChild(strong); el.appendChild(document.createTextNode(' for ' + signed.biz + ' on ' + new Date(signed.at).toLocaleString() + '. You can now submit your application.'));
+  el.hidden = false;
+  var b = document.getElementById('ap-terms-btn'); b.textContent = 'Provider Terms signed ✓ (click to sign again)'; b.style.background = '#1b7a34';
+}
+function clearSigned(msg){
+  signed = null; document.getElementById('ap-code').value = '';
+  document.getElementById('ap-signed').hidden = true;
+  var b = document.getElementById('ap-terms-btn'); b.textContent = 'Click here to read and sign the Provider Terms'; b.style.background = '';
+  if(msg) document.getElementById('ap-terms-err').textContent = msg;
+}
+document.getElementById('signForm2').addEventListener('submit', function(e){
+  e.preventDefault();
+  var err = document.getElementById('sg2-err'), btn = document.getElementById('sg2-btn'), g = function(id){ return document.getElementById(id).value.trim(); };
+  err.style.display = 'none';
+  if(g('sg2-biz') === '' || g('sg2-name').length < 2 || !document.getElementById('sg2-ok').checked){
+    err.textContent = 'Please enter the business name and your full name, and check the box.'; err.style.display = 'block'; return;
+  }
+  btn.disabled = true; btn.textContent = 'Signing…';
+  TMGForms.sendJsonData('/terms/sign', {businessName:g('sg2-biz'), signerName:g('sg2-name'), signerTitle:g('sg2-title'), email:g('sg2-email'), accepted:true, website:''}).then(function(r){
+    btn.disabled = false; btn.textContent = 'Sign electronically';
+    if(!r.ok){ err.textContent = r.message; err.style.display = 'block'; return; }
+    signed = {id:r.data.signatureId, name:g('sg2-name'), biz:g('sg2-biz'), email:g('sg2-email').toLowerCase(), at:r.data.signedAt};
+    document.getElementById('ap-code').value = signed.id;
+    document.querySelector('[data-f="termsCode"]').classList.remove('has-error');
+    markSigned(); closeSign();
+  });
+});
 if(location.hash === '#apply'){ openApply(); }
 document.addEventListener('keydown', function(e){
   if(e.key !== 'Escape') return;
+  if(!signModal.hidden){ closeSign(); return; }
   if(!reqModal.hidden) closeReq();
   if(!applyModal.hidden) closeApply();
 });
 document.getElementById('applyForm').addEventListener('submit', function(e){
   e.preventDefault();
   var f = e.target;
-  var states = Array.prototype.slice.call(f.querySelectorAll('input[name="state"]:checked')).map(function(c){ return c.value; });
+  var states = msStates.values();
+  f.otherTrades.value = msTrades.values().join(', ');
   var checks = {
     businessName: f.businessName.value.trim() !== '',
     contactName: f.contactName.value.trim() !== '',
@@ -396,6 +521,8 @@ document.getElementById('applyForm').addEventListener('submit', function(e){
     serviceStates: states.length > 0,
     termsCode: /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(f.termsSignatureId.value.trim())
   };
+  if(checks.termsCode && signed && signed.email !== f.email.value.trim().toLowerCase()){ checks.termsCode = false; clearSigned('You changed your email after signing. Please sign the Provider Terms again.'); }
+  else if(!checks.termsCode){ document.getElementById('ap-terms-err').textContent = 'Please read and sign the Provider Terms before you submit.'; }
   var ok = true, first = null;
   Object.keys(checks).forEach(function(k){
     var box = f.querySelector('[data-f="'+k+'"]');
@@ -418,7 +545,7 @@ document.getElementById('applyForm').addEventListener('submit', function(e){
     if(r.ok){
       document.getElementById('applyFormWrap').hidden = true;
       document.getElementById('applyThanks').hidden = false;
-      f.reset();
+      f.reset(); msTrades.clear(); msStates.clear(); clearSigned();
     } else { err.textContent = r.message; err.style.display = 'block'; }
   });
 });
