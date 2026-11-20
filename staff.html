@@ -135,6 +135,11 @@ body.sheet-lock { overflow:hidden; }
 .wiz dl { display:grid; grid-template-columns:160px 1fr; gap:6px 12px; margin:10px 0; } .wiz dt { color:var(--steel); font-size:13px; }
 [hidden] { display:none !important; }
 .panel.nudge { box-shadow:0 0 0 4px #1d4ed8; transition:box-shadow .3s; }
+.rpb { position:relative; display:inline-flex; align-items:center; justify-content:center; width:30px; height:26px; background:#b8860b; color:#fff; font-family:'Oswald',sans-serif; font-weight:700; font-size:15px; margin-right:8px; }
+.rpb i { position:absolute; top:-9px; right:-10px; min-width:20px; height:20px; border-radius:10px; background:#fff; color:#7a5a00; border:2px solid #b8860b; font:normal 700 12px/16px 'Inter',Arial,sans-serif; text-align:center; box-sizing:border-box; padding:0 4px; }
+.appl { background:#dcfce7; border-left:6px solid #15803d; color:#166534; padding:6px 12px; line-height:1.2; }
+.appl span { display:block; font-family:'Oswald',sans-serif; letter-spacing:.06em; text-transform:uppercase; font-size:12px; font-weight:600; }
+.appl b { font-family:'Oswald',sans-serif; font-size:24px; font-weight:700; }
 
 /* ticket page layout v17 */
 .pills{display:grid;gap:8px;margin-top:12px}
@@ -449,7 +454,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="panel" id="billLaunch" hidden><h2>Bills</h2><p id="blText" style="margin:6px 0"></p><div id="blBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div></div>
       <div class="panel sheet" id="billSection" hidden><h2 id="billTitle">Bill</h2><div id="billBody"></div></div>
       <div class="panel sheet" id="custSection" hidden><h2>Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
-      <div class="panel" id="tkAssignPanel"><h2>Provider</h2><p class="small" id="tkAssignNote"></p><div id="provInfo"></div>
+      <div class="panel" id="tkAssignPanel"><h2>Provider <span id="tkAccN" style="font-size:14px;color:#15803d"></span></h2><p class="small" id="tkAssignNote"></p><div id="provInfo"></div>
         <div id="repostBox"></div>
         <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Completed jobs</th><th>Score</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
@@ -2073,7 +2078,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     hd.appendChild(pill(t.status));
     if (t.increase_requested) hd.appendChild(mk('span', 'bdg amber', 'Increase requested'));
     if (t.awaiting_customer) hd.appendChild(mk('span', 'bdg violet', 'Awaiting customer'));
-    if (t.repost_open) hd.appendChild(mk('span', 'bdg red', 'REPOSTED'));
+    if (t.repost_open) { var rp = mk('span', 'rpb', 'R'), na = Number(t.accepted_count) || 0; rp.title = 'Reposted' + (na ? ': ' + na + (na === 1 ? ' provider applied' : ' providers applied') : ', no applicants yet'); rp.setAttribute('aria-label', rp.title); if (na) rp.appendChild(mk('i', null, na > 99 ? '99+' : String(na))); hd.appendChild(rp); }
     if (t.repost_req_reason) hd.appendChild(mk('span', 'bdg red', 'REPOST REQUESTED'));
     if ((t.status === 'waiting_assignment' || t.status === 'needs_manual_match') && t.accepted_count > 0) hd.appendChild(mk('span', 'bdg green', t.accepted_count + ' accepted'));
     var ag = tkAge(t); hd.appendChild(mk('span', 'bdg ' + (ag.mins >= 4320 ? 'red' : ''), 'Age ' + ag.text));
@@ -2107,7 +2112,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     var mp = mk('div', 'mn p'); mp.appendChild(mk('span', '', 'Provider NTE')); mp.appendChild(mk('b', '', t.status === 'new' ? 'Not set' : money(t.provider_nte))); R.appendChild(mp);
     var m = t.status === 'new' || t.margin_pct == null ? null : Number(t.margin_pct);
     R.appendChild(mk('div', 'mg ' + (m == null ? 'n' : m >= 20 ? 'g' : m >= 5 ? 'a' : 'r'), m == null ? 'Margin: -' : 'Margin ' + m + '%'));
-    var label = t.status === 'new' ? 'Review & release' : (t.status === 'waiting_assignment' || t.status === 'needs_manual_match') ? 'Assign provider' : t.status === 'needs_billing' ? 'Review bill' : t.status === 'completion_review' ? 'Review completion' : 'Open ticket';
+    var openJob = t.status === 'waiting_assignment' || t.status === 'needs_manual_match' || !!t.repost_open, nApp = Number(t.accepted_count) || 0;
+    if (openJob && nApp > 0) { var ap = mk('div', 'appl'); ap.appendChild(mk('span', '', nApp === 1 ? 'Provider applied' : 'Providers applied')); ap.appendChild(mk('b', '', String(nApp))); R.appendChild(ap); }
+    var label = t.status === 'new' ? 'Review & release' : ((t.status === 'waiting_assignment' || t.status === 'needs_manual_match') || (t.repost_open && nApp > 0)) ? 'Assign provider' : t.status === 'needs_billing' ? 'Review bill' : t.status === 'completion_review' ? 'Review completion' : 'Open ticket';
     var go = mk('button', 'go' + (t.status === 'new' ? ' red' : (label === 'Open ticket' ? ' blue' : '')), label); go.type = 'button'; go.onclick = function () { openTicket(t.id); };
     R.appendChild(go);
     jc.appendChild(L); jc.appendChild(R); card.appendChild(jc);
@@ -2165,7 +2172,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       $('tkDesc').textContent = t.description; curTicket = t; $('editForm').hidden = true;
       currentTicket = id;
       var open = (t.status === 'waiting_assignment' || t.status === 'needs_manual_match' || !!t.repost_open);
-      $('tkAssignNote').textContent = t.repost_open ? 'Reposted. ' + (t.provider_name || 'The first provider') + ' still has the job.' : (open ? '' : (t.provider_name ? 'Assigned to ' + t.provider_name + '.' : ''));
+      $('tkAssignNote').textContent = t.repost_open ? '' : (open ? '' : (t.provider_name ? 'Assigned to ' + t.provider_name + '.' : ''));
       $('assignForm').hidden = !open || !isMgr();
       var cv = $('cvRow'); clear(cv); cv.hidden = !open || !!t.assigned_provider_id;
       if (!cv.hidden) cv.appendChild(btn('Assign a credit card provider', function () { askCardVendor(currentTicket, t, false); }, 'btn-sm'));
@@ -2184,6 +2191,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       }
       var ab = $('tkAcc').tBodies[0]; clear(ab);
       $('tkAccE').hidden = !open || d.acceptances.length > 0;
+      $('tkAccN').textContent = open && d.acceptances.length ? '· ' + d.acceptances.length + ' applied' : '';
       $('tkAcc').hidden = !open;
       d.acceptances.forEach(function (a) {
         var tr = document.createElement('tr');
@@ -2500,7 +2508,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (currentTicket !== id) return;
     var line = function (cls, text) { var p = mk('div', cls || 'issue', text); p.style.marginTop = '8px'; return p; };
     if (d.repostOpen) {
-      var b = line('issue', 'REPOSTED. This job is open to providers now. ' + (t.provider_name || 'The first provider') + ' still has it, and does not see the repost, until you choose a replacement below.');
+      var b = line('issue', 'REPOSTED.'); b.style.fontWeight = '700'; b.style.color = '#950606';
       b.style.borderLeft = '4px solid #950606';
       if (d.isManager) b.appendChild(document.createElement('br')), b.appendChild(btn('Take it off the portal', function () {
         if (!window.confirm('Take this job off the portal? ' + (t.provider_name || 'The first provider') + ' keeps the job.')) return;
@@ -2543,6 +2551,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       row.appendChild(btn('Replace provider directly', function () { askReplaceDirect(id, t); }, 'btn-sm'));
       row.appendChild(btn('Replace with a credit card provider', function () { askCardVendor(id, t, true); }, 'btn-sm'));
     }
+    // Each repost/replace button gets its own color (Rich, Nov 20 2026): repost orange, replace blue, card provider purple.
+    var RCOL = { 'Repost this job': '#c2410c', 'Request repost': '#c2410c', 'Replace provider directly': '#1d4ed8', 'Replace with a credit card provider': '#7c3aed' };
+    Array.prototype.forEach.call(row.children, function (b) { var c = RCOL[b.textContent]; if (c) b.style.cssText += ';background:' + c + ';border-color:' + c + ';color:#fff;padding:7px 12px;font-size:13px'; });
     if (row.firstChild) box.appendChild(row);
     drawPriors(id, t, d);
   }
