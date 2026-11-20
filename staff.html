@@ -594,7 +594,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <p class="small" id="pPref"></p>
         <div id="pActions" style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap"></div>
         <form class="f" id="noteForm" hidden>
-          <div><label for="pNote">Note (kept on record). For Request documents, this is emailed to the provider, so say what you need.</label><input id="pNote" maxlength="1000"></div>
+          <div><label for="pNote">Note (optional, kept on record)</label><input id="pNote" maxlength="1000"></div>
         </form>
       </div>
       <div class="panel">
@@ -3207,10 +3207,35 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 
       var act = $('pActions'); clear(act);
       $('noteForm').hidden = !isMgr();
+      function sendStatus(st, note, emailProvider) {
+        return api('/staff/providers/' + id + '/status', 'POST', { status: st, note: note, emailProvider: !!emailProvider }).then(function (rs) {
+          var mailed = (st === 'documents_requested' || st === 'approved' || (st === 'rejected' && emailProvider));
+          flash(mailed ? (rs.emailed ? 'Updated. The provider was emailed.' : 'Updated, but no email could be sent. Contact them directly.') : 'Updated.', !(mailed && !rs.emailed));
+          loadCounts(true); openProvider(id);
+        });
+      }
       function setStatus(st, label) {
         act.appendChild(btn(label, async function () {
+          if (st === 'documents_requested' || st === 'rejected' || st === 'suspended') {
+            var ta = document.createElement('textarea'); ta.maxLength = 1000; ta.style.cssText = 'width:100%;min-height:110px;padding:10px;border:1px solid var(--border);font:inherit;box-sizing:border-box';
+            var em = null, emL = null;
+            var intro = st === 'documents_requested' ? 'Type exactly what you still need from ' + p.business_name + ' (for example: certificate of insurance, signed W-9). This is emailed to the provider.'
+              : st === 'rejected' ? 'Why is ' + p.business_name + ' being rejected? This is saved on their record.'
+              : 'Why is ' + p.business_name + ' being suspended? This is saved on their record, and their logins are switched off.';
+            ta.placeholder = st === 'documents_requested' ? 'What do you need from them?' : 'Reason';
+            if (st === 'rejected') { em = document.createElement('input'); em.type = 'checkbox'; emL = mk('label', '', ' Also email this reason to the provider'); emL.insertBefore(em, emL.firstChild); emL.style.cssText = 'display:block;margin:10px 0'; }
+            var acts = mk('div', 'acts'), close;
+            acts.appendChild(mbtn(st === 'documents_requested' ? 'Send request' : label, 'red', async function () {
+              if (ta.value.trim().length < 3) return flash(st === 'documents_requested' ? 'Type what you need from them.' : 'Please type a reason.', false);
+              try { await sendStatus(st, ta.value.trim(), em && em.checked); close(); } catch (e) { flash(e.message, false); }
+            }));
+            acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+            var nodes = [mk('p', '', intro), ta]; if (emL) nodes.push(emL); nodes.push(acts);
+            close = openModal(st === 'documents_requested' ? 'Request documents' : label + ' ' + p.business_name + '?', nodes);
+            return;
+          }
           if (!window.confirm(label + ' for ' + p.business_name + '?')) return;
-          try { var rs = await api('/staff/providers/' + id + '/status', 'POST', { status: st, note: $('pNote').value }); $('pNote').value = ''; flash((st === 'documents_requested' || st === 'approved') ? (rs.emailed ? 'Updated. The provider was emailed.' : 'Updated, but no email could be sent. Contact them directly.') : 'Updated.', !((st === 'documents_requested' || st === 'approved') && !rs.emailed)); loadCounts(true); openProvider(id); }
+          try { await sendStatus(st, $('pNote').value); $('pNote').value = ''; }
           catch (e) { flash(e.message, false); }
         }));
       }
