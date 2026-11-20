@@ -1111,21 +1111,36 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   function openSheet(step) { sheetWanted = true; sheetTicket = currentTicket; sheetStep = step || sheetStep || 0; sheetShows(); }
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && sheetWanted && !document.querySelector('.mdl')) closeSheet(); });
   // Step numbers change when a job was reposted: the first provider's bill becomes Step 1 (Rich, Nov 20 2026).
-  var priorPending = false;
+  var priorPending = false, priorPaid = 0;
   function stepTitles() {
     var r = !$('priorSection').hidden, bt = $('billTitle');
     if (/^Step \d of \d: (New provider|Provider) bill$/.test(bt.textContent)) bt.textContent = r ? 'Step 2 of 3: New provider bill' : 'Step 1 of 2: Provider bill';
     $('custTitle').textContent = r ? 'Step 3 of 3: Customer bill' : 'Step 2 of 2: Customer bill';
   }
+  // Money box: once the customer bill is approved, the real result sits under the NTE limits (Rich, Nov 20 2026).
+  // Provider cost includes what is actually paid to a first provider on a reposted job.
+  function drawActual() {
+    var old = $('moneyActual'); if (old) old.remove();
+    if (['approved', 'invoiced'].indexOf(billInfo.status) < 0 || billInfo.customerTotal == null) return;
+    var ct = Number(billInfo.customerTotal), pt = r2(Number(billInfo.providerTotal) + priorPaid), m = ct > 0 ? r2((ct - pt) / ct * 100) : 0;
+    var box = mk('div'); box.id = 'moneyActual'; box.style.cssText = 'margin-top:14px;padding-top:10px;border-top:2px solid var(--ink)';
+    var h = mk('b', null, 'Actual (approved bill)'); h.style.cssText = 'display:block;font-family:Oswald,sans-serif;letter-spacing:.06em;text-transform:uppercase;font-size:13px;margin-bottom:4px'; box.appendChild(h);
+    [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total' + (priorPaid ? ' (incl. first provider)' : ''), dollars(pt)], ['mar', 'Margin', m + '%']].forEach(function (x) {
+      var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); r.appendChild(mk('span', null, x[2]));
+      if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= 5 ? ['#fef3c7', '#a16207', '#92400e'] : ['#fee2e2', '#950606', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; }
+      box.appendChild(r);
+    });
+    $('tkMoney').appendChild(box);
+  }
   function updateBillLaunch() {
     var L = $('billLaunch'), haveR = !$('priorSection').hidden, haveP = !$('billSection').hidden, haveC = !$('custSection').hidden;
     clear($('blBtns'));
-    stepTitles();
+    stepTitles(); drawActual();
     if (!haveP && !haveC) { L.hidden = true; if (sheetWanted) closeSheet(); return; }
     L.hidden = false;
     var st = billInfo.status, actionable = ['submitted', 'margin_review', 'provider_approved', 'customer_review', 'returned'].indexOf(st) >= 0 || (haveP && !st);
     var txt = BILL_STAT[st] || (haveP && !st ? 'No bill has been submitted for this job yet.' : 'Bill in progress.');
-    if (billInfo.providerTotal != null) txt = 'Provider total ' + dollars(billInfo.providerTotal) + '. ' + txt;
+    if (billInfo.providerTotal != null) txt = 'Provider total ' + dollars(r2(Number(billInfo.providerTotal) + priorPaid)) + (priorPaid ? ' (new provider ' + dollars(billInfo.providerTotal) + ' + first provider ' + dollars(priorPaid) + ')' : '') + '. ' + txt;
     if (haveR && priorPending) { txt = 'Step 1: the first provider\u2019s bill needs a decision before the new provider\u2019s bill can be approved. ' + txt; actionable = true; }
     $('blText').textContent = txt;
     $('blBtns').appendChild(btn(actionable ? 'Review bill' : 'View bills', function () { openSheet(haveR && priorPending ? 3 : (haveC ? 2 : 1)); }, 'ai-btn'));
@@ -1138,7 +1153,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     try {
       var d = await api('/staff/tickets/' + id + '/bill');
       if (currentTicket !== id) return;
-      billInfo = { status: d.bill ? d.bill.status : null, providerTotal: d.bill ? d.bill.provider_total : null };
+      billInfo = { status: d.bill ? d.bill.status : null, providerTotal: d.bill ? d.bill.provider_total : null, customerTotal: d.bill ? d.bill.customer_total : null };
       if (!d.bill) { await loadManualBill(id); return updateBillLaunch(); }
       sec.hidden = false; renderBill(id, d);
       if (['provider_approved', 'customer_review', 'approved', 'invoiced'].indexOf(d.bill.status) >= 0) {
@@ -1432,7 +1447,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       var sp = mk('span', null, diff >= 0 ? 'Under by ' + dollars(diff) : 'Over by ' + dollars(-diff)); sp.style.color = diff >= 0 ? '#15803d' : '#950606'; r.appendChild(sp); box.appendChild(r);
     }
     if (me && d.isOwner && (d.status === 'approved' || d.status === 'invoiced')) {
-      var eb = btn('Edit and resubmit to customer', function () {
+      var eb = btn(d.status === 'invoiced' ? 'Edit and resubmit to customer' : 'Edit this bill', function () {
         var ta2 = document.createElement('textarea'); ta2.maxLength = 1000; ta2.placeholder = 'What needs to change, and why?';
         var acts = mk('div', 'acts'), close;
         acts.appendChild(mbtn('Reopen the bill', 'red', async function () {
@@ -1444,6 +1459,28 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         acts.appendChild(mbtn('Leave it as is', '', function () { close(); }));
         close = openModal('Edit this bill?', [mk('p', '', 'The customer bill goes back to editing. ' + (d.status === 'invoiced' ? 'The customer will not see the invoice until you invoice it again. ' : '') + 'The provider bill and provider pay do not change.'), ta2, acts]); ta2.focus();
       }, 'ai-btn'); eb.style.cssText += ';margin:8px 0';
+      // Approved but not yet sent: the Owner sends the invoice right here (same action as Mark invoiced on the home screen).
+      if (d.status === 'approved') {
+        var sendBox = mk('div', 'issue'); sendBox.style.cssText = 'border-left:5px solid #15803d;background:#f0fdf4;margin:8px 0 12px';
+        sendBox.appendChild(mk('small', '', 'Approved. Next: send it to the customer'));
+        sendBox.appendChild(mk('p', 'small', 'The customer sees nothing until this is sent. They will find it under Invoices to review and can approve or dispute it.'));
+        var invRow = mk('div'); invRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px';
+        var invIn = mk('input', 'bill-in'); invIn.placeholder = 'Invoice #'; invIn.maxLength = 60; invIn.style.width = '160px';
+        invRow.appendChild(invIn);
+        invRow.appendChild(btn('Send invoice to customer', async function () {
+          if (!invIn.value.trim()) return flash('Enter the invoice number first.', false);
+          if (!window.confirm('Send invoice ' + invIn.value.trim() + ' to the customer now?')) return;
+          try { await api('/staff/bills/' + billId + '/invoiced', 'POST', { invoiceNumber: invIn.value.trim() }); flash('Invoice ' + invIn.value.trim() + ' sent. The customer can review it now.', true); closeSheet(); openTicket(id); loadInvoiceQueue(); }
+          catch (er) { flash(er.message, false); }
+        }, 'ai-go'));
+        sendBox.appendChild(invRow); body.appendChild(sendBox);
+        // Same suggested number the Ready to invoice table would use.
+        api('/staff/ready-to-invoice').then(function (q) {
+          var next = Number(q.nextInvoiceNumber) || 1001, fresh = 0, val = '';
+          (q.bills || []).some(function (x) { if (String(x.id).toLowerCase() === String(billId).toLowerCase()) { val = x.invoice_number || 'INV-' + (next + fresh); return true; } if (!x.invoice_number) fresh++; return false; });
+          if (!invIn.value) invIn.value = val || 'INV-' + next;
+        }).catch(function () { /* the Owner can type it */ });
+      }
       body.appendChild(eb);
     }
     if (d.isOwner && d.status === 'invoiced') {
@@ -2535,7 +2572,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   }
   async function loadRepost(id, t) {
     var box = $('repostBox'), pp = $('priorPanel'), pb = $('priorBody'); clear(box); pp.hidden = true; clear(pb);
-    $('priorSection').hidden = true; clear($('priorStepBody')); priorPending = false;
+    $('priorSection').hidden = true; clear($('priorStepBody')); priorPending = false; priorPaid = 0;
     var d; try { d = await api('/staff/tickets/' + id + '/repost'); } catch (e) { updateBillLaunch(); return; }
     if (currentTicket !== id) return;
     var line = function (cls, text) { var p = mk('div', cls || 'issue', text); p.style.marginTop = '8px'; return p; };
@@ -2587,6 +2624,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     var RCOL = { 'Repost this job': '#c2410c', 'Request repost': '#c2410c', 'Replace provider directly': '#1d4ed8', 'Replace with a credit card provider': '#7c3aed' };
     Array.prototype.forEach.call(row.children, function (b) { var c = RCOL[b.textContent]; if (c) b.style.cssText += ';background:' + c + ';border-color:' + c + ';color:#fff;padding:7px 12px;font-size:13px'; });
     if (row.firstChild) box.appendChild(row);
+    // What is actually paid to first providers (approved amount minus any offset taken from that payout), for the Bills line.
+    (d.priors || []).forEach(function (p) { if (p.settled) { var a = Number(p.amount) || 0, o = p.offset ? Math.min(Number(p.offset.amount) || 0, a) : 0; priorPaid = r2(priorPaid + a - o); } });
     drawPriors(id, t, d);
     renderPriorStep(id, t, d);
     updateBillLaunch();
