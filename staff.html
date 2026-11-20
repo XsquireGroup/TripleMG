@@ -1423,7 +1423,14 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     var cs = d.side, edit = d.canEdit;
     var STATC = { provider_approved: 'Ready for you to review and send to the Owner', customer_review: 'Waiting on the Owner', approved: 'Approved, ready to invoice', invoiced: 'Invoiced' };
     body.appendChild(mk('p', '', 'Review Provider bill for final submission.')).style.cssText = 'font-size:17px;color:var(--ink);margin:6px 0 4px';
-    body.appendChild(mk('p', '', 'Provider total: ' + dollars(d.providerTotal))).style.cssText = 'font-size:22px;font-weight:700;color:#15803d;margin:0 0 10px';
+    // The true provider cost includes what was approved for a first provider on a reposted job (Rich, Nov 20 2026).
+    var priorC = Number(d.priorCost) || 0, PT = r2(Number(d.providerTotal) + priorC);
+    body.appendChild(mk('p', '', 'Provider total: ' + dollars(PT) + (priorC ? ' (new provider ' + dollars(d.providerTotal) + ' + first provider ' + dollars(priorC) + ')' : ''))).style.cssText = 'font-size:22px;font-weight:700;color:#15803d;margin:0 0 4px';
+    body.appendChild(mk('p', '', 'Customer NTE: ' + dollars(d.customerNte))).style.cssText = 'font-size:22px;font-weight:700;color:#1d4ed8;margin:0 0 10px';
+    function nteRow(box, ct) {
+      var diff = r2(Number(d.customerNte) - ct), r = mk('div', 'nte cust'); r.appendChild(mk('b', null, 'Customer NTE ' + dollars(d.customerNte)));
+      var sp = mk('span', null, diff >= 0 ? 'Under by ' + dollars(diff) : 'Over by ' + dollars(-diff)); sp.style.color = diff >= 0 ? '#15803d' : '#950606'; r.appendChild(sp); box.appendChild(r);
+    }
     if (me && d.isOwner && (d.status === 'approved' || d.status === 'invoiced')) {
       var eb = btn('Edit and resubmit to customer', function () {
         var ta2 = document.createElement('textarea'); ta2.maxLength = 1000; ta2.placeholder = 'What needs to change, and why?';
@@ -1484,16 +1491,17 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (d.submittedBy && d.status === 'customer_review') body.appendChild(mk('p', 'small', 'Prepared by ' + d.submittedBy + '.'));
     function num(v, step) { var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = step || '0.01'; i.value = v == null ? '' : v; i.disabled = !edit; return i; }
     if (d.mode === 'flat') {
-      body.appendChild(mk('p', 'small', 'Flat price job. The customer sees one line with this price. Suggested price (provider flat price divided by 0.80): ' + dollars(d.formulaFlat) + '.'));
+      body.appendChild(mk('p', 'small', 'Flat price job. The customer sees one line with this price. Suggested price (provider total divided by 0.80): ' + dollars(r2(PT / 0.80)) + '.'));
       var fl = mk('label', null, 'Customer flat price ($)'); fl.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:10px 0 4px';
-      var fIn = num(cs.flatPrice != null ? cs.flatPrice : d.formulaFlat); body.appendChild(fl); body.appendChild(fIn);
+      var fIn = num(cs.flatPrice != null ? cs.flatPrice : r2(PT / 0.80)); body.appendChild(fl); body.appendChild(fIn);
       var ftot = mk('div'); ftot.style.marginTop = '14px'; body.appendChild(ftot);
       var fwarn = mk('div'); body.appendChild(fwarn);
       var fvals = function () { return { flatPrice: fIn.value }; };
       var fupd = function () {
-        var ct = r2(Number(fIn.value) || 0), m = ct > 0 ? r2((ct - d.providerTotal) / ct * 100) : (d.providerTotal > 0 ? -100 : 0);
+        var ct = r2(Number(fIn.value) || 0), m = ct > 0 ? r2((ct - PT) / ct * 100) : (PT > 0 ? -100 : 0);
         clear(ftot);
-        [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total (locked)', dollars(d.providerTotal)], ['mar', 'Margin', m + '%']].forEach(function (x) {
+        [['cust', 'Customer total', dollars(ct)], ['nte', '', ''], ['prov', 'Provider total (locked)', dollars(PT)], ['mar', 'Margin', m + '%']].forEach(function (x) {
+          if (x[0] === 'nte') return nteRow(ftot, ct);
           var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= d.minMargin ? ['#fef3c7', '#a16207', '#92400e'] : ['#fee2e2', '#950606', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; } r.appendChild(sp); ftot.appendChild(r);
         });
         clear(fwarn);
@@ -1563,9 +1571,10 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       helpers.forEach(function (o) { var a = r2((Number(o.hrs.value) || 0) * d.helperRate); var c = cHelp.value !== '' ? r2((Number(o.hrs.value) || 0) * Number(cHelp.value)) : r2(a / 0.80); custLabor = r2(custLabor + c); o.a.textContent = dollars(c); });
       mats.forEach(function (o) { var a = r2((Number(o.qty.value) || 0) * (Number(o.unit.value) || 0)); mt += a; o.a.textContent = dollars(r2(1.10 * a / 0.80)); });
       var ct = r2((Number(trip.value) || 0) + custLabor + (1.10 * mt) / 0.80);
-      var m = ct > 0 ? r2((ct - d.providerTotal) / ct * 100) : (d.providerTotal > 0 ? -100 : 0);
+      var m = ct > 0 ? r2((ct - PT) / ct * 100) : (PT > 0 ? -100 : 0);
       clear(tot);
-      [['cust', 'Customer total', dollars(ct)], ['prov', 'Provider total (locked)', dollars(d.providerTotal)], ['mar', 'Margin', m + '%']].forEach(function (x) {
+      [['cust', 'Customer total', dollars(ct)], ['nte', '', ''], ['prov', 'Provider total (locked)', dollars(PT)], ['mar', 'Margin', m + '%']].forEach(function (x) {
+        if (x[0] === 'nte') return nteRow(tot, ct);
         var r = mk('div', 'nte ' + x[0]); r.appendChild(mk('b', null, x[1])); var sp = mk('span', null, x[2]); if (x[0] === 'mar') { var g = m >= 20 ? ['#dcfce7', '#15803d', '#166534'] : m >= d.minMargin ? ['#fef3c7', '#a16207', '#92400e'] : ['#fee2e2', '#950606', '#991b1b']; r.style.background = g[0]; r.style.borderLeftColor = g[1]; r.style.color = g[2]; } r.appendChild(sp); tot.appendChild(r);
       });
       clear(warn);
