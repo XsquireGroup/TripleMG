@@ -555,7 +555,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           </div>
         </form>
         <p class="small" id="repCount"></p>
-        <div style="overflow-x:auto"><table class="t" id="repTable"><thead><tr><th>Ticket</th><th>Came in</th><th>Customer</th><th>Site</th><th>Title</th><th>Trade</th><th>Status</th><th>TMG Rep</th><th>Provider</th><th>Invoice</th><th>Customer total</th><th>Paid</th><th>Balance</th><th>Age (days)</th><th>Provider total</th><th>Margin</th></tr></thead><tbody></tbody></table></div>
+        <div style="overflow-x:auto"><table class="t" id="repTable"><thead><tr><th>Ticket</th><th>Came in</th><th>Customer</th><th>Site</th><th>Title</th><th>Trade</th><th>Status</th><th>TMG Rep</th><th>Provider</th><th>Invoice</th><th>Customer total</th><th>Provider total</th><th>Margin</th><th>Paid</th><th>Balance</th><th>Age (days)</th></tr></thead><tbody></tbody></table></div>
         </div>
       </div>
     </div>
@@ -1708,13 +1708,14 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         var sc = document.createElement('td'); sc.appendChild(pill(t.status)); tr.appendChild(sc);
         tr.appendChild(td(t.staff_name || '')); tr.appendChild(td(t.provider_name || '')); tr.appendChild(td(t.invoice_number || ''));
         tr.appendChild(td(t.customer_total != null ? '$' + Number(t.customer_total).toFixed(2) : ''));
-        tr.appendChild(td(t.customer_total != null && t.invoice_number ? (Number(t.paid) >= Number(t.customer_total) - 0.005 ? 'Paid' : Number(t.paid) > 0 ? '$' + Number(t.paid).toFixed(2) + ' (partial)' : 'Unpaid') : ''));
-        tr.appendChild(td(t.invoice_number && t.bill_status === 'invoiced' ? '$' + Number(t.balance).toFixed(2) : ''));
-        tr.appendChild(td(t.invoice_number && t.bill_status === 'invoiced' && Number(t.balance) > 0.004 ? String(t.age_days) : ''));
+        // Money columns sit together so they show without scrolling sideways (Rich, Nov 20 2026).
         tr.appendChild(td(t.provider_total != null ? '$' + Number(t.provider_total).toFixed(2) : ''));
         var m = t.margin_pct, mc = td(m != null ? m + '%' : '');
         if (m != null) mc.style.cssText = 'font-weight:700;color:' + (m >= 20 ? '#15803d' : m >= 5 ? '#a16207' : '#950606');
         tr.appendChild(mc);
+        tr.appendChild(td(t.customer_total != null && t.invoice_number ? (Number(t.paid) >= Number(t.customer_total) - 0.005 ? 'Paid' : Number(t.paid) > 0 ? '$' + Number(t.paid).toFixed(2) + ' (partial)' : 'Unpaid') : ''));
+        tr.appendChild(td(t.invoice_number && t.bill_status === 'invoiced' ? '$' + Number(t.balance).toFixed(2) : ''));
+        tr.appendChild(td(t.invoice_number && t.bill_status === 'invoiced' && Number(t.balance) > 0.004 ? String(t.age_days) : ''));
         tr.onclick = function () { openTicket(t.id); };
         body.appendChild(tr);
       });
