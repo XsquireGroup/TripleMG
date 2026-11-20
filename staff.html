@@ -613,6 +613,12 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <h2>Documents</h2>
         <table class="t" id="docTable"><thead><tr><th>Type</th><th>File</th><th>Uploaded</th><th>Expires</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="docEmpty" hidden>No documents uploaded.</p>
+        <form class="f" id="docAddForm" data-mgr hidden style="margin-top:14px">
+          <div><label for="docType">Add a document to this file</label><select id="docType"><option value="insurance_coi">Certificate of insurance</option><option value="w9">Form W-9</option><option value="trade_license">Trade license</option><option value="other">Other</option></select></div>
+          <div id="docExpRow"><label for="docExp">Expiration date on the document</label><input id="docExp" type="date"></div>
+          <div><label for="docFile">File (PDF, PNG or JPG, up to 10 MB)</label><input id="docFile" type="file" accept=".pdf,.png,.jpg,.jpeg"></div>
+          <div><button type="submit">Add document</button></div>
+        </form>
       </div>
       <div class="panel" id="bankPanel"><h2>Bank account for payouts</h2><div id="bankBody"></div></div>
       <div class="panel">
@@ -3191,6 +3197,20 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       }, 'btn-sm'); show.style.marginTop = '8px'; body.appendChild(show);
     }
   }
+  function syncDocExp() { var t = $('docType').value; $('docExpRow').hidden = !(t === 'insurance_coi' || t === 'trade_license'); }
+  $('docType').onchange = syncDocExp; syncDocExp();
+  $('docAddForm').onsubmit = async function (ev) {
+    ev.preventDefault();
+    var f = $('docFile').files[0];
+    if (!f) return flash('Choose a file.', false);
+    if (f.size > 10 * 1024 * 1024) return flash('That file is over 10 MB.', false);
+    if (!$('docExpRow').hidden && !$('docExp').value) return flash('Enter the expiration date shown on the document.', false);
+    try {
+      var data = await new Promise(function (res, rej) { var fr = new FileReader(); fr.onload = function () { res(String(fr.result).split(',')[1]); }; fr.onerror = function () { rej(new Error('Could not read that file.')); }; fr.readAsDataURL(f); });
+      await api('/staff/providers/' + currentProvider + '/documents', 'POST', { documentType: $('docType').value, filename: f.name, dataBase64: data, expiresOn: $('docExpRow').hidden ? '' : $('docExp').value });
+      $('docAddForm').reset(); syncDocExp(); flash('Document added to the provider file.', true); openProvider(currentProvider);
+    } catch (e) { flash(e.message, false); }
+  };
   async function openProvider(id) {
     setHash('#provider/' + id);
     currentProvider = id;
@@ -3255,9 +3275,10 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       loadProviderBank(id);
       var db = $('docTable').tBodies[0]; clear(db);
       $('docEmpty').hidden = d.documents.length > 0;
+      var DOCL = { insurance_coi: 'Certificate of insurance', w9: 'W-9', trade_license: 'Trade license', other: 'Other' };
       d.documents.forEach(function (x) {
         var tr = document.createElement('tr');
-        tr.appendChild(td(x.document_type)); tr.appendChild(td(x.original_filename)); tr.appendChild(td(fmt(x.uploaded_at))); tr.appendChild(td(fmt(x.expires_on)));
+        tr.appendChild(td(DOCL[x.document_type] || x.document_type)); tr.appendChild(td(x.original_filename)); tr.appendChild(td(fmt(x.uploaded_at))); tr.appendChild(td(fmt(x.expires_on)));
         var dc = document.createElement('td'); dc.appendChild(btn('Open', async function () { try { await dlFile('/staff/providers/' + id + '/documents/' + x.id, x.original_filename); } catch (e) { flash(e.message, false); } })); tr.appendChild(dc);
         db.appendChild(tr);
       });

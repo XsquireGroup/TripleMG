@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Upload your documents | Triple Maintenance Group</title>
+<link rel="stylesheet" href="base.css">
+<style>
+body{background:#fff;color:#0a0a0a;font-family:'Inter',Arial,sans-serif;line-height:1.55;}
+.up{max-width:640px;margin:0 auto;padding:40px 16px 70px;}
+.up h1{font-family:'Oswald',sans-serif;text-transform:uppercase;color:#950606;margin:0 0 6px;}
+.up p{margin:0 0 14px;font-size:15.5px;}
+.up .card{border:1px solid #dedcd5;border-top:4px solid #950606;padding:22px;margin:18px 0;background:#fff;}
+.up label{display:block;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:#4a4a48;margin:14px 0 5px;}
+.up select,.up input[type=date]{width:100%;padding:11px 12px;border:1px solid #dedcd5;font-size:16px;font-family:inherit;box-sizing:border-box;background:#f2f1ee;}
+.up input[type=file]{width:100%;font-size:15px;}
+.up button{background:#950606;color:#fff;border:0;padding:14px 26px;font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;margin-top:18px;width:100%;}
+.up button[disabled]{opacity:.6;cursor:default;}
+.up .err{color:#950606;font-size:14px;margin:12px 0 0;min-height:18px;}
+.up .done{margin:0;padding:0;list-style:none;}
+.up .done li{background:#e8f4ea;border-left:4px solid #1b7a34;padding:10px 12px;margin:0 0 8px;font-size:14.5px;}
+.up .hint{font-size:13px;color:#4a4a48;margin:4px 0 0;}
+</style>
+<link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/svg+xml" href="favicon.svg">
+</head>
+<body>
+<main class="up">
+<h1>Upload your documents</h1>
+<p id="who">Checking your link&hellip;</p>
+<div id="bad" class="card" hidden><p id="badText"></p></div>
+<div id="box" hidden>
+  <div class="card">
+    <form id="f" novalidate>
+      <label for="t">What are you uploading?</label>
+      <select id="t"><option value="">Choose&hellip;</option><option value="insurance_coi">Certificate of insurance</option><option value="w9">Form W-9</option><option value="trade_license">Trade license</option><option value="other">Other</option></select>
+      <div id="expRow" hidden><label for="e">Expiration date shown on the document</label><input id="e" type="date"></div>
+      <label for="file">File</label>
+      <input id="file" type="file" accept=".pdf,.png,.jpg,.jpeg">
+      <p class="hint">PDF, PNG or JPG, up to 10 MB. Upload one document at a time, then add another if you need to.</p>
+      <button type="submit" id="btn">Upload</button>
+      <p class="err" id="err" role="alert"></p>
+    </form>
+  </div>
+  <div id="doneBox" hidden><h2 style="font-family:'Oswald',sans-serif;text-transform:uppercase;font-size:18px;margin:0 0 10px;">Received</h2><ul class="done" id="done"></ul><p>That is all we need unless you were asked for more. We will be in touch. Questions? Call 513-346-0894.</p></div>
+</div>
+</main>
+<script src="tmg-forms.js"></script>
+<script>
+(function(){
+  var token = new URLSearchParams(location.search).get('t') || '';
+  var who = document.getElementById('who'), box = document.getElementById('box'), bad = document.getElementById('bad');
+  function showBad(msg){ who.hidden = true; bad.hidden = false; document.getElementById('badText').textContent = msg; }
+  if(!/^[0-9a-f]{64}$/.test(token)){ showBad('This upload link is not valid. Please use the link in your email, or call 513-346-0894.'); return; }
+  fetch(TMG_API_BASE + '/provider-upload/' + token).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, d:d}; }); }).then(function(x){
+    if(!x.ok){ showBad(x.d.error || 'This upload link is not valid.'); return; }
+    who.textContent = 'For ' + x.d.businessName + '. Your files go straight into your application.'; box.hidden = false;
+  }).catch(function(){ showBad('We could not reach the server. Please try again, or call 513-346-0894.'); });
+  var t = document.getElementById('t'), expRow = document.getElementById('expRow');
+  t.onchange = function(){ expRow.hidden = !(t.value === 'insurance_coi' || t.value === 'trade_license'); };
+  document.getElementById('f').addEventListener('submit', function(e){
+    e.preventDefault();
+    var err = document.getElementById('err'), btn = document.getElementById('btn'), file = document.getElementById('file').files[0], ex = document.getElementById('e').value;
+    err.textContent = '';
+    if(!t.value){ err.textContent = 'Choose what you are uploading.'; return; }
+    if(!file){ err.textContent = 'Choose a file.'; return; }
+    if(file.size > 10*1024*1024){ err.textContent = 'That file is over 10 MB.'; return; }
+    if(!expRow.hidden && !ex){ err.textContent = 'Enter the expiration date shown on the document.'; return; }
+    var fd = new FormData(); fd.append('documentType', t.value); fd.append('file', file); if(!expRow.hidden) fd.append('expiresOn', ex);
+    btn.disabled = true; btn.textContent = 'Uploading...';
+    fetch(TMG_API_BASE + '/provider-upload/' + token, {method:'POST', body:fd}).then(function(r){ return r.json().catch(function(){ return {}; }).then(function(d){ return {ok:r.ok, d:d}; }); }).then(function(x){
+      btn.disabled = false; btn.textContent = 'Upload';
+      if(!x.ok){ err.textContent = x.d.error || 'Something went wrong. Please try again.'; return; }
+      var li = document.createElement('li'); li.textContent = '✓ ' + x.d.type + ': ' + file.name; document.getElementById('done').appendChild(li);
+      document.getElementById('doneBox').hidden = false;
+      document.getElementById('f').reset(); expRow.hidden = true;
+    }).catch(function(){ btn.disabled = false; btn.textContent = 'Upload'; err.textContent = 'We could not reach the server. Please try again.'; });
+  });
+})();
+</script>
+</body></html>
