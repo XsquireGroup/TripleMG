@@ -391,6 +391,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           <button type="button" id="qComment"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> Add Comment</button>
           <button type="button" id="qHandled"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> View TMG Rep</button>
           <button type="button" id="qProv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 005 5L21 13l-8 8a2.8 2.8 0 01-4-4l8-8z"/><path d="M14.7 6.3l3-3"/></svg> View Provider</button>
+          <button type="button" id="qAdvance" hidden style="background:#15803d;border-color:#15803d"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg><span id="qAdvanceL">Move job forward</span></button>
           <button type="button" id="qCancel" style="background:#1a1a1a;border-color:#1a1a1a"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M5.6 5.6l12.8 12.8"/></svg> Cancel Ticket</button>
           <button type="button" id="qContact"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 16.9v3a2 2 0 01-2.2 2 19.8 19.8 0 01-8.6-3.1 19.5 19.5 0 01-6-6A19.8 19.8 0 012.1 4.2 2 2 0 014.1 2h3a2 2 0 012 1.7c.1 1 .4 1.9.7 2.8a2 2 0 01-.5 2.1L8 9.9a16 16 0 006 6l1.3-1.3a2 2 0 012.1-.4c.9.3 1.8.6 2.8.7a2 2 0 011.7 2z"/></svg> Contact Customer</button>
         </div>
@@ -2350,6 +2351,39 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     box.appendChild(r1); box.appendChild(r2); box.appendChild(r3); tickAge();
     var closed = ['closed', 'canceled', 'billed'].indexOf(t.status) >= 0;
     $('qEdit').hidden = closed;
+    setAdvance(t);
+  }
+  // ---- Move job forward (Rich, Nov 21 2026): any staff member moves the job along by hand ----
+  // Assigned -> Dispatched -> In progress -> Completed. Mark complete asks how it was verified, like a provider's completion.
+  var ADV_NEXT = { assigned: 'dispatched', dispatched: 'in_progress', in_progress: 'completed', awaiting_part: 'completed', awaiting_funds: 'completed' };
+  var ADV_LABEL = { dispatched: 'Mark dispatched', in_progress: 'Mark in progress', completed: 'Mark complete' };
+  function setAdvance(t) {
+    var nx = t.assigned_provider_id && !t.repost_open ? ADV_NEXT[t.status] : null;
+    $('qAdvance').hidden = !nx;
+    if (!nx) return;
+    $('qAdvanceL').textContent = ADV_LABEL[nx];
+    $('qAdvance').onclick = function () { nx === 'completed' ? askMarkComplete(t) : moveForward(t, nx); };
+  }
+  async function moveForward(t, to, extra) {
+    try {
+      await api('/staff/tickets/' + t.id + '/advance', 'POST', Object.assign({ to: to }, extra || {}));
+      flash(to === 'completed' ? 'Marked complete. The provider bill can be entered now.' : 'Moved to ' + (to === 'dispatched' ? 'Dispatched.' : 'In progress.'), true);
+      openTicket(t.id); return true;
+    } catch (e) { flash(e.message, false); return false; }
+  }
+  function askMarkComplete(t) {
+    var sel = document.createElement('select'); sel.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;margin:4px 0 8px';
+    [['phone', 'Phone with customer'], ['email', 'Email with customer'], ['text', 'Text with customer'], ['in_person', 'In person'], ['photos_only', 'Photos only']].forEach(function (o) { var op = document.createElement('option'); op.value = o[0]; op.textContent = o[1]; sel.appendChild(op); });
+    var who = inp('Name of the person at the customer'), note = inp('Note (optional)');
+    var acts = mk('div', 'acts'), close;
+    acts.appendChild(mbtn('Mark complete', 'red', async function () {
+      if (sel.value !== 'photos_only' && who.value.trim().length < 2) return flash('Enter who at the customer confirmed it.', false);
+      if (await moveForward(t, 'completed', { method: sel.value, who: who.value.trim(), note: note.value.trim() })) close();
+    }));
+    acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+    close = openModal('Mark ' + (t.job_number || 'this job') + ' complete?', [
+      mk('p', '', 'Confirm with the customer that the work is done. ' + (t.provider_name ? t.provider_name + ' gets the usual "work confirmed" message (credit card providers get nothing). ' : '') + 'Then the provider bill can be entered.'),
+      lab2('How was it verified?'), sel, lab2('Who at the customer confirmed'), who, lab2('Note'), note, acts]);
   }
   // quick actions
 
@@ -2417,7 +2451,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     acts.appendChild(mbtn(dir === 'in' ? 'Check in' : 'Check out', 'red', async function () {
       var body = { direction: dir }; if (note.value.trim()) body.note = note.value.trim();
       if (when.value) { var dt = new Date(when.value); if (isNaN(dt.getTime())) return flash('That time is not valid.', false); body.at = dt.toISOString(); }
-      try { await api('/staff/tickets/' + id + '/checkin', 'POST', body); close(); flash('Recorded.', true); loadCheckins(id); }
+      try { await api('/staff/tickets/' + id + '/checkin', 'POST', body); close(); flash('Recorded.', true); if (body.direction === 'in') openTicket(id); else loadCheckins(id); }
       catch (e) { flash(e.message, false); }
     }));
     acts.appendChild(mbtn('Cancel', '', function () { close(); }));
@@ -2675,7 +2709,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       catch (e) { flash(e.message, false); }
     }));
     acts.appendChild(mbtn('Cancel', '', function () { close(); }));
-    var nodes = [mk('p', '', 'A credit card provider is a vendor outside our system who takes our company card before starting. They get no alerts and no login, and have not signed our terms. You move them along: check-in and out, the bill, and the card payments.'), lab2('Saved vendors'), pick, fields, lab2('Dispatch fee'), fee, nfl];
+    var nodes = [mk('p', '', 'Please make sure you enter accurate information for credit card providers. Credit card payments must match the provider bill exactly.'), lab2('Saved vendors'), pick, fields, lab2('Dispatch fee'), fee, nfl];
     if (why) { nodes.push(lab2('Reason')); nodes.push(why); }
     nodes.push(acts);
     close = openModal(replacing ? 'Replace with a credit card provider' : 'Assign a credit card provider', nodes);
