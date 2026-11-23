@@ -98,23 +98,25 @@ body.sheet-lock { overflow:hidden; }
 .nq button { margin:4px 6px 0 0; }
 .calc { font-size:14px; margin-top:10px; line-height:1.6; } .calc .warn { color:#950606; font-weight:700; }
 .st { display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; color:#fff; background:#666; text-transform:uppercase; letter-spacing:.03em; }
-/* Status colors: every status has its own color (Rich, Nov 19 2026) */
-.st.new { background:#49c0b6; color:#1a1a1a; }
-.st.waiting_assignment { background:#e4e932; color:#1a1a1a; }
-.st.needs_manual_match { background:#566127; color:#fff; }
-.st.completion_review { background:#6a3be4; color:#fff; }
-.st.needs_billing { background:#005670; color:#fff; }
-.st.margin_review { background:#d52685; color:#fff; }
-.st.assigned { background:#005387; color:#fff; }
-.st.dispatched { background:#fdb813; color:#1a1a1a; }
-.st.in_progress { background:#1d4ed8; color:#fff; }
-.st.awaiting_part { background:#00d1b2; color:#1a1a1a; }
-.st.awaiting_funds { background:#bc0024; color:#fff; }
-.st.billed { background:#2baf2b; color:#1a1a1a; }
-.st.completed { background:#262a3e; color:#fff; }
-.st.closed { background:#ff7243; color:#1a1a1a; }
-.st.canceled { background:#562e19; color:#fff; }
-.st.on_hold { background:#fff; color:#6b7280; box-shadow:inset 0 0 0 2px #6b7280; }
+/* Status colors lined up with the customer portal (Rich, Nov 23 2026): gray received, purple assigned, gold dispatched,
+   blue work in progress, green complete, pink waiting on the customer. Solid = the main step, outline = waiting or paused
+   in that step, light tint = TMG review in that step. */
+.st.new { background:#6b7280; color:#fff; box-shadow:none; }
+.st.waiting_assignment { background:#e5e7eb; color:#374151; box-shadow:inset 0 0 0 2px #9ca3af; }
+.st.needs_manual_match { background:#fff; color:#6d28d9; box-shadow:inset 0 0 0 2px #7c3aed; }
+.st.completion_review { background:#dbeafe; color:#1e3a8a; box-shadow:inset 0 0 0 2px #93c5fd; }
+.st.needs_billing { background:#dcfce7; color:#14532d; box-shadow:inset 0 0 0 2px #86efac; }
+.st.margin_review { background:#fff; color:#854d0e; box-shadow:inset 0 0 0 2px #f5b301; }
+.st.assigned { background:#7c3aed; color:#fff; box-shadow:none; }
+.st.dispatched { background:#f5b301; color:#3a2a00; box-shadow:none; }
+.st.in_progress { background:#1d4ed8; color:#fff; box-shadow:none; }
+.st.awaiting_part { background:#fff; color:#1e40af; box-shadow:inset 0 0 0 2px #1d4ed8; }
+.st.awaiting_funds { background:#db2777; color:#fff; box-shadow:none; }
+.st.billed { background:#fff; color:#be185d; box-shadow:inset 0 0 0 2px #db2777; }
+.st.completed { background:#15803d; color:#fff; box-shadow:none; }
+.st.closed { background:#fff; color:#166534; box-shadow:inset 0 0 0 2px #15803d; }
+.st.canceled { background:#374151; color:#fff; box-shadow:none; }
+.st.on_hold { background:#fff; color:#4b5563; box-shadow:inset 0 0 0 2px #6b7280; }
 .bill-in { width:100%; padding:7px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .bill-ta { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .ai-btn,.ai-go,.ai-no { cursor:pointer; font:inherit; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:9px 14px; min-height:40px; border:2px solid; }
@@ -155,22 +157,22 @@ body.sheet-lock { overflow:hidden; }
 .dot{width:10px;height:10px;border-radius:50%;flex:none;background:#eab308}
 .dot.urgent{background:#ea580c}.dot.emergency{background:#950606}
 .stp{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:600;font-size:15px;background:#e5e7eb;color:#374151}
-.stp.new { background:#49c0b6; color:#1a1a1a; }
-.stp.waiting_assignment { background:#e4e932; color:#1a1a1a; }
-.stp.needs_manual_match { background:#566127; color:#fff; }
-.stp.completion_review { background:#6a3be4; color:#fff; }
-.stp.needs_billing { background:#005670; color:#fff; }
-.stp.margin_review { background:#d52685; color:#fff; }
-.stp.assigned { background:#005387; color:#fff; }
-.stp.dispatched { background:#fdb813; color:#1a1a1a; }
-.stp.in_progress { background:#1d4ed8; color:#fff; }
-.stp.awaiting_part { background:#00d1b2; color:#1a1a1a; }
-.stp.awaiting_funds { background:#bc0024; color:#fff; }
-.stp.billed { background:#2baf2b; color:#1a1a1a; }
-.stp.completed { background:#262a3e; color:#fff; }
-.stp.closed { background:#ff7243; color:#1a1a1a; }
-.stp.canceled { background:#562e19; color:#fff; }
-.stp.on_hold { background:#fff; color:#6b7280; box-shadow:inset 0 0 0 2px #6b7280; }
+.stp.new { background:#6b7280; color:#fff; box-shadow:none; }
+.stp.waiting_assignment { background:#e5e7eb; color:#374151; box-shadow:inset 0 0 0 2px #9ca3af; }
+.stp.needs_manual_match { background:#fff; color:#6d28d9; box-shadow:inset 0 0 0 2px #7c3aed; }
+.stp.completion_review { background:#dbeafe; color:#1e3a8a; box-shadow:inset 0 0 0 2px #93c5fd; }
+.stp.needs_billing { background:#dcfce7; color:#14532d; box-shadow:inset 0 0 0 2px #86efac; }
+.stp.margin_review { background:#fff; color:#854d0e; box-shadow:inset 0 0 0 2px #f5b301; }
+.stp.assigned { background:#7c3aed; color:#fff; box-shadow:none; }
+.stp.dispatched { background:#f5b301; color:#3a2a00; box-shadow:none; }
+.stp.in_progress { background:#1d4ed8; color:#fff; box-shadow:none; }
+.stp.awaiting_part { background:#fff; color:#1e40af; box-shadow:inset 0 0 0 2px #1d4ed8; }
+.stp.awaiting_funds { background:#db2777; color:#fff; box-shadow:none; }
+.stp.billed { background:#fff; color:#be185d; box-shadow:inset 0 0 0 2px #db2777; }
+.stp.completed { background:#15803d; color:#fff; box-shadow:none; }
+.stp.closed { background:#fff; color:#166534; box-shadow:inset 0 0 0 2px #15803d; }
+.stp.canceled { background:#374151; color:#fff; box-shadow:none; }
+.stp.on_hold { background:#fff; color:#4b5563; box-shadow:inset 0 0 0 2px #6b7280; }
 .issue{margin-top:16px;padding:12px 16px;background:#fafaf8;border:1px solid var(--border);border-left:5px solid var(--ink)}
 .issue small{display:block;font-family:'Oswald',sans-serif;letter-spacing:.08em;text-transform:uppercase;font-size:13px;color:var(--steel);margin-bottom:4px}
 .issue p{margin:0;font-size:17px;color:var(--ink)}
