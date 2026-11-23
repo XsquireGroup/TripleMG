@@ -2723,7 +2723,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       catch (e) { flash(e.message, false); }
     }));
     acts.appendChild(mbtn('Cancel', '', function () { close(); }));
-    close = openModal('Replace the provider?', [mk('p', '', (t.provider_name || 'The first provider') + ' comes off this job now. Their work so far goes through billing after the new provider bills. You tell them they are no longer needed.'), sel, ta, acts]);
+    var rpTxt = mk('p', '', (t.provider_name || 'The first provider') + ' comes off this job now.');
+    var rpRem = mk('p'); rpRem.innerHTML = '<strong>Reminder:</strong> It is your responsibility to alert the provider their services are no longer required.';
+    close = openModal('Replace the provider?', [rpTxt, rpRem, sel, ta, acts]);
   }
   function askCardVendor(id, t, replacing) {
     var saved = [], pick = document.createElement('select'); pick.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;margin:4px 0 8px';
@@ -2806,7 +2808,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     var edit = !!p.canEdit, b = p.bill, flat = !!b.flat;
     var h = mk('p', '', p.name + (p.cardVendor ? ' (credit card provider)' : '') + (p.phone ? ' · ' + p.phone : '')); h.style.cssText = 'font-weight:700;font-size:18px;margin:0'; wrap.appendChild(h);
     wrap.appendChild(mk('p', 'small', 'Replaced ' + fmt(p.replacedAt) + '. Reason: ' + (p.repostReason || '')));
-    wrap.appendChild(mk('p', 'small', p.stub ? 'They did not submit a bill. This draft was built from their check-ins when they were replaced.' : 'This is the bill they submitted before they were replaced.'));
+    wrap.appendChild(mk('p', 'small', p.stub ? 'They did not submit a bill. Fill in what they should be paid, using their check-in time below as a guide, or mark no pay. It can\'t go over the provider NTE.' : 'This is the bill they submitted. You can change anything. It can\'t go over the provider NTE.'));
     var os = p.onSite || {}, ob = mk('div', 'issue'); ob.style.borderLeftColor = os.entries ? '#15803d' : '#c2410c';
     ob.appendChild(mk('small', '', 'Their on-site time (their own check-ins)'));
     ob.appendChild(mk('p', '', os.entries ? (Math.floor(os.minutes / 60) ? Math.floor(os.minutes / 60) + 'h ' : '') + (os.minutes % 60) + 'm across ' + os.visits + ' visit' + (os.visits === 1 ? '' : 's') + ' (' + Number(os.hours).toFixed(2) + ' hours).' + (os.capped ? ' One visit had no check-out and is counted as 6 hours.' : '') : 'No check-ins on record.'));

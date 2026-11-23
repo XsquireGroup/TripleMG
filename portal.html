@@ -492,10 +492,13 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   // ---- bill form: opens as a pop-up screen ----
   async function openBillForm(j) {
     var f;
-    try { f = await api('/provider/jobs/' + j.id + '/bill-form'); } catch (e) { return flash(e.message, false); }
+    // A provider who was replaced on the job sends their bill for work done through its own address (Rich, Nov 23 2026).
+    var base = j.prior ? '/provider/replaced/' : '/provider/jobs/';
+    try { f = await api(base + j.id + '/bill-form'); } catch (e) { return flash(e.message, false); }
     var ov = el('div', 'modal'), sh = el('div', 'sheet'); ov.appendChild(sh);
     var close = function () { ov.remove(); };
-    sh.appendChild(el('h2', null, 'Bill'));
+    sh.appendChild(el('h2', null, j.prior ? 'Bill for work done' : 'Bill'));
+    if (j.prior) { var pn = el('p', 'small', 'You were replaced on this job. Bill only for the work you did. Your total can\'t go over the NTE, and you can send this bill once.'); sh.appendChild(pn); }
     var hdr = el('div', 'hdr');
     [['Provider', f.companyName], ['Date', String(f.billDate).slice(0, 10)], ['Ticket', f.jobNumber]].forEach(function (x) {
       var c = el('div'); c.appendChild(el('b', null, x[0])); c.appendChild(document.createTextNode(x[1])); hdr.appendChild(c);
@@ -604,7 +607,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       helpers.forEach(function (o) { o.amt.textContent = 'Amount: ' + money(Math.round((Number(o.hi.value) || 0) * (Number(f.helperRate) || 0) * 100) / 100); });
       rows.forEach(function (o) { o.a.textContent = money((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
       totalBox.textContent = 'Your bill total: ' + money(t.sum) + '   (NTE: ' + money(f.providerNte) + ')';
-      over.textContent = t.sum > f.providerNte ? 'This is higher than the amount approved for this job. Close this screen and request an increase first.' : '';
+      over.textContent = t.sum > f.providerNte ? (j.prior ? 'This is higher than the amount approved for this job. Lower your bill to the NTE or less.' : 'This is higher than the amount approved for this job. Close this screen and request an increase first.') : '';
     }
     flatIn.oninput = calc; hrs.oninput = calc; addRow(); calc();
 
@@ -614,10 +617,10 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       var t = total();
       if (ta.value.trim().length < 15) return flash('Describe the work that was done.', false);
       if (t.sum <= 0) return flash(isFlat ? 'Enter your flat price.' : 'Add your hours or materials.', false);
-      if (t.sum > f.providerNte) return flash('Your bill is higher than the approved amount. Request an increase first.', false);
+      if (t.sum > f.providerNte) return flash(j.prior ? 'Your bill is higher than the approved amount. Lower it to the NTE or less.' : 'Your bill is higher than the approved amount. Request an increase first.', false);
       var mats = rows.filter(function (o) { return o.d.value.trim() || o.q.value || o.u.value; }).map(function (o) { return { description: o.d.value, quantity: o.q.value, unitPrice: o.u.value, kind: o.kind }; });
       go.disabled = true; go.textContent = 'Sending...';
-      try { await api('/provider/jobs/' + j.id + '/bill', 'POST', { description: ta.value, flatAmount: flatIn.value, hours: hrs.value || 0, helpers: helpers.filter(function (o) { return o.hi.value; }).map(function (o) { return { hours: o.hi.value }; }), materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
+      try { await api(base + j.id + '/bill', 'POST', { description: ta.value, flatAmount: flatIn.value, hours: hrs.value || 0, helpers: helpers.filter(function (o) { return o.hi.value; }).map(function (o) { return { hours: o.hi.value }; }), materials: mats }); close(); flash('Bill sent to TMG for review.', true); loadBoard(); }
       catch (e) { flash(e.message, false); go.disabled = false; go.textContent = 'Submit bill'; }
     };
     var cx = el('button', 'b b-red-o', 'Cancel'); cx.onclick = close;
@@ -848,13 +851,30 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var sum = function (arr, k) { return arr.reduce(function (t, j) { return t + (Number(j[k]) || 0); }, 0); };
     $('kOpen').textContent = d.offers.length; $('kActive').textContent = active.length;
     $('kPend').textContent = money(sum(d.mine, 'bill_pending_total')); $('kPaid').textContent = money(sum(d.mine, 'bill_approved_total'));
-    $('nOpen').textContent = d.offers.length; $('nActive').textContent = active.length; $('nDone').textContent = done.length + (d.settlements || []).length;
+    var pb = d.priorBills || [];
+    $('nOpen').textContent = d.offers.length; $('nActive').textContent = active.length + pb.length; $('nDone').textContent = done.length + (d.settlements || []).length;
     if (boardTab === null) boardTab = d.offers.length || !active.length ? 'open' : 'active';
     ['open', 'active', 'done'].forEach(function (t) { var b = $('jobTabs').querySelector('[data-t=' + t + ']'); b.className = boardTab === t ? 'on' : ''; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', boardTab === t ? 'true' : 'false'); });
     var list = $('jobList'); list.textContent = '';
     var rows = boardTab === 'open' ? d.offers : boardTab === 'active' ? active : done;
     var empty = { open: 'No open jobs right now. New jobs appear here as soon as they are posted.', active: 'You have no active jobs.', done: 'No completed jobs yet.' }[boardTab];
     $('listEmpty').hidden = rows.length > 0; $('listEmpty').textContent = empty;
+    // jobs they were replaced on: send a bill for the work they did, until the new provider bills
+    if (boardTab === 'active' && pb.length) {
+      $('listEmpty').hidden = true;
+      pb.forEach(function (x) {
+        var c = el('div', 'job2'); c.style.padding = '14px 16px';
+        c.appendChild(el('h3', null, (x.job_number ? x.job_number + ' - ' : '') + (x.title || 'Job')));
+        c.appendChild(el('p', 'small', 'You were replaced on this job.'));
+        if (x.submitted) {
+          var ok = el('p', null, 'Bill sent to TMG' + (x.total ? ': ' + money(x.total) : '') + '. TMG reviews it when the job is finished.'); ok.style.fontWeight = '700'; c.appendChild(ok);
+        } else {
+          c.appendChild(el('p', null, 'Send TMG your bill for the work you did before you were replaced.'));
+          var bb = el('button', 'b b-green', 'Submit bill for work done'); bb.onclick = function () { openBillForm({ id: x.id, prior: true }); }; c.appendChild(bb);
+        }
+        list.appendChild(c);
+      });
+    }
     rows.forEach(function (j) { list.appendChild(jobCard(j, boardTab === 'open', boardTab === 'done')); });
     // jobs that were reassigned to another provider after this provider started: what TMG approved for the work done
     var st = d.settlements || [];
