@@ -265,6 +265,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       <button type="button" data-t="open" id="tbOpen">Available open jobs<span class="n" id="nOpen">0</span></button>
       <button type="button" data-t="active" id="tbActive">Active &amp; in-progress<span class="n" id="nActive">0</span></button>
       <button type="button" data-t="done" id="tbDone">Completed history<span class="n" id="nDone">0</span></button>
+      <button type="button" data-t="pay" id="tbPay">Payouts</button>
     </div>
     <p class="empty" id="listEmpty" hidden></p>
     <div id="jobList"></div>
@@ -854,8 +855,9 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var pb = d.priorBills || [];
     $('nOpen').textContent = d.offers.length; $('nActive').textContent = active.length + pb.length; $('nDone').textContent = done.length + (d.settlements || []).length;
     if (boardTab === null) boardTab = d.offers.length || !active.length ? 'open' : 'active';
-    ['open', 'active', 'done'].forEach(function (t) { var b = $('jobTabs').querySelector('[data-t=' + t + ']'); b.className = boardTab === t ? 'on' : ''; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', boardTab === t ? 'true' : 'false'); });
+    ['open', 'active', 'done', 'pay'].forEach(function (t) { var b = $('jobTabs').querySelector('[data-t=' + t + ']'); b.className = boardTab === t ? 'on' : ''; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', boardTab === t ? 'true' : 'false'); });
     var list = $('jobList'); list.textContent = '';
+    if (boardTab === 'pay') { $('listEmpty').hidden = true; drawPayouts(list); return; }
     var rows = boardTab === 'open' ? d.offers : boardTab === 'active' ? active : done;
     var empty = { open: 'No open jobs right now. New jobs appear here as soon as they are posted.', active: 'You have no active jobs.', done: 'No completed jobs yet.' }[boardTab];
     $('listEmpty').hidden = rows.length > 0; $('listEmpty').textContent = empty;
@@ -891,6 +893,30 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
         list.appendChild(c);
       });
     }
+  }
+  // Payouts: what TMG paid them (each job, any offset with its ticket), what's coming, and anything they owe.
+  async function drawPayouts(list) {
+    list.appendChild(el('p', 'small', 'Loading…'));
+    var d; try { d = await api('/provider/payouts'); } catch (e) { list.textContent = ''; list.appendChild(el('p', 'empty', e.message)); return; }
+    if (boardTab !== 'pay') return;
+    list.textContent = '';
+    var niceD = function (s) { var p = String(s).slice(0, 10).split('-'); return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(p[1]) - 1] + ' ' + Number(p[2]) + ', ' + p[0]; };
+    var row = function (l, a, col) { var r = el('div'); r.style.cssText = 'display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid #eee' + (col ? ';color:' + col : ''); r.appendChild(el('span', null, l)); r.appendChild(el('span', null, a)); return r; };
+    if (d.owed > 0) { var ow = el('div', 'job2'); ow.style.cssText = 'padding:12px 16px;border-left:5px solid #db2777'; ow.appendChild(el('p', null, 'You owe TMG ' + money(d.owed) + '. It comes out of your next payout automatically.')); list.appendChild(ow); }
+    var up = el('div', 'job2'); up.style.padding = '14px 16px'; up.appendChild(el('h3', null, 'Coming up'));
+    up.appendChild(el('p', 'small', 'Jobs are paid ' + d.dueDays + ' days after TMG invoices the customer, on the next 1st or 15th.'));
+    if (!d.upcoming.length) up.appendChild(el('p', null, 'Nothing waiting right now.'));
+    d.upcoming.forEach(function (x) { up.appendChild(row(x.job + (x.prior ? ' (work before you were replaced)' : '') + ' · expected ' + niceD(x.expected) + (x.onHold ? ' · on hold, TMG will contact you' : ''), money(x.amount), x.onHold ? '#950606' : null)); });
+    list.appendChild(up);
+    var pd = el('div', 'job2'); pd.style.padding = '14px 16px'; pd.appendChild(el('h3', null, 'Paid'));
+    if (!d.paid.length) pd.appendChild(el('p', null, 'No payouts yet.'));
+    d.paid.forEach(function (x) {
+      var h = el('p', null, niceD(x.paidOn) + ' · ' + (x.method === 'ach' ? 'ACH' : x.method === 'check' ? 'Check' : 'No payment (offset only)') + ' · ' + money(x.net)); h.style.cssText = 'font-weight:700;margin:12px 0 4px';
+      pd.appendChild(h);
+      x.items.forEach(function (i) { pd.appendChild(row(i.job + (i.kind === 'prior' ? ' (work before you were replaced)' : ''), money(i.amount))); });
+      x.offsetLines.forEach(function (o) { pd.appendChild(row('Offset, ' + (o.job || '') + ' (Provider Terms 7.6 / 10.7)', '-' + money(o.amount), '#be185d')); });
+    });
+    list.appendChild(pd);
   }
   $('jobTabs').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-t]'); if (!b) return; boardTab = b.getAttribute('data-t'); drawBoard();

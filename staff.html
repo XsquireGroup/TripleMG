@@ -322,7 +322,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   <img src="index-1-ce390515eb.png" alt="Triple Maintenance Group">
   <button class="linkbtn" id="signOut" hidden>Sign out</button>
 </div></div>
-<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers<i class="cnt" id="cntCust" hidden></i></span><span data-tab="providers">Providers<i class="cnt" id="cntProv" hidden></i></span><span data-tab="team" id="teamTab" hidden>Team</span><span data-tab="reports" id="repTab" hidden>Reports</span></div></div>
+<div class="bar" id="bar" hidden><div class="wrap"><span class="on" data-tab="tickets">Tickets</span><span data-tab="customers">Customers<i class="cnt" id="cntCust" hidden></i></span><span data-tab="providers">Providers<i class="cnt" id="cntProv" hidden></i></span><span data-tab="team" id="teamTab" hidden>Team</span><span data-tab="reports" id="repTab" hidden>Reports</span><span data-tab="payouts" id="payTab" hidden>Payouts</span></div></div>
 
 <div class="wrap">
   <div class="card" id="signedOut" hidden>
@@ -574,6 +574,13 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <p class="small" id="rrTotals" style="font-weight:700"></p>
         <div style="overflow-x:auto"><table class="t" id="rrTable"><thead></thead><tbody></tbody></table></div>
         <p class="small" id="rrNote"></p>
+      </div>
+    </div>
+
+    <div id="viewPayouts" hidden>
+      <div class="panel">
+        <h2>Provider payouts</h2>
+        <div id="payBody"><p class="small">Loading…</p></div>
       </div>
     </div>
 
@@ -1700,6 +1707,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if ((m = /^#provider\/([0-9a-fA-F-]{36})$/.exec(h))) return openProvider(m[1]);
     if (h === '#team' && me && me.role === 'owner') return loadTeam();
     if ((h === '#reports' || h === '#report') && me && me.role === 'owner') return loadReports();
+    if (h.indexOf('#payouts') === 0 && me && me.role === 'owner') return loadPayouts();
     if ((m = /^#ticket\/([0-9a-fA-F-]{36})$/.exec(h))) return openTicket(m[1]);
     if (h === '#new-ticket') return startWizard();
     return loadTickets();
@@ -1713,9 +1721,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 
   // ---- tabs ----
   function view(name) {
-    ['viewTickets', 'viewWizard', 'viewTicket', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam', 'viewReports', 'viewReportResult'].forEach(function (v) { $(v).hidden = true; });
+    ['viewTickets', 'viewWizard', 'viewTicket', 'viewCustomers', 'viewCustomer', 'viewProviders', 'viewProvider', 'viewTeam', 'viewReports', 'viewReportResult', 'viewPayouts'].forEach(function (v) { $(v).hidden = true; });
     $(name).hidden = false; loadCounts(false);
-    var tab = ({viewTickets:'tickets', viewWizard:'tickets', viewTicket:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team', viewReports:'reports', viewReportResult:'reports'})[name] || 'customers';
+    var tab = ({viewTickets:'tickets', viewWizard:'tickets', viewTicket:'tickets', viewProviders:'providers', viewProvider:'providers', viewTeam:'team', viewReports:'reports', viewReportResult:'reports', viewPayouts:'payouts'})[name] || 'customers';
     document.querySelectorAll('.bar span[data-tab]').forEach(function (s) {
       s.className = (s.getAttribute('data-tab') === tab) ? 'on' : '';
     });
@@ -1736,7 +1744,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     s.onclick = function () {
       if (stayToPost()) return;
       var t = s.getAttribute('data-tab');
-      if (t === 'customers') loadCustomers(); else if (t === 'providers') loadProviders(); else if (t === 'team') loadTeam(); else if (t === 'reports') loadReports(); else loadTickets();
+      if (t === 'customers') loadCustomers(); else if (t === 'providers') loadProviders(); else if (t === 'team') loadTeam(); else if (t === 'reports') loadReports(); else if (t === 'payouts') loadPayouts(); else loadTickets();
     };
   });
 
@@ -1859,6 +1867,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       finTable(box, 'Aging of outstanding invoices', ['Age', 'Invoices', 'Amount'], d.aging.map(function (a) { var c = td(money2(a.amount)); if (a.label === 'Over 60 days' && a.amount > 0) c.style.cssText = 'color:#950606;font-weight:700'; return [a.label, String(a.invoices), c]; }), d.aging.map(function (a, i) { var lim = [[0, 30], [31, 60], [61, '']][i]; return function () { drill({ repInv: 'outstanding', repAgeMin: lim[0], repAgeMax: lim[1] }); }; }));
       finTable(box, 'By customer', ['Customer', 'Billed', 'Collected', 'Outstanding', 'Margin'], d.byCustomer.map(function (r) { return [r.customer, money2(r.billed), money2(r.collected), money2(r.outstanding), marginCell(r.marginPct)]; }), d.byCustomer.map(function (r) { return function () { drill({ repQ: r.customer, repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }); }; }));
       finTable(box, 'By provider (owed)', ['Provider', 'Jobs', 'Approved bills'], d.byProvider.map(function (r) { return [r.provider, String(r.jobs), money2(r.owed)]; }), d.byProvider.map(function (r) { return function () { drill({ repQ: r.provider, repInvFrom: rg[0], repInvTo: rg[1], repInv: 'invoiced' }); }; }));
+      var goPay = btn('Go to Payouts', function () { loadPayouts(); }); goPay.style.cssText = 'background:#0e7490;color:#fff;border:none;padding:8px 14px;margin:4px 0 12px'; box.appendChild(goPay);
     } catch (e) { flash(e.message, false); }
   }
   $('finGo').onclick = runFinancial;
@@ -1929,6 +1938,147 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     showSub(repSubCur); 
   }
   $('repForm').onsubmit = function (e) { e.preventDefault(); runReport(); };
+
+  // ---- Payouts (Owner only). The server works out every amount; this screen only shows them and records what was paid. ----
+  var payBatch = null, payData = null;
+  async function loadPayouts(batch) {
+    setHash('#payouts'); view('viewPayouts');
+    var box = $('payBody');
+    try { payData = await api('/staff/payouts' + (batch || payBatch ? '?batch=' + encodeURIComponent(batch || payBatch) : '')); } catch (e) { clear(box); box.appendChild(mk('p', 'issue', e.message)); return; }
+    payBatch = payData.batch; drawPayouts();
+  }
+  function drawPayouts() {
+    var d = payData, box = $('payBody'); clear(box);
+    var top = mk('div'); top.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0 14px';
+    var sel = mk('select'); sel.style.cssText = 'width:auto;padding:8px';
+    d.batches.forEach(function (b) { var o = mk('option', null, 'Batch: ' + niceDate(b)); o.value = b; if (b === d.batch) o.selected = true; sel.appendChild(o); });
+    sel.onchange = function () { loadPayouts(sel.value); };
+    top.appendChild(sel);
+    var dl = btn('Download batch', downloadBatch); dl.style.cssText = 'background:#0e7490;color:#fff;border:none;padding:8px 14px'; top.appendChild(dl);
+    var yb = btn('Paid this year (1099s)', showYtd); yb.style.cssText = 'background:#7c3aed;color:#fff;border:none;padding:8px 14px'; top.appendChild(yb);
+    box.appendChild(top);
+    box.appendChild(mk('p', 'small', 'Jobs are due ' + d.dueDays + ' days after the customer invoice and go out on the next 1st or 15th. Amounts are worked out from approved bills. Offsets come out automatically.'));
+    var k = mk('div'); k.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 18px';
+    [['Due this batch', d.summary.due, '#15803d'], ['On hold', d.summary.onHold, '#950606'], ['Offsets taken', d.summary.offsets, '#db2777'], ['Next batch (' + niceDate(d.following) + ')', d.summary.nextBatch, '#6b7280'], ['Paid this month', d.summary.paidThisMonth, '#1d4ed8']].forEach(function (x) {
+      var c = mk('div'); c.style.cssText = 'border:1px solid var(--border);border-top:4px solid ' + x[2] + ';padding:10px 12px;background:#fff';
+      c.appendChild(mk('div', 'small', x[0])); var v = mk('div', null, money2(x[1])); v.style.cssText = 'font-size:22px;font-weight:700'; c.appendChild(v); k.appendChild(c);
+    });
+    box.appendChild(k);
+    if (!d.providers.length) box.appendChild(mk('p', null, 'Nothing is due in this batch.'));
+    d.providers.forEach(function (p) { box.appendChild(payCard(p)); });
+    var ready = d.providers.filter(function (p) { return p.ready && !p.held; });
+    if (ready.length > 1) {
+      var all = btn('Mark whole batch paid (' + ready.length + ' providers, ' + money2(ready.reduce(function (s, p) { return s + p.net; }, 0)) + ')', function () { askPaid(ready); });
+      all.style.cssText = 'background:#1a1a1a;color:#fff;border:none;padding:10px 16px;margin:4px 0 20px'; var w = mk('div'); w.style.textAlign = 'right'; w.appendChild(all); box.appendChild(w);
+    }
+    box.appendChild(mk('h3', null, 'Recently paid'));
+    if (!d.recent.length) box.appendChild(mk('p', 'small', 'No payouts recorded yet.'));
+    else {
+      var t = mk('table', 't'), hd = mk('tr');
+      ['Paid on', 'Provider', 'Jobs', 'How', 'Amount', ''].forEach(function (h) { hd.appendChild(mk('th', null, h)); }); var th = mk('thead'); th.appendChild(hd); t.appendChild(th);
+      var tb = mk('tbody');
+      d.recent.forEach(function (r) {
+        var tr = mk('tr'); if (r.undone) tr.style.cssText = 'color:#6b7280;text-decoration:line-through';
+        tr.appendChild(mk('td', null, fmt(r.paidOn))); tr.appendChild(mk('td', null, r.provider)); tr.appendChild(mk('td', null, r.jobs || ''));
+        tr.appendChild(mk('td', null, (r.method === 'ach' ? 'ACH' : r.method === 'check' ? 'Check' : 'Offset only') + (r.reference ? ' ' + r.reference : '') + (r.emailed ? ' · statement emailed' : '')));
+        tr.appendChild(mk('td', null, money2(r.net)));
+        var c = mk('td');
+        if (r.undone) { var u = mk('span', 'small', 'Undone: ' + r.undone.reason); u.style.textDecoration = 'none'; c.appendChild(u); }
+        else { var ub = btn('Undo', function () { reasonModal('Undo this payout?', r.provider + ', ' + money2(r.net) + ' on ' + fmt(r.paidOn) + '. Their jobs go back to unpaid and any offset taken goes back on what they owe.', 'Why (for example: ACH returned, keyed wrong)', 3, 'Undo payout', async function (why) { await api('/staff/payouts/' + r.id + '/undo', 'POST', { reason: why }); flash('Payout undone.', true); loadPayouts(); }); }); ub.style.cssText = 'color:#950606;border-color:#950606'; c.appendChild(ub); }
+        tr.appendChild(c); tb.appendChild(tr);
+      });
+      t.appendChild(tb); var wr = mk('div'); wr.style.overflowX = 'auto'; wr.appendChild(t); box.appendChild(wr);
+    }
+  }
+  function niceDate(s) { var p = String(s).slice(0, 10).split('-'); return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(p[1]) - 1] + ' ' + Number(p[2]) + ', ' + p[0]; }
+  function payCard(p) {
+    var color = p.held ? '#950606' : p.offsetTotal > 0 ? '#db2777' : p.ready ? '#15803d' : '#6b7280';
+    var c = mk('div'); c.style.cssText = 'border:1px solid var(--border);border-left:5px solid ' + color + ';background:#fff;padding:12px 16px;margin-bottom:10px';
+    var h = mk('div'); h.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap';
+    var nm = mk('div'); var b = mk('b', null, p.name); nm.appendChild(b);
+    nm.appendChild(mk('span', 'small', '  ' + (p.bank ? (p.bank.name || 'Bank') + ' ending ' + (p.bank.last4 || '----') : 'No bank account on file')));
+    h.appendChild(nm);
+    var rt = mk('div'); rt.style.cssText = 'display:flex;gap:8px;align-items:center';
+    var amt = mk('span', null, money2(p.held ? p.heldAmount : p.net)); amt.style.cssText = 'font-size:20px;font-weight:700' + (p.held ? ';color:#6b7280' : ''); rt.appendChild(amt);
+    if (p.ready && !p.held) { var mp = btn(p.net > 0 ? 'Mark paid' : 'Record (nothing to send)', function () { askPaid([p]); }); mp.style.cssText = 'background:#15803d;color:#fff;border:none;padding:8px 14px'; rt.appendChild(mp); }
+    var hb = btn('Hold', function () { reasonModal('Hold ' + p.name + '?', 'Nothing goes out to them until you release it.', 'Why (for example: chargeback on TMG-1012)', 3, 'Place hold', async function (why) { await api('/staff/payouts/holds', 'POST', { providerId: p.providerId, reason: why }); flash('Hold placed.', true); loadPayouts(); }); });
+    rt.appendChild(hb); h.appendChild(rt); c.appendChild(h);
+    p.holds.forEach(function (x) {
+      var r = mk('div'); r.style.cssText = 'display:flex;justify-content:space-between;gap:8px;align-items:center;background:#fde8e8;color:#950606;padding:6px 10px;margin-top:8px;font-weight:600';
+      r.appendChild(mk('span', null, 'On hold: ' + x.text + (x.by ? ' (' + x.by + ')' : '')));
+      if (x.releasable) r.appendChild(holdRelease(p, x));
+      c.appendChild(r);
+    });
+    var line = function (l, a, col) { var r = mk('div'); r.style.cssText = 'display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:4px 0;border-bottom:1px solid #f1f1ef' + (col ? ';color:' + col : ''); r.appendChild(mk('span', null, l)); var v = mk('span', null, a); v.style.whiteSpace = 'nowrap'; r.appendChild(v); return r; };
+    p.items.forEach(function (it) {
+      var lab = it.jobNumber + (it.kind === 'prior' ? ' (first provider)' : '') + ' · invoiced ' + niceDate(it.invoicedOn) + ' · due ' + niceDate(it.dueOn);
+      var held = it.holds.length ? it.holds.map(function (x) { return x.text; }).join(' ') : '';
+      var r = line(lab + (held ? ' · HELD: ' + held : ''), money2(it.amount), held ? '#950606' : null);
+      it.holds.filter(function (x) { return x.releasable; }).forEach(function (x) { r.firstChild.appendChild(document.createTextNode(' ')); r.firstChild.appendChild(holdRelease(p, x)); });
+      if (!held && !p.held) { var hj = mk('a', 'small', 'hold job'); hj.style.cssText = 'margin-left:8px;color:#6b7280;cursor:pointer;text-decoration:underline'; hj.onclick = function () { reasonModal('Hold ' + it.jobNumber + '?', 'Only this job is held. The rest of ' + p.name + '’s payout can still go out.', 'Why (for example: chargeback)', 3, 'Hold job', async function (why) { await api('/staff/payouts/holds', 'POST', { providerId: p.providerId, billId: it.billId, reason: why }); flash('Job held.', true); loadPayouts(); }); }; r.firstChild.appendChild(hj); }
+      c.appendChild(r);
+    });
+    p.offsets.forEach(function (o) { c.appendChild(line('Offset · ' + (o.jobNumber || '') + (o.note ? ' · ' + o.note : ''), '− ' + money2(o.take), '#be185d')); });
+    if (p.owedAfter > 0) { var ow = mk('p', 'small', 'They will still owe ' + money2(p.owedAfter) + ' after this. It comes out of their next payout.'); ow.style.cssText = 'color:#be185d;margin:6px 0 0'; c.appendChild(ow); }
+    p.flags.forEach(function (f) { var fl = mk('div', null, 'Check: ' + f.text); fl.style.cssText = 'background:#fff7e0;color:#7a5600;padding:6px 10px;margin-top:8px;font-weight:600'; c.appendChild(fl); });
+    return c;
+  }
+  function holdRelease(p, x) {
+    var a = btn('Release', function () {
+      if (x.code === 'manual') reasonModal('Release this hold?', x.text, 'Why it is OK to pay now', 3, 'Release hold', async function (why) { await api('/staff/payouts/holds/' + x.holdId + '/release', 'POST', { note: why }); flash('Hold released.', true); loadPayouts(); });
+      else reasonModal('Release for this batch only?', x.text + ' This releases it for the ' + niceDate(payData.batch) + ' batch only.', x.code === 'nobank' ? 'Note (for example: paying by check this time)' : 'Note', 3, 'Release for this batch', async function (why) { await api('/staff/payouts/override', 'POST', { providerId: p.providerId, code: x.code, batch: payData.batch, note: why }); flash('Released for this batch.', true); loadPayouts(); });
+    });
+    a.style.cssText = 'background:#fff;color:#950606;border:1px solid #950606;padding:3px 10px;font-weight:600';
+    return a;
+  }
+  function askPaid(list) {
+    var total = list.reduce(function (s, p) { return s + p.net; }, 0), anyMoney = total > 0;
+    var nodes = [mk('p', null, list.length === 1 ? list[0].name + ': ' + money2(total) : list.length + ' providers, ' + money2(total) + ' total.')];
+    var m = mk('select'); m.style.cssText = 'width:100%;padding:10px;margin:4px 0 8px';
+    [['ach', 'ACH'], ['check', 'Check']].forEach(function (x) { var o = mk('option', null, x[1]); o.value = x[0]; m.appendChild(o); });
+    var ref = inp(list.length > 1 ? 'ACH batch reference from the bank' : 'ACH reference or check number from the bank');
+    var dt = inp('', 'date'); dt.value = new Date().toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+    if (anyMoney) { nodes.push(lab2('Paid by')); nodes.push(m); nodes.push(lab2('Bank reference (required)')); nodes.push(ref); }
+    else nodes.push(mk('p', 'small', 'Nothing is sent: the offset covers the whole payout. This records it and emails them a statement.'));
+    nodes.push(lab2('Date sent')); nodes.push(dt);
+    var flags = []; list.forEach(function (p) { p.flags.forEach(function (f) { flags.push(p.name + ': ' + f.text); }); });
+    var ck = null;
+    if (flags.length) {
+      var fb = mk('div'); fb.style.cssText = 'background:#fff7e0;color:#7a5600;padding:8px 10px;margin:8px 0;font-weight:600';
+      flags.forEach(function (f) { fb.appendChild(mk('div', null, f)); }); nodes.push(fb);
+      var lb = mk('label'); lb.style.cssText = 'display:flex;gap:8px;align-items:center;font-weight:700'; ck = mk('input'); ck.type = 'checkbox'; lb.appendChild(ck); lb.appendChild(document.createTextNode('I checked these before sending')); nodes.push(lb);
+    }
+    nodes.push(mk('p', 'small', 'Send the payment from First Financial first, then record it here. Each provider is emailed a statement.'));
+    var acts = mk('div', 'acts'), close;
+    acts.appendChild(mbtn('Mark paid', 'red', async function () {
+      if (anyMoney && ref.value.trim().length < 2) return flash('Enter the bank reference.', false);
+      if (ck && !ck.checked) return flash('Check the items in yellow, then tick the box.', false);
+      try {
+        var r = await api('/staff/payouts/pay', 'POST', { batch: payData.batch, providerIds: list.map(function (p) { return p.providerId; }), method: m.value, reference: ref.value.trim(), paidOn: dt.value, confirm: !!(ck && ck.checked) });
+        close(); flash('Recorded ' + r.done.length + ' payout' + (r.done.length === 1 ? '' : 's') + ', ' + money2(r.total) + '.', true); loadPayouts();
+      } catch (e) { flash(e.message, false); }
+    }));
+    acts.appendChild(mbtn('Cancel', '', function () { close(); }));
+    nodes.push(acts);
+    close = openModal(list.length === 1 ? 'Mark paid' : 'Mark whole batch paid', nodes);
+  }
+  function downloadBatch() {
+    var rows = [['Provider', 'Pay by', 'Bank', 'Account ending', 'Amount', 'Jobs', 'Offsets taken', 'On hold']];
+    payData.providers.forEach(function (p) {
+      rows.push([p.name, p.bank ? 'ACH' : 'Check', p.bank ? (p.bank.name || '') : '', p.bank ? (p.bank.last4 || '') : '', (p.held ? 0 : p.net).toFixed(2),
+        p.items.filter(function (i) { return p.payItems.indexOf(i.billId) >= 0; }).map(function (i) { return i.jobNumber; }).join(' '), p.offsetTotal.toFixed(2), p.held ? p.holds.map(function (h) { return h.text; }).join(' ') : '']);
+    });
+    var csv = rows.map(function (r) { return r.map(function (v) { v = String(v); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(','); }).join('\r\n');
+    var a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' })); a.download = 'TMG-payout-batch-' + payData.batch + '.csv'; document.body.appendChild(a); a.click(); a.remove();
+  }
+  async function showYtd() {
+    var y = new Date().getFullYear(), d;
+    try { d = await api('/staff/payouts/ytd?year=' + y); } catch (e) { return flash(e.message, false); }
+    var t = mk('table', 't'), hd = mk('tr'); ['Provider', 'Payouts', 'Paid', 'Offsets taken', '1099'].forEach(function (h) { hd.appendChild(mk('th', null, h)); }); var th = mk('thead'); th.appendChild(hd); t.appendChild(th);
+    var tb = mk('tbody'); d.rows.forEach(function (r) { var tr = mk('tr'); [r.provider, String(r.payouts), money2(r.paid), money2(r.offsets), r.over600 ? '$600 or more' : ''].forEach(function (v) { tr.appendChild(mk('td', null, v)); }); tb.appendChild(tr); }); t.appendChild(tb);
+    var acts = mk('div', 'acts'), close; acts.appendChild(mbtn('Close', '', function () { close(); }));
+    close = openModal('Paid in ' + d.year, [d.rows.length ? t : mk('p', null, 'No payouts recorded this year.'), mk('p', 'small', 'Undone payouts are not counted. Providers paid $600 or more usually need a 1099-NEC. Confirm with your accountant.'), acts]);
+  }
 
   // ---- customers ----
   async function loadCustomers() {
@@ -3694,7 +3844,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     show('loading');
     try {
       me = await api('/staff/me');
-      $('teamTab').hidden = (me.role !== 'owner'); $('repTab').hidden = (me.role !== 'owner');
+      $('teamTab').hidden = (me.role !== 'owner'); $('repTab').hidden = (me.role !== 'owner'); $('payTab').hidden = (me.role !== 'owner');
       $('welcome').textContent = 'Welcome, ' + me.name;
       $('role').textContent = me.role;
       if (!/^#(ticket|customer|provider)\/|^#(customers|providers|team|reports|new-ticket)$/.test(location.hash)) history.replaceState(null, '', location.pathname + location.search + '#tickets');
