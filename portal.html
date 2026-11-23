@@ -949,8 +949,18 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
   function money(n) { return '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
   function when(v) { var d = new Date(String(v).indexOf('Z') < 0 && String(v).indexOf('+') < 0 ? v + 'Z' : v); return isNaN(d) ? '' : d.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }); }
+  // Customer status colors (Rich, Nov 23 2026). Each step of the normal path is its own color family:
+  // gray Received, purple Provider assigned, gold Provider dispatched, blue Work in progress, green Complete.
+  // Pink always means the customer needs to act. Outlined chips are finished or paused states.
+  var CHIP = {
+    'Received': ['#6b7280', '#fff'], 'Provider assigned': ['#7c3aed', '#fff'], 'Provider dispatched': ['#f5b301', '#3a2a00'],
+    'Work in progress': ['#1d4ed8', '#fff'], 'In progress': ['#1d4ed8', '#fff'], 'Complete': ['#15803d', '#fff'], 'Invoice approved': ['#15803d', '#fff'],
+    'Awaiting your approval': ['#db2777', '#fff'], 'Invoice ready': ['#db2777', '#fff'], 'Canceled': ['#374151', '#fff'],
+    'Invoice disputed': ['#fff', '#be185d', '#db2777'], 'Closed': ['#fff', '#15803d', '#15803d'], 'On hold': ['#fff', '#4b5563', '#6b7280'], 'Cancel requested': ['#fff', '#374151', '#374151']
+  };
   function chipFor(status, needsAction) {
-    var c = el('span', 'chip' + (status === 'Complete' || status === 'Invoice approved' ? ' done' : (needsAction || status === 'Awaiting your approval' || status === 'Invoice ready' || status === 'Invoice disputed') ? ' wait' : (status === 'Closed' || status === 'Canceled' || status === 'On hold') ? ' off' : ''), status);
+    var c = el('span', 'chip', status), k = CHIP[status] || (needsAction ? CHIP['Awaiting your approval'] : CHIP['Work in progress']);
+    c.style.background = k[0]; c.style.color = k[1]; if (k[2]) c.style.boxShadow = 'inset 0 0 0 2px ' + k[2];
     return c;
   }
   async function loadCustBoard() {
