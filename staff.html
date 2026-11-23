@@ -1460,9 +1460,11 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         try {
           await save();
           await api('/staff/bills/' + b.id + '/approve', 'POST', {});
-          flash('Provider bill approved and locked. Now review the customer bill below.', true);
+          flash('Provider bill approved and locked. Now review the customer bill.', true);
           loadAlerts(); await loadBill(id);
-          var cs = $('custSection'); if (cs && !cs.hidden && cs.scrollIntoView) cs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // Go straight to the customer bill, no clicking the step tabs (Rich, Nov 23 2026).
+          var cs = $('custSection');
+          if (cs && !cs.hidden) { if (sheetWanted) openSheet(2); if (cs.scrollIntoView) cs.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         } catch (er) { flash(er.message, false); }
       }, 'ai-go');
       bar.appendChild(approveBtn); body.appendChild(bar);
@@ -2796,7 +2798,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     var show = !!(d.newBillReady && d.priors && d.priors.some(function (p) { return p.bill; }));
     sec.hidden = !show; priorPending = false;
     if (!show) return;
-    body.appendChild(mk('p', 'small', 'This job was reposted or the provider was replaced. Decide what to pay the first provider before approving the new provider’s bill. You can change anything below.'));
+    body.appendChild(mk('p', 'small', 'This job was reposted or the provider was replaced.'));
     d.priors.forEach(function (p) {
       if (!p.bill) return;
       if (!p.settled) priorPending = true;
