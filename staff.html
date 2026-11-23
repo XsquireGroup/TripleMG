@@ -1959,11 +1959,20 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     box.appendChild(top);
     box.appendChild(mk('p', 'small', 'Jobs are due ' + d.dueDays + ' days after the customer invoice and go out on the next 1st or 15th. Amounts are worked out from approved bills. Offsets come out automatically.'));
     var k = mk('div'); k.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0 18px';
-    [['Due this batch', d.summary.due, '#15803d'], ['On hold', d.summary.onHold, '#950606'], ['Offsets taken', d.summary.offsets, '#db2777'], ['Next batch (' + niceDate(d.following) + ')', d.summary.nextBatch, '#6b7280'], ['Paid this month', d.summary.paidThisMonth, '#1d4ed8']].forEach(function (x) {
+    [['Quick pay due', d.summary.quickDue, '#7c3aed'], ['Due this batch', d.summary.due, '#15803d'], ['On hold', d.summary.onHold + d.quick.summary.onHold, '#950606'], ['Offsets taken', d.summary.offsets + d.quick.summary.offsets, '#db2777'], ['Next batch (' + niceDate(d.following) + ')', d.summary.nextBatch, '#6b7280'], ['Paid this month', d.summary.paidThisMonth, '#1d4ed8'], ['Quick pay fees this month', d.summary.feesThisMonth, '#0e7490']].forEach(function (x) {
       var c = mk('div'); c.style.cssText = 'border:1px solid var(--border);border-top:4px solid ' + x[2] + ';padding:10px 12px;background:#fff';
       c.appendChild(mk('div', 'small', x[0])); var v = mk('div', null, money2(x[1])); v.style.cssText = 'font-size:22px;font-weight:700'; c.appendChild(v); k.appendChild(c);
     });
     box.appendChild(k);
+    // Quick pay: Preferred providers, due 4 business days after the customer invoice, outside the 1st/15th batches.
+    if (d.quick.providers.length) {
+      var qh = mk('h3', null, 'Quick pay due'); qh.style.cssText = 'color:#7c3aed;margin:4px 0 2px'; box.appendChild(qh);
+      box.appendChild(mk('p', 'small', 'Preferred providers. Due 4 business days after the customer invoice. ' + Math.round(d.quickFee * 100) + '% fee comes off their pay.'));
+      d.quick.providers.forEach(function (p) { box.appendChild(payCard(p, true)); });
+      var qr = d.quick.providers.filter(function (p) { return p.ready && !p.held; });
+      if (qr.length > 1) { var qa = btn('Mark all quick pay paid (' + qr.length + ' providers)', function () { askPaid(qr, true); }); qa.style.cssText = 'background:#7c3aed;color:#fff;border:none;padding:10px 16px;margin:4px 0 16px'; var qw = mk('div'); qw.style.textAlign = 'right'; qw.appendChild(qa); box.appendChild(qw); }
+      var bh = mk('h3', null, 'Batch: ' + niceDate(d.batch)); bh.style.margin = '18px 0 6px'; box.appendChild(bh);
+    }
     if (!d.providers.length) box.appendChild(mk('p', null, 'Nothing is due in this batch.'));
     d.providers.forEach(function (p) { box.appendChild(payCard(p)); });
     var ready = d.providers.filter(function (p) { return p.ready && !p.held; });
@@ -1980,7 +1989,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       d.recent.forEach(function (r) {
         var tr = mk('tr'); if (r.undone) tr.style.cssText = 'color:#6b7280;text-decoration:line-through';
         tr.appendChild(mk('td', null, fmt(r.paidOn))); tr.appendChild(mk('td', null, r.provider)); tr.appendChild(mk('td', null, r.jobs || ''));
-        tr.appendChild(mk('td', null, (r.method === 'ach' ? 'ACH' : r.method === 'check' ? 'Check' : 'Offset only') + (r.reference ? ' ' + r.reference : '') + (r.emailed ? ' · statement emailed' : '')));
+        tr.appendChild(mk('td', null, (r.quick ? 'Quick Pay · ' : '') + (r.method === 'ach' ? 'ACH' : r.method === 'check' ? 'Check' : 'Offset only') + (r.reference ? ' ' + r.reference : '') + (r.emailed ? ' · statement emailed' : '')));
         tr.appendChild(mk('td', null, money2(r.net)));
         var c = mk('td');
         if (r.undone) { var u = mk('span', 'small', 'Undone: ' + r.undone.reason); u.style.textDecoration = 'none'; c.appendChild(u); }
@@ -1991,8 +2000,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     }
   }
   function niceDate(s) { var p = String(s).slice(0, 10).split('-'); return ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(p[1]) - 1] + ' ' + Number(p[2]) + ', ' + p[0]; }
-  function payCard(p) {
-    var color = p.held ? '#950606' : p.offsetTotal > 0 ? '#db2777' : p.ready ? '#15803d' : '#6b7280';
+  function payCard(p, quick) {
+    var color = p.held ? '#950606' : quick ? '#7c3aed' : p.offsetTotal > 0 ? '#db2777' : p.ready ? '#15803d' : '#6b7280';
     var c = mk('div'); c.style.cssText = 'border:1px solid var(--border);border-left:5px solid ' + color + ';background:#fff;padding:12px 16px;margin-bottom:10px';
     var h = mk('div'); h.style.cssText = 'display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap';
     var nm = mk('div'); var b = mk('b', null, p.name); nm.appendChild(b);
@@ -2000,7 +2009,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     h.appendChild(nm);
     var rt = mk('div'); rt.style.cssText = 'display:flex;gap:8px;align-items:center';
     var amt = mk('span', null, money2(p.held ? p.heldAmount : p.net)); amt.style.cssText = 'font-size:20px;font-weight:700' + (p.held ? ';color:#6b7280' : ''); rt.appendChild(amt);
-    if (p.ready && !p.held) { var mp = btn(p.net > 0 ? 'Mark paid' : 'Record (nothing to send)', function () { askPaid([p]); }); mp.style.cssText = 'background:#15803d;color:#fff;border:none;padding:8px 14px'; rt.appendChild(mp); }
+    if (p.ready && !p.held) { var mp = btn(p.net > 0 ? 'Mark paid' : 'Record (nothing to send)', function () { askPaid([p], quick); }); mp.style.cssText = 'background:#15803d;color:#fff;border:none;padding:8px 14px'; rt.appendChild(mp); }
     var hb = btn('Hold', function () { reasonModal('Hold ' + p.name + '?', 'Nothing goes out to them until you release it.', 'Why (for example: chargeback on TMG-1012)', 3, 'Place hold', async function (why) { await api('/staff/payouts/holds', 'POST', { providerId: p.providerId, reason: why }); flash('Hold placed.', true); loadPayouts(); }); });
     rt.appendChild(hb); h.appendChild(rt); c.appendChild(h);
     p.holds.forEach(function (x) {
@@ -2011,13 +2020,15 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     });
     var line = function (l, a, col) { var r = mk('div'); r.style.cssText = 'display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:4px 0;border-bottom:1px solid #f1f1ef' + (col ? ';color:' + col : ''); r.appendChild(mk('span', null, l)); var v = mk('span', null, a); v.style.whiteSpace = 'nowrap'; r.appendChild(v); return r; };
     p.items.forEach(function (it) {
-      var lab = it.jobNumber + (it.kind === 'prior' ? ' (first provider)' : '') + ' · invoiced ' + niceDate(it.invoicedOn) + ' · due ' + niceDate(it.dueOn);
+      var dl = it.quick ? (it.daysLeft < 0 ? ' · ' + (-it.daysLeft) + ' business day' + (it.daysLeft === -1 ? '' : 's') + ' LATE' : it.daysLeft === 0 ? ' · due TODAY' : ' · ' + it.daysLeft + ' business day' + (it.daysLeft === 1 ? '' : 's') + ' left') : '';
+      var lab = (it.quick ? 'Quick Pay · ' : '') + it.jobNumber + (it.kind === 'prior' ? ' (first provider)' : '') + ' · invoiced ' + niceDate(it.invoicedOn) + ' · due ' + (it.quick ? 'by ' : '') + niceDate(it.dueOn) + dl;
       var held = it.holds.length ? it.holds.map(function (x) { return x.text; }).join(' ') : '';
-      var r = line(lab + (held ? ' · HELD: ' + held : ''), money2(it.amount), held ? '#950606' : null);
+      var r = line(lab + (held ? ' · HELD: ' + held : ''), money2(it.amount), held || (it.quick && it.daysLeft <= 1) ? '#950606' : null);
       it.holds.filter(function (x) { return x.releasable; }).forEach(function (x) { r.firstChild.appendChild(document.createTextNode(' ')); r.firstChild.appendChild(holdRelease(p, x)); });
       if (!held && !p.held) { var hj = mk('a', 'small', 'hold job'); hj.style.cssText = 'margin-left:8px;color:#6b7280;cursor:pointer;text-decoration:underline'; hj.onclick = function () { reasonModal('Hold ' + it.jobNumber + '?', 'Only this job is held. The rest of ' + p.name + '’s payout can still go out.', 'Why (for example: chargeback)', 3, 'Hold job', async function (why) { await api('/staff/payouts/holds', 'POST', { providerId: p.providerId, billId: it.billId, reason: why }); flash('Job held.', true); loadPayouts(); }); }; r.firstChild.appendChild(hj); }
       c.appendChild(r);
     });
+    if (p.feeTotal > 0) c.appendChild(line('Quick pay fee (' + Math.round(payData.quickFee * 100) + '%)', '− ' + money2(p.feeTotal), '#0e7490'));
     p.offsets.forEach(function (o) { c.appendChild(line('Offset · ' + (o.jobNumber || '') + (o.note ? ' · ' + o.note : ''), '− ' + money2(o.take), '#be185d')); });
     if (p.held && p.owedAfter > 0) { var oh = mk('p', null, 'Offset amount not included: ' + money2(p.owedAfter)); oh.style.cssText = 'color:#950606;font-weight:700;margin:8px 0 0'; c.appendChild(oh); }
     else if (p.owedAfter > 0) { var ow = mk('p', 'small', 'They will still owe ' + money2(p.owedAfter) + ' after this. It comes out of their next payout.'); ow.style.cssText = 'color:#be185d;margin:6px 0 0'; c.appendChild(ow); }
@@ -2032,7 +2043,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     a.style.cssText = 'background:#fff;color:#950606;border:1px solid #950606;padding:3px 10px;font-weight:600';
     return a;
   }
-  function askPaid(list) {
+  function askPaid(list, quick) {
     var total = list.reduce(function (s, p) { return s + p.net; }, 0), anyMoney = total > 0;
     var nodes = [mk('p', null, list.length === 1 ? list[0].name + ': ' + money2(total) : list.length + ' providers, ' + money2(total) + ' total.')];
     var m = mk('select'); m.style.cssText = 'width:100%;padding:10px;margin:4px 0 8px';
@@ -2055,13 +2066,13 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       if (anyMoney && ref.value.trim().length < 2) return flash('Enter the bank reference.', false);
       if (ck && !ck.checked) return flash('Check the items in yellow, then tick the box.', false);
       try {
-        var r = await api('/staff/payouts/pay', 'POST', { batch: payData.batch, providerIds: list.map(function (p) { return p.providerId; }), method: m.value, reference: ref.value.trim(), paidOn: dt.value, confirm: !!(ck && ck.checked) });
+        var r = await api('/staff/payouts/pay', 'POST', { batch: payData.batch, quick: !!quick, providerIds: list.map(function (p) { return p.providerId; }), method: m.value, reference: ref.value.trim(), paidOn: dt.value, confirm: !!(ck && ck.checked) });
         close(); flash('Recorded ' + r.done.length + ' payout' + (r.done.length === 1 ? '' : 's') + ', ' + money2(r.total) + '.', true); loadPayouts();
       } catch (e) { flash(e.message, false); }
     }));
     acts.appendChild(mbtn('Cancel', '', function () { close(); }));
     nodes.push(acts);
-    close = openModal(list.length === 1 ? 'Mark paid' : 'Mark whole batch paid', nodes);
+    close = openModal((quick ? 'Quick pay: ' : '') + (list.length === 1 ? 'Mark paid' : 'Mark all paid'), nodes);
   }
   function downloadBatch() {
     var rows = [['Provider', 'Pay by', 'Bank', 'Account ending', 'Amount', 'Jobs', 'Offsets taken', 'On hold']];
@@ -2075,8 +2086,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   async function showYtd() {
     var y = new Date().getFullYear(), d;
     try { d = await api('/staff/payouts/ytd?year=' + y); } catch (e) { return flash(e.message, false); }
-    var t = mk('table', 't'), hd = mk('tr'); ['Provider', 'Payouts', 'Paid', 'Offsets taken', '1099'].forEach(function (h) { hd.appendChild(mk('th', null, h)); }); var th = mk('thead'); th.appendChild(hd); t.appendChild(th);
-    var tb = mk('tbody'); d.rows.forEach(function (r) { var tr = mk('tr'); [r.provider, String(r.payouts), money2(r.paid), money2(r.offsets), r.over600 ? '$600 or more' : ''].forEach(function (v) { tr.appendChild(mk('td', null, v)); }); tb.appendChild(tr); }); t.appendChild(tb);
+    var t = mk('table', 't'), hd = mk('tr'); ['Provider', 'Payouts', 'Paid', 'Offsets taken', 'Quick pay fees', '1099'].forEach(function (h) { hd.appendChild(mk('th', null, h)); }); var th = mk('thead'); th.appendChild(hd); t.appendChild(th);
+    var tb = mk('tbody'); d.rows.forEach(function (r) { var tr = mk('tr'); [r.provider, String(r.payouts), money2(r.paid), money2(r.offsets), money2(r.fees), r.over600 ? '$600 or more' : ''].forEach(function (v) { tr.appendChild(mk('td', null, v)); }); tb.appendChild(tr); }); t.appendChild(tb);
     var acts = mk('div', 'acts'), close; acts.appendChild(mbtn('Close', '', function () { close(); }));
     close = openModal('Paid in ' + d.year, [d.rows.length ? t : mk('p', null, 'No payouts recorded this year.'), mk('p', 'small', 'Undone payouts are not counted. Providers paid $600 or more usually need a 1099-NEC. Confirm with your accountant.'), acts]);
   }

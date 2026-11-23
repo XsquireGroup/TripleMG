@@ -904,16 +904,20 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var row = function (l, a, col) { var r = el('div'); r.style.cssText = 'display:flex;justify-content:space-between;gap:10px;padding:4px 0;border-bottom:1px solid #eee' + (col ? ';color:' + col : ''); r.appendChild(el('span', null, l)); r.appendChild(el('span', null, a)); return r; };
     if (d.owed > 0) { var ow = el('div', 'job2'); ow.style.cssText = 'padding:12px 16px;border-left:5px solid #db2777'; ow.appendChild(el('p', null, 'You owe TMG ' + money(d.owed) + '. It comes out of your next payout automatically.')); list.appendChild(ow); }
     var up = el('div', 'job2'); up.style.padding = '14px 16px'; up.appendChild(el('h3', null, 'Coming up'));
-    up.appendChild(el('p', 'small', 'Jobs are paid ' + d.dueDays + ' days after TMG invoices the customer, on the next 1st or 15th.'));
+    up.appendChild(el('p', 'small', 'Jobs are paid ' + d.dueDays + ' days after TMG invoices the customer, on the next 1st or 15th. Quick Pay jobs are paid within 4 business days of the invoice.'));
     if (!d.upcoming.length) up.appendChild(el('p', null, 'Nothing waiting right now.'));
-    d.upcoming.forEach(function (x) { up.appendChild(row(x.job + (x.prior ? ' (work before you were replaced)' : '') + ' · expected ' + niceD(x.expected) + (x.onHold ? ' · on hold, TMG will contact you' : ''), money(x.amount), x.onHold ? '#950606' : null)); });
+    d.upcoming.forEach(function (x) {
+      up.appendChild(row((x.quick ? 'Quick Pay · ' : '') + x.job + (x.prior ? ' (work before you were replaced)' : '') + ' · expected ' + (x.quick ? 'by ' : '') + niceD(x.expected) + (x.onHold ? ' · on hold, TMG will contact you' : ''), money(x.amount), x.onHold ? '#950606' : null));
+      if (x.fee > 0) up.appendChild(row('Quick pay fee (7%)', '-' + money(x.fee), '#0e7490'));
+    });
     list.appendChild(up);
     var pd = el('div', 'job2'); pd.style.padding = '14px 16px'; pd.appendChild(el('h3', null, 'Paid'));
     if (!d.paid.length) pd.appendChild(el('p', null, 'No payouts yet.'));
     d.paid.forEach(function (x) {
-      var h = el('p', null, niceD(x.paidOn) + ' · ' + (x.method === 'ach' ? 'ACH' : x.method === 'check' ? 'Check' : 'No payment (offset only)') + ' · ' + money(x.net)); h.style.cssText = 'font-weight:700;margin:12px 0 4px';
+      var h = el('p', null, niceD(x.paidOn) + ' · ' + (x.quick ? 'Quick Pay · ' : '') + (x.method === 'ach' ? 'ACH' : x.method === 'check' ? 'Check' : 'No payment (offset only)') + ' · ' + money(x.net)); h.style.cssText = 'font-weight:700;margin:12px 0 4px';
       pd.appendChild(h);
       x.items.forEach(function (i) { pd.appendChild(row(i.job + (i.kind === 'prior' ? ' (work before you were replaced)' : ''), money(i.amount))); });
+      if (x.fee > 0) pd.appendChild(row('Quick pay fee (7%)', '-' + money(x.fee), '#0e7490'));
       x.offsetLines.forEach(function (o) { pd.appendChild(row('Offset, ' + (o.job || '') + ' (Provider Terms 7.6 / 10.7)', '-' + money(o.amount), '#be185d')); });
     });
     list.appendChild(pd);
