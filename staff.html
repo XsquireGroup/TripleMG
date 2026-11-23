@@ -1593,16 +1593,27 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     function row(first, qty, unit, amt) {
       var tr = tb.insertRow(); [first, qty, unit, amt].forEach(function (x) { var c = tr.insertCell(); if (x) c.appendChild(typeof x === 'string' ? document.createTextNode(x) : x); }); return tr;
     }
+    // The customer's hourly rates sit right in the Unit price column, prefilled and always editable;
+    // the note under each shows what the provider was paid (Rich, Nov 23 2026).
+    function rateIn(val, formula, provRate) {
+      var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = '0.01'; i.disabled = !edit;
+      i.value = val != null ? val : (formula != null ? formula : (provRate ? r2(provRate / 0.80) : '')); return i;
+    }
+    function unitCell(inp, provRate) { var w = mk('div'); w.appendChild(inp); var n = mk('small', null, 'Provider paid ' + dollars(provRate || 0) + '/hr'); n.style.cssText = 'display:block;color:#6b7280;margin-top:3px'; w.appendChild(n); return w; }
+    var cRate = rateIn(cs.rate, d.formulaRate, d.rate);
+    var cHelp = rateIn(cs.helperRate, d.formulaHelperRate, d.helperRate);
     var trip = num(cs.tripCharge), tripAmt = mk('span');
     row('Initial trip (flat, billed to customer)', '1', trip, tripAmt);
     var hours = num(cs.hours, '0.25'), labAmt = mk('span');
-    row('Lead Tech', hours, 'Provider pays ' + dollars(d.rate) + '/hr', labAmt);
+    row('Lead Tech', hours, unitCell(cRate, d.rate), labAmt);
     var helpers = [];
     function addHelper(h) {
       var o = { hrs: num(h, '0.25'), a: mk('span') };
       var first = mk('div'); first.appendChild(document.createTextNode('Helper ' + (helpers.length + 1)));
       if (edit) { var rm = btn('Remove', function () { helpers.splice(helpers.indexOf(o), 1); o.tr.remove(); upd(); }, 'ai-no'); rm.style.cssText += ';margin-left:8px;min-height:30px;padding:4px 10px'; first.appendChild(rm); }
-      o.tr = row(first, o.hrs, 'Provider pays ' + dollars(d.helperRate) + '/hr', o.a);
+      o.rate = rateIn(cHelp.value, null, d.helperRate);
+      o.rate.oninput = function () { cHelp.value = o.rate.value; helpers.forEach(function (x) { if (x !== o) x.rate.value = o.rate.value; }); upd(); };
+      o.tr = row(first, o.hrs, unitCell(o.rate, d.helperRate), o.a);
       tb.insertBefore(o.tr, tb.rows[2 + helpers.length] || null);
       helpers.push(o); o.hrs.oninput = upd;
     }
@@ -1624,14 +1635,6 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       var addEqC = btn('Add equipment line', function () { addMat({ kind: 'equipment' }); upd(); }, 'ai-btn'); addEqC.style.cssText += ';margin:8px 0 0 8px';
       body.appendChild(addH); body.appendChild(addM); body.appendChild(addEqC);
     }
-    var rb = mk('div'); rb.style.cssText = 'display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;align-items:flex-end';
-    function rateIn(label, val, formula) {
-      var w = mk('div'); w.appendChild(mk('label', null, label)); var i = mk('input', 'bill-in'); i.type = 'number'; i.min = '0'; i.step = '0.01';
-      i.value = val == null ? '' : val; i.disabled = !edit; w.appendChild(i); rb.appendChild(w); return i;
-    }
-    var cRate = rateIn('Customer rate: Lead Tech ($/hr' + (d.trade ? ', ' + d.trade : '') + ')', cs.rate, d.formulaRate);
-    var cHelp = rateIn('Customer rate: Helper ($/hr)', cs.helperRate, d.formulaHelperRate);
-    body.appendChild(rb);
     var tot = mk('div'); tot.style.marginTop = '14px'; body.appendChild(tot);
     var warn = mk('div'); body.appendChild(warn);
     function vals() {
