@@ -2019,7 +2019,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       c.appendChild(r);
     });
     p.offsets.forEach(function (o) { c.appendChild(line('Offset · ' + (o.jobNumber || '') + (o.note ? ' · ' + o.note : ''), '− ' + money2(o.take), '#be185d')); });
-    if (p.owedAfter > 0) { var ow = mk('p', 'small', 'They will still owe ' + money2(p.owedAfter) + ' after this. It comes out of their next payout.'); ow.style.cssText = 'color:#be185d;margin:6px 0 0'; c.appendChild(ow); }
+    if (p.held && p.owedAfter > 0) { var oh = mk('p', null, 'Offset amount not included: ' + money2(p.owedAfter)); oh.style.cssText = 'color:#950606;font-weight:700;margin:8px 0 0'; c.appendChild(oh); }
+    else if (p.owedAfter > 0) { var ow = mk('p', 'small', 'They will still owe ' + money2(p.owedAfter) + ' after this. It comes out of their next payout.'); ow.style.cssText = 'color:#be185d;margin:6px 0 0'; c.appendChild(ow); }
     p.flags.forEach(function (f) { var fl = mk('div', null, 'Check: ' + f.text); fl.style.cssText = 'background:#fff7e0;color:#7a5600;padding:6px 10px;margin-top:8px;font-weight:600'; c.appendChild(fl); });
     return c;
   }
