@@ -391,6 +391,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <div class="qbar" id="qbar">
           <button type="button" id="qEdit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg> Edit Ticket</button>
           <button type="button" id="qComment"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg> Add Comment</button>
+          <button type="button" id="qBill" hidden><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h9l5 5v15H6z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg><span>View Bill</span></button>
           <button type="button" id="qHandled"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> View TMG Rep</button>
           <button type="button" id="qProv"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a4 4 0 005 5L21 13l-8 8a2.8 2.8 0 01-4-4l8-8z"/><path d="M14.7 6.3l3-3"/></svg> View Provider</button>
           <button type="button" id="qAdvance" hidden style="background:#15803d;border-color:#15803d"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg><span id="qAdvanceL">Move job forward</span></button>
@@ -1138,7 +1139,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   function updateBillLaunch() {
     var L = $('billLaunch'), haveR = !$('priorSection').hidden, haveP = !$('billSection').hidden, haveC = !$('custSection').hidden;
     clear($('blBtns'));
-    stepTitles(); drawActual();
+    stepTitles(); drawActual(); setTimeout(updateViewBill, 0);
     if (!haveP && !haveC) { L.hidden = true; if (sheetWanted) closeSheet(); return; }
     L.hidden = false;
     var st = billInfo.status, actionable = ['submitted', 'margin_review', 'provider_approved', 'customer_review', 'returned'].indexOf(st) >= 0 || (haveP && !st);
@@ -1150,7 +1151,14 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     sheetShows();
   }
 
+  // Top "View Bill" button (Rich, Nov 23 2026): starts the bill from the top of the ticket, same as the Bills box below.
+  var manualOpener = null;
+  function updateViewBill() {
+    var launch = !$('billLaunch').hidden && $('blBtns').firstChild;
+    $('qBill').hidden = !(launch || manualOpener);
+  }
   async function loadBill(id) {
+    manualOpener = null; $('qBill').hidden = true;
     var sec = $('billSection'); sec.hidden = true; $('billLaunch').hidden = true; billInfo = {}; clear($('billBody')); $('billBody').hidden = false; $('billTitle').textContent = 'Bill'; $('custSection').hidden = true; clear($('custBody'));
     var oldSum = $('billSummary'); if (oldSum) oldSum.remove();
     try {
@@ -1182,16 +1190,39 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     try { f = await api('/staff/tickets/' + id + '/manual-bill-form'); } catch (er) { return; }
     if (currentTicket !== id || !f.canSubmit) return;
     sec.hidden = false; if (!keep) clear(body);
-    body.appendChild(mk('p', 'small', 'The work is confirmed complete and no bill has been submitted. If the provider is not billing, you can submit it for them. It goes to the employee inbox like any provider bill and must still be reviewed and approved.'));
     var openBtn = btn('Manually Submit Provider Bill', function () { openBtn.hidden = true; box.hidden = false; }, 'btn-sm');
+    manualOpener = function () { openBtn.hidden = true; box.hidden = false; if (!sec.classList.contains('open')) sec.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+    updateViewBill();
     body.appendChild(openBtn);
     var box = mk('div'); box.hidden = true; box.style.marginTop = '12px'; body.appendChild(box);
     function lab(t) { var l = mk('label', null, t); l.style.cssText = 'display:block;font-size:12px;font-weight:600;text-transform:uppercase;margin:10px 0 4px'; return l; }
-    box.appendChild(mk('p', 'small', 'Provider: ' + f.providerName + '   |   Ticket: ' + f.jobNumber + '   |   Date: ' + String(f.billDate).slice(0, 10)));
+    var hdr = mk('p', '', 'Provider: ' + f.providerName + '   |   Ticket: ' + f.jobNumber + '   |   Date: ' + String(f.billDate).slice(0, 10) + (f.cardVendor ? '   |   Paid by company card: ' + dollars(f.cardPaid || 0) + (f.cardCount ? '' : ' (no card payments recorded yet)') : ''));
+    hdr.style.cssText = 'font-weight:700;margin:0 0 6px'; box.appendChild(hdr);
     box.appendChild(lab('Why are you submitting this for the provider?'));
     var why = mk('input', 'bill-in'); why.maxLength = 500; why.placeholder = 'e.g. Provider is not responding; entered from their phone call'; why.style.width = '100%'; box.appendChild(why);
     box.appendChild(lab('Work performed'));
     var ta = mk('textarea', 'bill-ta'); ta.rows = 4; ta.maxLength = 4000; box.appendChild(ta);
+    // A.R.C.H. reads what is typed so far (no prices) and suggests a clean description plus anything that does not line up.
+    var archOut = mk('div');
+    var archBtn = btn('A.R.C.H.', async function () {
+      if (ta.value.trim().length < 10) return flash('Type a few rough notes about the work first, then use A.R.C.H.', false);
+      archBtn.disabled = true; archBtn.textContent = 'A.R.C.H. is reading...';
+      try {
+        var sm = sum();
+        var r = await api('/staff/tickets/' + id + '/draft-manual', 'POST', { text: ta.value, hours: isFlat ? 0 : (Number(hrs.value) || 0),
+          helpers: mHelpers.map(function (o) { return Number(o.hrs.value) || 0; }), materials: rows.filter(function (o) { return o.d.value.trim(); }).map(function (o) { return { description: o.d.value, quantity: Number(o.q.value) || 0 }; }) });
+        clear(archOut); archOut.className = 'ai-panel';
+        archOut.appendChild(mk('b', null, 'A.R.C.H. suggests'));
+        var dr = mk('textarea', 'bill-ta'); dr.rows = 4; dr.value = r.draft; dr.style.marginTop = '6px'; archOut.appendChild(dr);
+        (r.flags || []).forEach(function (x) { archOut.appendChild(mk('p', 'ai-flag', '\u2022 ' + x)); });
+        var ar = mk('div'); ar.style.cssText = 'display:flex;gap:8px;margin-top:8px';
+        ar.appendChild(btn('Use this', function () { ta.value = dr.value; clear(archOut); archOut.className = ''; }, 'ai-go'));
+        ar.appendChild(btn('Discard', function () { clear(archOut); archOut.className = ''; }, 'ai-no'));
+        archOut.appendChild(ar);
+      } catch (er) { flash(er.message, false); }
+      archBtn.disabled = false; archBtn.textContent = 'A.R.C.H.';
+    }, 'ai-btn'); archBtn.title = 'Automated Routing & Cost Handler'; archBtn.style.marginTop = '8px';
+    box.appendChild(archBtn); box.appendChild(archOut);
     var laborMark = box.lastChild, isFlat = f.pricingMode === 'flat';
     box.appendChild(lab('Labor (provider side)'));
     var ltbl = mk('table', 't'), lh = ltbl.createTHead().insertRow(); ['Item', 'Qty / hours', 'Rate', 'Amount'].forEach(function (h) { lh.appendChild(mk('th', null, h)); });
@@ -1217,7 +1248,6 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     }
     box.appendChild(ltbl);
     box.appendChild(btn('Add helper', function () { if (mHelpers.length >= 2) return flash('A bill can have up to 2 helpers.', false); addMHelper(); }, 'btn-sm'));
-    box.appendChild(mk('p', 'small', 'The trip pay and hourly rate come from the saved terms. Change them here only for this one bill.'));
     box.appendChild(lab('Materials'));
     var tbl = mk('table', 't'), hr0 = tbl.createTHead().insertRow(); ['Material / equipment', 'Qty', 'Price per unit', 'Amount', ''].forEach(function (h) { hr0.appendChild(mk('th', null, h)); });
     var tb = tbl.createTBody(), rows = [];
@@ -1237,10 +1267,15 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       box.appendChild(lab('Provider flat price ($)')); box.appendChild(flatIn);
     }
     var totBox = mk('div'); totBox.style.marginTop = '16px';
-    var rowT = mk('div', 'nte prov'), rowN = mk('div', 'nte prov');
+    var rowT = mk('div', 'nte prov'), rowN = mk('div', 'nte');
+    rowN.style.cssText = 'background:#f3f4f6;border-left:6px solid #6b7280;color:#374151';
     rowT.appendChild(mk('b', null, 'Provider total')); var totV = mk('span'); rowT.appendChild(totV);
     rowN.appendChild(mk('b', null, 'Provider NTE')); rowN.appendChild(mk('span', null, dollars(f.providerNte)));
-    totBox.appendChild(rowT); totBox.appendChild(rowN); box.appendChild(totBox);
+    totBox.appendChild(rowT);
+    // Credit card providers: the bill has to match what the company card paid.
+    var rowC = null, cardV = null;
+    if (f.cardVendor) { rowC = mk('div', 'nte'); rowC.appendChild(mk('b', null, 'Paid by company card ' + dollars(f.cardPaid || 0))); cardV = mk('span'); rowC.appendChild(cardV); totBox.appendChild(rowC); }
+    totBox.appendChild(rowN); box.appendChild(totBox);
     var warn = mk('p', 'bill-warn'); box.appendChild(warn);
     function sum() {
       var m = 0; rows.forEach(function (o) { m += r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0)); });
@@ -1255,12 +1290,14 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       mHelpers.forEach(function (o) { o.amt.textContent = dollars(r2((Number(o.hrs.value) || 0) * (Number(o.rate.value) || 0))); });
       rows.forEach(function (o) { o.a.textContent = dollars(r2((Number(o.q.value) || 0) * (Number(o.u.value) || 0))); });
       totV.textContent = dollars(t.total); totV.style.color = t.total > f.providerNte ? 'var(--red)' : '';
+      if (rowC) { var ok = f.cardCount > 0 && Math.round(t.total * 100) === Math.round((f.cardPaid || 0) * 100);
+        rowC.style.cssText = ok ? 'background:#dcfce7;border-left:6px solid #15803d;color:#166534' : 'background:#fee2e2;border-left:6px solid #950606;color:#991b1b';
+        cardV.textContent = ok ? 'Matches' : 'Off by ' + dollars(Math.abs(r2(t.total - (f.cardPaid || 0)))); }
       warn.textContent = t.total > f.providerNte ? 'This is over the Provider NTE. Raise the NTE first.' : '';
     }
     flatIn.oninput = calc; hrs.oninput = calc; tripIn.oninput = calc; rateIn.oninput = calc; addRow(); calc();
     var cvOv = null;
     if (f.cardVendor) {
-      box.appendChild(mk('p', 'small', 'This job was done by a credit card provider. The bill total has to match the company card payments recorded for the job exactly.'));
       if (isMgr()) { box.appendChild(lab('Override reason (only if the total will not match the card payments)')); cvOv = mk('input', 'bill-in'); cvOv.maxLength = 1000; cvOv.style.width = '100%'; box.appendChild(cvOv); }
     }
     var go = btn('Submit for the provider', async function () {
@@ -2544,6 +2581,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     } catch (e) { /* banner is optional */ }
   }
   $('qCancel').onclick = askCancelReason;
+  $('qBill').onclick = function () { var b = !$('billLaunch').hidden && $('blBtns').firstChild; if (b) b.click(); if (manualOpener) manualOpener(); };
   function goTo(id) { var n = $(id); n.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
   // After approving a provider or adding a customer: jump to the logins box so the login is not forgotten.
   var loginNudge = null;
