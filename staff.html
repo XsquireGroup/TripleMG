@@ -364,6 +364,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           </div>
           <button type="button" class="newbtn" id="newTicket">+ New ticket</button>
         </div>
+        <div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;margin:0 0 8px"><label for="tkSort" class="small" style="font-weight:700">Sort</label><select id="tkSort" style="width:auto;padding:6px 8px"><option value="oldest">Oldest first</option><option value="newest">Newest first</option><option value="status">By status</option><option value="customer">By customer (A–Z)</option><option value="priority">Emergencies first</option></select></div>
         <p class="small" id="tkListE" hidden></p>
         <div id="tkList"></div>
       </div>
@@ -2400,11 +2401,28 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     if (!(me && me.role === 'owner')) { $('k4l').textContent = 'All active'; $('k4v').textContent = d.active.length; $('k4v').className = 'kv'; }
     if (tkTab === null) tkTab = d.waiting.length ? 'waiting' : d.mine.length ? 'mine' : 'active';
     Array.prototype.forEach.call($('tkTabs').querySelectorAll('button'), function (b) { var on = b.getAttribute('data-t') === tkTab; b.className = on ? 'on' : ''; b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', on ? 'true' : 'false'); });
-    var rows = d[tkTab] || [], list = $('tkList'); clear(list);
+    var rows = d[tkTab] || [], list = $('tkList'); clear(list); $('tkSort').value = tkSortGet();
     var empty = { mgr: 'Nothing is waiting on a manager.', waiting: 'Nothing waiting.', mine: 'No tickets assigned to you yet.', billing: 'Nothing to bill.', active: 'No active tickets yet.' }[tkTab];
     $('tkListE').hidden = rows.length > 0; $('tkListE').textContent = empty;
-    rows.forEach(function (t) { list.appendChild(tkCard(t)); });
+    sortTickets(rows.slice()).forEach(function (t) { list.appendChild(tkCard(t)); });
   }
+  // Sort inside each tab (Rich, Nov 23 2026): oldest first by default; each person's choice is remembered on their browser.
+  var TK_STATUS_ORDER = ['new', 'waiting_assignment', 'needs_manual_match', 'assigned', 'dispatched', 'in_progress', 'awaiting_part', 'awaiting_funds', 'completion_review', 'completed', 'needs_billing', 'billed', 'closed', 'canceled'];
+  function tkSortKey() { return 'tmgTkSort:' + ((me && me.email) || ''); }
+  function tkSortGet() { try { return localStorage.getItem(tkSortKey()) || 'oldest'; } catch (e) { return 'oldest'; } }
+  function sortTickets(rows) {
+    var mode = tkSortGet(), t0 = function (t) { return new Date(t.created_at).getTime() || 0; };
+    var byOld = function (a, b) { return t0(a) - t0(b); };
+    var cmp = {
+      oldest: byOld,
+      newest: function (a, b) { return t0(b) - t0(a); },
+      status: function (a, b) { var x = TK_STATUS_ORDER.indexOf(a.status), y = TK_STATUS_ORDER.indexOf(b.status); x = x < 0 ? 99 : x; y = y < 0 ? 99 : y; return x - y || byOld(a, b); },
+      customer: function (a, b) { return String(a.customer_name || '').localeCompare(String(b.customer_name || '')) || byOld(a, b); },
+      priority: function (a, b) { return (b.priority === 'emergency') - (a.priority === 'emergency') || byOld(a, b); },
+    }[mode] || byOld;
+    return rows.sort(cmp);
+  }
+  $('tkSort').onchange = function () { try { localStorage.setItem(tkSortKey(), $('tkSort').value); } catch (e) { } drawTickets(); };
   $('kMgrCard').onclick = function () { tkTab = 'mgr'; drawTickets(); $('tkTabs').scrollIntoView({ block: 'center', behavior: 'smooth' }); };
   // The count boxes open their group of tickets (Rich, Nov 20 2026). The Owner's "Ready to invoice" box goes to that table.
   Array.prototype.forEach.call(document.querySelectorAll('.kpi.kgo'), function (k) {
