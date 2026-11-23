@@ -55,7 +55,7 @@ form.f label { display:block; font-size:12px; font-weight:600; color:var(--steel
 form.f input { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 form.f button { padding:11px 16px; background:var(--red); color:var(--paper); border:0; font-family:'Oswald',sans-serif; letter-spacing:0.06em; text-transform:uppercase; font-weight:600; cursor:pointer; }
 .msg { max-width:980px; margin:16px auto 0; padding:10px 14px; font-weight:600; }
-.msg.float { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:100; width:calc(100% - 24px); max-width:980px; margin:0; box-shadow:0 4px 14px rgba(0,0,0,.2); }
+.msg.float { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:10001; width:calc(100% - 24px); max-width:980px; margin:0; box-shadow:0 4px 14px rgba(0,0,0,.2); }
 .step-sum { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; background:#e8f3ea; border:1px solid #b8d9bf; color:#1e5a2b; padding:10px 14px; font-weight:600; }
 .msg.ok { background:#e8f3ea; color:#1e5a2b; border:1px solid #b8d9bf; }
 .msg.bad { background:#fbeaea; color:var(--red); border:1px solid #e5b8b8; }
@@ -294,7 +294,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 .mdl .box { background:#fff; width:100%; max-width:640px; padding:22px 22px 20px; border-top:5px solid var(--red); }
 .mdl h2 { margin:0 0 4px; } .mdl .x { float:right; cursor:pointer; border:0; background:none; font-size:26px; line-height:1; }
 .newflag { display:inline-block; background:#fef3c7; color:#92400e; border:1px solid #f59e0b; padding:4px 10px; font-weight:700; font-size:13px; letter-spacing:.04em; text-transform:uppercase; }
-.rq { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); flex-wrap:wrap; }
+.rq { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border); }
+.rq > span { flex:1 1 auto; min-width:0; } .rq .stars { flex:none; } .rq.miss > span { color:#950606; font-weight:700; }
+@media (max-width:480px) { .rq { flex-wrap:wrap; } .rq > span { flex-basis:100%; } .rq .stars { margin-left:auto; } }
 .rq .stars { display:flex; gap:4px; } .rq .stars button { width:42px; height:42px; border:1px solid var(--border); background:#fff; font-size:18px; font-weight:700; cursor:pointer; }
 .rq .stars button.on { background:#1d4ed8; color:#fff; border-color:#1d4ed8; }
 .rep .big { font-size:38px; font-weight:700; font-family:'Oswald',sans-serif; } .rep .bar { height:10px; background:#e5e7eb; } .rep .bar i { display:block; height:100%; background:#1d4ed8; }
@@ -3141,23 +3143,28 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   }
   var QS = [['communication', 'Communication'], ['completion', 'Job completed thoroughly'], ['ontime', 'On time and professional'], ['appUse', 'Uses the app: accepts, updates and bills on time'], ['overall', 'Overall']];
   function openSurvey(ticketId, rt) {
-    var m = modal(), vals = {};
+    var m = modal(), vals = {}, rowsQ = {};
     m.bx.appendChild(mk('h2', null, 'Rate ' + (rt.provider ? rt.provider.name : 'the provider')));
     m.bx.appendChild(mk('p', 'small', rt.jobNumber + ' \u00b7 1 is poor, 5 is excellent. Only TMG staff see this.'));
     QS.forEach(function (q) {
       var row = mk('div', 'rq'), st = mk('div', 'stars'); row.appendChild(mk('span', null, q[1]));
       for (var n = 1; n <= 5; n++) (function (n) {
         var b = mk('button', null, String(n)); b.type = 'button'; b.setAttribute('aria-label', q[1] + ' ' + n);
-        b.onclick = function () { vals[q[0]] = n; Array.prototype.forEach.call(st.children, function (c, k) { c.className = k < n ? 'on' : ''; }); };
+        b.onclick = function () { vals[q[0]] = n; row.classList.remove('miss'); Array.prototype.forEach.call(st.children, function (c, k) { c.className = k < n ? 'on' : ''; }); };
         st.appendChild(b);
       })(n);
-      row.appendChild(st); m.bx.appendChild(row);
+      row.appendChild(st); m.bx.appendChild(row); rowsQ[q[0]] = row;
     });
     var cm = mk('textarea'); cm.placeholder = 'Anything else? (optional)'; cm.maxLength = 1000; cm.style.cssText = 'width:100%;min-height:70px;margin-top:12px';
     m.bx.appendChild(cm);
+    var svErr = mk('p'); svErr.style.cssText = 'color:#950606;font-weight:700;margin:10px 0 0'; m.bx.appendChild(svErr);
     var bar = mk('div'); bar.style.cssText = 'display:flex;gap:8px;margin-top:12px;flex-wrap:wrap';
     bar.appendChild(btn('Submit rating', async function () {
-      if (QS.some(function (q) { return !vals[q[0]]; })) return flash('Please rate every question from 1 to 5.', false);
+      // The message shows inside the survey, and the unanswered questions turn red.
+      var missing = QS.filter(function (q) { return !vals[q[0]]; });
+      QS.forEach(function (q) { rowsQ[q[0]].classList.toggle('miss', !vals[q[0]]); });
+      if (missing.length) { svErr.textContent = 'Please rate every question from 1 to 5. ' + (missing.length === 1 ? 'One is' : missing.length + ' are') + ' still blank (in red).'; return; }
+      svErr.textContent = '';
       try { vals.comment = cm.value; await api('/staff/tickets/' + ticketId + '/rating', 'POST', vals); m.o.remove(); flash('Thanks. Rating saved.', true); } catch (e) { flash(e.message, false); }
     }, 'ai-go'));
     bar.appendChild(btn('Not now', function () { m.o.remove(); }, 'ai-no'));
