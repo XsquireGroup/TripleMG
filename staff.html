@@ -3278,8 +3278,10 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     try {
       var d = await api('/staff/customers/' + id + '/card-billing');
       var c = d.card;
-      info.appendChild(mk('p', null, c ? 'Card on file: ' + (c.brand || 'Card') + ' ending ' + (c.last4 || '----') + (c.expMonth ? ' (exp ' + c.expMonth + '/' + String(c.expYear).slice(-2) + ')' : '') : 'No card on file yet. This customer cannot request service until one is added.'));
-      info.appendChild(mk('p', null, 'Account credit: ' + money2(d.creditBalance) + (d.owedNow > 0 ? '  \u00b7  still owed before new requests: ' + money2(d.owedNow) : '')));
+      var bk = d.bank;
+      if (bk) info.appendChild(mk('p', null, 'Bank on file (used first): ' + (bk.bankName || 'Bank') + ' ending ' + (bk.last4 || '----') + (bk.autoPay ? ' \u00b7 day-28 auto-pay on' : ' \u00b7 customer approves each bank payment')));
+      info.appendChild(mk('p', null, c ? 'Card on file: ' + (c.brand || 'Card') + ' ending ' + (c.last4 || '----') + (c.expMonth ? ' (exp ' + c.expMonth + '/' + String(c.expYear).slice(-2) + ')' : '') : bk ? 'No card on file.' : 'No bank account or card on file yet. This customer cannot request service until one is added.'));
+      info.appendChild(mk('p', null, 'Account credit: ' + money2(d.creditBalance) + (d.owedNow > 0 ? '  \u00b7  still owed before new requests: ' + money2(d.owedNow) + (d.feesOwed > 0 ? ' (includes ' + money2(d.feesOwed) + ' returned-payment fee)' : '') : '')));
       $('cRetAmt').value = d.retainerAmount != null ? d.retainerAmount : ''; $('cRetReq').checked = !!d.retainerRequired;
       if (!d.ledger.length) list.appendChild(mk('p', 'small', 'No credit activity yet.'));
       d.ledger.forEach(function (x) {
@@ -3287,6 +3289,10 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         left.appendChild(mk('b', null, (x.amount < 0 ? '-' : '+') + money2(Math.abs(x.amount)) + '  ' + ({ verification: 'Card verification deposit', retainer: 'Retainer', applied: 'Applied to an invoice', refund: 'Refund', adjust: 'Adjustment' }[x.kind] || x.kind)));
         left.appendChild(mk('div', 'small', new Date(x.created_at).toLocaleString() + (x.note ? ' \u00b7 ' + x.note : '')));
         row.appendChild(left); list.appendChild(row);
+      });
+      (d.bankPayments || []).slice(0, 5).forEach(function (x) {
+        var t = mk('p', 'small', 'Bank payment ' + money2(x.amount) + ' (' + (x.purpose === 'invoice' ? 'invoice' : 'deposit / balance') + ') on ' + new Date(x.created_at).toLocaleDateString() + ': ' + ({ pending: 'processing', completed: 'cleared', failed: 'RETURNED' + (x.failure_code ? ' (' + x.failure_code + ')' : '') }[x.status] || x.status));
+        if (x.status === 'failed') t.style.cssText = 'color:#950606;font-weight:700'; list.appendChild(t);
       });
       (d.charges || []).filter(function (x) { return x.status === 'failed'; }).slice(0, 3).forEach(function (x) {
         list.appendChild(mk('p', 'small', 'Failed charge ' + money2(x.amount) + ' on ' + new Date(x.attempted_at).toLocaleDateString() + ' (' + (x.error_text || 'declined') + ')'));

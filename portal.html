@@ -335,6 +335,15 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       <h2 id="cardTitle">Card on file</h2>
       <div id="msg6" class="msg" hidden></div>
       <p id="cardIntro" style="margin:0 0 12px"></p>
+      <div id="bankSec" style="border:2px solid #15803d;padding:12px 14px;margin:0 0 18px">
+        <h3 style="margin:0 0 4px">Pay by bank account (preferred)</h3>
+        <p id="bankCur" style="margin:0 0 8px;font-weight:700"></p>
+        <p style="margin:0 0 10px">Link your business bank account securely through your bank's own login. TMG never sees your login or account number.</p>
+        <label for="bankHolder">Name on the bank account</label><input id="bankHolder" autocomplete="name">
+        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:10px 0 12px"><input type="checkbox" id="bankConsent" style="margin-top:4px;width:auto"><span id="bankConsentText"></span></label>
+        <div class="crow"><span></span><button class="bigbtn green" id="bankLinkBtn" type="button">Link bank account</button></div>
+      </div>
+      <h3 id="cardHead" style="margin:0 0 6px">Or use a card</h3>
       <div id="cardSaved" hidden style="margin:0 0 14px;font-weight:700"></div>
       <div id="cardForm">
         <div id="cardBox" style="min-height:96px;margin:6px 0 12px"></div>
@@ -1038,20 +1047,20 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var b = $('cBill'); b.textContent = '';
     if (!cBilling || !cBilling.enabled) { b.hidden = true; return; }
     // The card bar only shows when something needs the customer's attention; otherwise card details live in Settings.
-    if (cBilling.card && cBilling.ready && !cardExpired(cBilling.card) && !(cBilling.owedNow > 0)) { b.hidden = true; return; }
+    if ((cBilling.bank || (cBilling.card && !cardExpired(cBilling.card))) && cBilling.ready && !(cBilling.owedNow > 0)) { b.hidden = true; return; }
     b.hidden = false; b.style.padding = '12px 16px';
     var row = el('div'); row.style.cssText = 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;justify-content:space-between';
     var left = el('div');
-    if (!cBilling.card) {
-      left.appendChild(el('strong', '', 'Add a card on file to request service.'));
+    if (!cBilling.card && !cBilling.bank) {
+      left.appendChild(el('strong', '', 'Add a bank account or card on file to request service.'));
     } else {
-      var c = cBilling.card;
-      left.appendChild(el('strong', '', (c.brand || 'Card') + ' ending ' + (c.last4 || '----') + (c.expMonth ? '  (exp ' + c.expMonth + '/' + String(c.expYear).slice(-2) + ')' : '')));
-      if (cBilling.owedNow > 0) { left.appendChild(el('br')); left.appendChild(el('span', '', 'A retainer of ' + money(cBilling.owedNow) + ' is due before new requests.')); }
+      var c = cBilling.card, bk = cBilling.bank;
+      left.appendChild(el('strong', '', bk ? 'Bank ending ' + (bk.last4 || '----') : (c.brand || 'Card') + ' ending ' + (c.last4 || '----') + (c.expMonth ? '  (exp ' + c.expMonth + '/' + String(c.expYear).slice(-2) + ')' : '')));
+      if (cBilling.owedNow > 0) { left.appendChild(el('br')); left.appendChild(el('span', '', (cBilling.feesOwed > 0 ? 'A returned bank payment fee of ' + money(cBilling.feesOwed) + (cBilling.depositOwed > 0 ? ' and a retainer of ' + money(cBilling.depositOwed) : '') : 'A retainer of ' + money(cBilling.owedNow)) + ' is due before new requests.')); }
       if (cBilling.creditBalance > 0) { left.appendChild(el('br')); left.appendChild(el('span', '', 'Account credit: ' + money(cBilling.creditBalance) + ' (applied to your invoices first)')); }
     }
     row.appendChild(left);
-    var btn = el('button', 'bigbtn ' + (cBilling.ready ? 'gray' : ''), !cBilling.card ? 'Add card' : cBilling.owedNow > 0 ? 'Pay retainer' : 'Change card'); btn.type = 'button';
+    var btn = el('button', 'bigbtn ' + (cBilling.ready ? 'gray' : ''), !cBilling.card && !cBilling.bank ? 'Add payment method' : cBilling.owedNow > 0 ? 'Pay ' + money(cBilling.owedNow) : 'Payment methods'); btn.type = 'button';
     btn.style.padding = '10px 18px'; btn.style.fontSize = '14px'; btn.onclick = function () { openCard(null); };
     row.appendChild(btn); b.appendChild(row);
   }
@@ -1073,20 +1082,21 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   }
   function renderSetCard() {
     var box = $('setCard'); box.textContent = '';
-    box.appendChild(el('h2', '', 'Payment card'));
-    if (!cBilling || !cBilling.enabled) { box.appendChild(el('p', '', 'Card payments are not available yet. Please call TMG.')); return; }
+    box.appendChild(el('h2', '', 'Payment methods'));
+    if (!cBilling || !cBilling.enabled) { box.appendChild(el('p', '', 'Online payments are not available yet. Please call TMG.')); return; }
     var row = el('div', 'setrow'); row.style.borderTop = '0';
     var m = el('div', 'sm');
-    if (!cBilling.card) m.appendChild(el('strong', '', 'No card on file'));
+    if (cBilling.bank) { m.appendChild(el('strong', '', 'Bank: ' + (cBilling.bank.bankName || 'Bank') + ' ending ' + (cBilling.bank.last4 || '----') + ' (used first)')); }
+    if (!cBilling.card) m.appendChild(el(cBilling.bank ? 'small' : 'strong', '', cBilling.bank ? 'No backup card on file' : 'No bank account or card on file'));
     else {
       var c = cBilling.card, exp = c.expMonth ? ' (exp ' + c.expMonth + '/' + String(c.expYear).slice(-2) + ')' : '';
       m.appendChild(el('strong', '', (c.brand || 'Card') + ' ending ' + (c.last4 || '----') + exp));
       if (cardExpired(c)) m.appendChild(el('small', '', 'This card has expired. Please change it.'));
     }
     if (cBilling.creditBalance > 0) m.appendChild(el('small', '', 'Account credit: ' + money(cBilling.creditBalance) + ' (applied to your invoices first)'));
-    if (cBilling.owedNow > 0) m.appendChild(el('small', '', 'A retainer of ' + money(cBilling.owedNow) + ' is due before new requests.'));
+    if (cBilling.owedNow > 0) m.appendChild(el('small', '', (cBilling.feesOwed > 0 ? 'A returned bank payment fee of ' + money(cBilling.feesOwed) + (cBilling.depositOwed > 0 ? ' and a retainer of ' + money(cBilling.depositOwed) : '') : 'A retainer of ' + money(cBilling.owedNow)) + ' is due before new requests.'));
     row.appendChild(m);
-    var sb = el('div', 'sb'), b = el('button', 'sbtn', !cBilling.card ? 'Add card' : cBilling.owedNow > 0 ? 'Pay retainer' : 'Change card'); b.type = 'button'; b.onclick = function () { cardFromSettings = true; openCard(null); };
+    var sb = el('div', 'sb'), b = el('button', 'sbtn', !cBilling.card && !cBilling.bank ? 'Add payment method' : cBilling.owedNow > 0 ? 'Pay ' + money(cBilling.owedNow) : 'Change payment methods'); b.type = 'button'; b.onclick = function () { cardFromSettings = true; openCard(null); };
     sb.appendChild(b); row.appendChild(sb); box.appendChild(row);
   }
   async function loadSetTeam() {
@@ -1390,24 +1400,28 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     if (!cBilling) await loadBilling();
     if (!cBilling || !cBilling.enabled) return cflash('msg3', 'Card payments are not available yet. Please call TMG.', false);
     show('custCard'); history.pushState({ v: 'card' }, ''); window.scrollTo(0, 0);
-    var haveCard = !!cBilling.card, owed = cBilling.owedNow;
-    $('cardTitle').textContent = haveCard ? 'Card on file' : 'Add a card on file';
-    $('cardIntro').textContent = reason || (haveCard
-      ? (owed > 0 ? 'TMG requires a retainer on your account. It stays on your account as credit and is applied to your invoices.' : 'You can replace the card on file. Nothing is charged when you change it.')
-      : 'TMG requires a card on file. We charge ' + money(cBilling.requiredTotal) + ' now to confirm the card works. It is not a fee: it stays on your account as credit and is applied to your invoices first.');
+    var haveCard = !!cBilling.card, haveBank = !!cBilling.bank, owed = cBilling.owedNow;
+    $('cardTitle').textContent = 'Payment method';
+    $('cardIntro').textContent = reason || (haveCard || haveBank
+      ? (owed > 0 ? (cBilling.feesOwed > 0 ? 'A bank payment was returned, so a ' + money(cBilling.feesOwed) + ' fee is due' + (cBilling.depositOwed > 0 ? ', plus a retainer of ' + money(cBilling.depositOwed) : '') + '.' : 'TMG requires a retainer on your account. It stays on your account as credit and is applied to your invoices.') : 'You can link a bank account or replace your card. Nothing is charged when you change them.')
+      : 'TMG requires a bank account or card on file. A bank account is preferred. We charge ' + money(cBilling.requiredTotal) + ' now to confirm it works. It is not a fee: it stays on your account as credit and is applied to your invoices first.');
+    $('bankCur').textContent = haveBank ? 'Bank on file: ' + (cBilling.bank.bankName || 'Bank') + ' ending ' + (cBilling.bank.last4 || '----') + '. It is used first for your invoices.' : '';
+    $('bankCur').hidden = !haveBank;
+    $('bankConsentText').textContent = cBilling.bankConsentText || ''; $('bankConsent').checked = false;
+    $('bankLinkBtn').textContent = haveBank ? 'Link a different bank account' : 'Link bank account' + (owed > 0 ? ' and pay ' + money(owed) : '');
+    $('cardHead').textContent = haveBank ? 'Card (backup)' : 'Or use a card';
     var sv = $('cardSaved'); sv.hidden = !haveCard; sv.textContent = haveCard ? 'Current card: ' + (cBilling.card.brand || 'Card') + ' ending ' + (cBilling.card.last4 || '----') : '';
-    $('cardPayOnly').hidden = !(haveCard && owed > 0);
-    $('cardPayRet').textContent = 'Pay ' + money(owed) + ' retainer with the card on file';
+    $('cardPayOnly').hidden = !((haveCard || haveBank) && owed > 0);
+    $('cardPayRet').textContent = 'Pay ' + money(owed) + ' with the ' + (haveBank ? 'bank account' : 'card') + ' on file';
     $('cardForm').hidden = false;
     $('cardConsentText').textContent = cBilling.consentText; $('cardConsent').checked = false;
-    $('cardSave').textContent = haveCard ? 'Save new card' : 'Save card and pay ' + money(owed);
+    $('cardSave').textContent = haveCard || haveBank ? 'Save card' : 'Save card and pay ' + money(owed);
     try {
       await loadSquareSdk(cBilling.square.sdkUrl);
       if (!window.Square) throw new Error('The secure card form did not load.');
       if (sqCard) { try { await sqCard.destroy(); } catch (e) { /* ignore */ } sqCard = null; }
       $('cardBox').textContent = '';
-      var pay = window.Square.payments(cBilling.square.appId, cBilling.square.locationId);
-      sqCard = await pay.card(); await sqCard.attach('#cardBox');
+      sqCard = await sqPayments().card(); await sqCard.attach('#cardBox');
     } catch (e) { cflash('msg6', e.message || 'The secure card form did not load.', false); }
   }
   $('cardSave').onclick = async function () {
@@ -1425,9 +1439,59 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   };
   $('cardPayRet').onclick = async function () {
     var bt = $('cardPayRet'); bt.disabled = true;
-    try { await api('/customer/deposit', 'POST', {}); await loadBilling(); await loadCustBoard(); cflash('msg3', 'Retainer paid. Thank you.', true); }
+    try {
+      var bd = {};
+      if (cBilling.bank && !cBilling.bank.autoPay) bd.bankAuth = await achTokenize({ intent: 'CHARGE', bankAccountId: cBilling.bank.bankAccountId, amount: cBilling.owedNow.toFixed(2), currency: 'USD' });
+      await api('/customer/deposit', 'POST', bd); await loadBilling(); await loadCustBoard();
+      cflash('msg3', cBilling.bank ? 'Payment started. Bank payments take a few business days to clear.' : 'Paid. Thank you.', true);
+    }
     catch (e) { cflash('msg6', e.message, false); }
     bt.disabled = false;
+  };
+  // ---- bank account (ACH) through Square and Plaid (Rich, Nov 24 2026) ----
+  var sqPay = null, sqAch = null;
+  function sqPayments() { if (!sqPay) sqPay = window.Square.payments(cBilling.square.appId, cBilling.square.locationId); return sqPay; }
+  async function achReady() {
+    await loadSquareSdk(cBilling.square.sdkUrl);
+    if (!window.Square) throw new Error('The secure bank form did not load. Please try again.');
+    if (!sqAch) sqAch = await sqPayments().ach({ transactionId: 'tmg-' + Date.now(), redirectURI: location.origin + location.pathname });
+    return sqAch;
+  }
+  // Square answers each bank step through an event; this turns one step into a promise.
+  function achTokenize(opts) {
+    return new Promise(async function (resolve, reject) {
+      var a; try { a = await achReady(); } catch (e) { return reject(e); }
+      var done = false;
+      var h = function (ev) {
+        if (done) return; done = true; a.removeEventListener('ontokenization', h);
+        var d = (ev && ev.detail) || {};
+        if (d.error) return reject(new Error(d.error.message || 'The bank step did not finish. Please try again.'));
+        if (d.tokenResult && d.tokenResult.status === 'OK') return resolve(d.tokenResult.token);
+        reject(new Error('The bank step was closed before it finished.'));
+      };
+      a.addEventListener('ontokenization', h);
+      try { await a.tokenize(opts); } catch (e) { if (!done) { done = true; a.removeEventListener('ontokenization', h); reject(e); } }
+    });
+  }
+  $('bankLinkBtn').onclick = async function () {
+    var name = $('bankHolder').value.trim();
+    if (name.length < 2) return cflash('msg6', 'Enter the name on the bank account.', false);
+    if (!$('bankConsent').checked) return cflash('msg6', 'Please tick the box to authorize bank payments.', false);
+    var bt = $('bankLinkBtn'), old = bt.textContent; bt.disabled = true; bt.textContent = 'Opening your bank...';
+    try {
+      var bnon = await achTokenize({ accountHolderName: name, intent: 'STORE' });
+      bt.textContent = 'Saving...';
+      var link = await api('/customer/bank/link', 'POST', { token: bnon, holderName: name });
+      // Ask once for permission to charge future invoices automatically. If Square can't set that up, each payment is approved on screen.
+      var rec = null, one = null, today = new Date().toLocaleDateString('en-CA');
+      try { rec = await achTokenize({ intent: 'RECURRING_CHARGE', bankAccountId: link.bankAccountId, variableAmount: true, startDate: today, frequency: { monthly: { occurrence: 1, days: { daysOfMonth: [28], endOfMonth: false } } } }); } catch (e) { rec = null; }
+      if (link.owedNow > 0 && !rec) one = await achTokenize({ intent: 'CHARGE', bankAccountId: link.bankAccountId, amount: link.owedNow.toFixed(2), currency: 'USD' });
+      bt.textContent = 'Finishing...';
+      await api('/customer/bank/activate', 'POST', { bankId: link.bankId, recurringAuth: rec, oneTimeAuth: one, consent: true });
+      await loadBilling(); await loadCustBoard();
+      cflash('msg3', 'Your bank account is linked' + (link.owedNow > 0 ? ' and the payment has started (bank payments take a few business days to clear)' : '') + '.' + (rec ? '' : ' You will approve each bank payment on screen when you pay.'), true);
+    } catch (e) { cflash('msg6', e.message, false); }
+    bt.disabled = false; bt.textContent = old;
   };
   $('cCardBack').onclick = function () { if (cardFromSettings) { cardFromSettings = false; openSettings(); } else loadCustBoard(); };
   var cTab = null;
@@ -1554,22 +1618,32 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
           if (!cBilling) await loadBilling();
           if (cBilling && cBilling.enabled) {
             var credit = Math.min(cBilling.creditBalance || 0, iv.balance), cardAmt = Math.round((iv.balance - credit) * 100) / 100;
+            var bk = cBilling.bank, cd = cBilling.card;
             var pp = el('div', 'cpanel'); pp.appendChild(el('h2', '', 'Pay this invoice'));
-            var ptxt = credit > 0 ? 'Account credit of ' + money(credit) + ' is applied first.' + (cardAmt > 0 ? ' Your card is charged ' + money(cardAmt) + '.' : ' Nothing is charged to your card.') : (cBilling.card ? 'Your ' + (cBilling.card.brand || 'card') + ' ending ' + cBilling.card.last4 + ' is charged ' + money(cardAmt) + '.' : '');
+            var how = bk ? 'Your bank account ending ' + (bk.last4 || '----') + ' is charged ' + money(cardAmt) + ' (bank payments clear in a few business days).' : cd ? 'Your ' + (cd.brand || 'card') + ' ending ' + cd.last4 + ' is charged ' + money(cardAmt) + '.' : '';
+            var ptxt = credit > 0 ? 'Account credit of ' + money(credit) + ' is applied first.' + (cardAmt > 0 ? ' ' + how : ' Nothing else is charged.') : how;
             if (ptxt) pp.appendChild(el('p', '', ptxt));
-            var pbtn = el('button', 'bigbtn green', cardAmt > 0 && !cBilling.card ? 'Add a card to pay' : credit > 0 && cardAmt <= 0 ? 'Pay ' + money(iv.balance) + ' from account credit' : 'Pay ' + money(iv.balance));
+            var pbtn = el('button', 'bigbtn green', cardAmt > 0 && !cd && !bk ? 'Add a payment method to pay' : credit > 0 && cardAmt <= 0 ? 'Pay ' + money(iv.balance) + ' from account credit' : 'Pay ' + money(iv.balance));
             pbtn.type = 'button';
-            pbtn.onclick = function () {
-              if (cardAmt > 0 && !cBilling.card) return openCard('Add a card to pay this invoice.');
-              if (!confirm('Pay ' + money(iv.balance) + ' now?' + (credit > 0 ? '\nAccount credit applied: ' + money(credit) : '') + (cardAmt > 0 ? '\nCard charged: ' + money(cardAmt) : ''))) return;
+            var payNow = async function (useCard) {
+              if (cardAmt > 0 && !cd && !bk) return openCard('Add a bank account or card to pay this invoice.');
+              var viaBank = cardAmt > 0 && bk && !useCard;
+              if (!confirm('Pay ' + money(iv.balance) + ' now?' + (credit > 0 ? '\nAccount credit applied: ' + money(credit) : '') + (cardAmt > 0 ? (viaBank ? '\nBank account charged: ' : '\nCard charged: ') + money(cardAmt) : ''))) return;
               pbtn.disabled = true; pbtn.textContent = 'Processing...';
-              api('/customer/jobs/' + id + '/pay', 'POST', {}).then(function () { loadBilling(); cflash('msg4', 'Payment received. Thank you.', true); openCustJob(id); })
-                .catch(function (e) { cflash('msg4', e.message, false); pbtn.disabled = false; pbtn.textContent = 'Pay ' + money(iv.balance); });
+              try {
+                var bd = useCard ? { useCard: true } : {};
+                if (viaBank && !bk.autoPay) { bd.bankAuth = await achTokenize({ intent: 'CHARGE', bankAccountId: bk.bankAccountId, amount: cardAmt.toFixed(2), currency: 'USD' }); bd.expectAmount = cardAmt; }
+                var r = await api('/customer/jobs/' + id + '/pay', 'POST', bd);
+                loadBilling(); cflash('msg4', r.method === 'ach' && r.pending ? 'Payment started. Bank payments take a few business days to clear.' : 'Payment received. Thank you.', true); openCustJob(id);
+              } catch (e) { cflash('msg4', e.message, false); pbtn.disabled = false; pbtn.textContent = 'Pay ' + money(iv.balance); }
             };
-            pp.appendChild(pbtn); box.appendChild(pp);
+            pbtn.onclick = function () { payNow(false); };
+            pp.appendChild(pbtn);
+            if (bk && cd && cardAmt > 0) { var alt = el('button', 'bigbtn gray', 'Pay with card instead'); alt.type = 'button'; alt.style.marginLeft = '10px'; alt.onclick = function () { payNow(true); }; pp.appendChild(alt); }
+            box.appendChild(pp);
           }
         } else if (iv.total > 0 && iv.balance <= 0.004) {
-          var pd = el('p', 'meta', 'Paid in full. Thank you.'); pd.style.cssText = 'font-weight:700;margin:0 0 14px'; box.appendChild(pd);
+          var pd = el('p', 'meta', iv.processing > 0 ? 'Paid. Your bank payment of ' + money(iv.processing) + ' is processing and usually clears in a few business days.' : 'Paid in full. Thank you.'); pd.style.cssText = 'font-weight:700;margin:0 0 14px'; box.appendChild(pd);
         }
         if (!iv.decision) {
           var ia = el('div', 'action'); var ib = el('b', '', 'Action needed: approve this invoice?'); ib.style.display = 'block'; ia.appendChild(ib);
@@ -1663,7 +1737,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   }
   async function openCustNew() {
     if (!cBilling) await loadBilling();
-    if (cBilling && cBilling.enabled && !cBilling.ready) return openCard(cBilling.card ? 'A retainer of ' + money(cBilling.owedNow) + ' is required on your account before you can request service.' : 'Please add a card on file before requesting service.');
+    if (cBilling && cBilling.enabled && !cBilling.ready) return openCard(cBilling.card || cBilling.bank ? 'A balance of ' + money(cBilling.owedNow) + ' is due on your account before you can request service.' : 'Please add a bank account or card on file before requesting service.');
     show('custNew'); history.pushState({ v: 'new' }, ''); window.scrollTo(0, 0);
     try {
       var d = await api('/customer/sites'); cSites = d.sites;
