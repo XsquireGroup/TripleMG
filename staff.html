@@ -3723,8 +3723,8 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 
       var act = $('pActions'); clear(act);
       $('noteForm').hidden = !isMgr();
-      function sendStatus(st, note, emailProvider) {
-        return api('/staff/providers/' + id + '/status', 'POST', { status: st, note: note, emailProvider: !!emailProvider }).then(function (rs) {
+      function sendStatus(st, note, emailProvider, askBank) {
+        return api('/staff/providers/' + id + '/status', 'POST', { status: st, note: note, emailProvider: !!emailProvider, askBank: !!askBank }).then(function (rs) {
           var mailed = (st === 'documents_requested' || st === 'approved' || (st === 'rejected' && emailProvider));
           flash(mailed ? (rs.emailed ? 'Updated. The provider was emailed.' : 'Updated, but no email could be sent. Contact them directly.') : 'Updated.', !(mailed && !rs.emailed));
           if (st === 'approved') loginNudge = { provider: id, emailed: !!rs.emailed };
@@ -3741,13 +3741,15 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
               : 'Why is ' + p.business_name + ' being suspended? This is saved on their record, and their logins are switched off.';
             ta.placeholder = st === 'documents_requested' ? 'What do you need from them?' : 'Reason';
             if (st === 'rejected') { em = document.createElement('input'); em.type = 'checkbox'; emL = mk('label', '', ' Also email this reason to the provider'); emL.insertBefore(em, emL.firstChild); emL.style.cssText = 'display:block;margin:10px 0'; }
+            var bk = null, bkL = null;
+            if (st === 'documents_requested') { bk = document.createElement('input'); bk.type = 'checkbox'; bkL = mk('label', '', ' Also ask for their bank account for payouts (adds an "Add your bank account" button to the email)'); bkL.insertBefore(bk, bkL.firstChild); bkL.style.cssText = 'display:block;margin:10px 0'; }
             var acts = mk('div', 'acts'), close;
             acts.appendChild(mbtn(st === 'documents_requested' ? 'Send request' : label, 'red', async function () {
               if (ta.value.trim().length < 3) return flash(st === 'documents_requested' ? 'Type what you need from them.' : 'Please type a reason.', false);
-              try { await sendStatus(st, ta.value.trim(), em && em.checked); close(); } catch (e) { flash(e.message, false); }
+              try { await sendStatus(st, ta.value.trim(), em && em.checked, bk && bk.checked); close(); } catch (e) { flash(e.message, false); }
             }));
             acts.appendChild(mbtn('Cancel', '', function () { close(); }));
-            var nodes = [mk('p', '', intro), ta]; if (emL) nodes.push(emL); nodes.push(acts);
+            var nodes = [mk('p', '', intro), ta]; if (emL) nodes.push(emL); if (bkL) nodes.push(bkL); nodes.push(acts);
             close = openModal(st === 'documents_requested' ? 'Request documents' : label + ' ' + p.business_name + '?', nodes);
             return;
           }

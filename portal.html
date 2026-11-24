@@ -1293,8 +1293,11 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       items.forEach(function (it) {
         var l = el('label'); l.style.cssText = 'display:flex;gap:10px;align-items:center;padding:9px 12px;cursor:pointer;font-size:15px;text-transform:none;letter-spacing:0;margin:0';
         var c = el('input'); c.type = 'checkbox'; c.checked = !!chosen[it.value];
+        // the page's input rule makes every input full width; a checkbox must stay small and sit left of its name
+        c.style.cssText = 'width:18px;height:18px;flex:none;margin:0;padding:0';
         c.onchange = function () { if (c.checked) chosen[it.value] = true; else delete chosen[it.value]; sum(); onChange(); };
-        l.appendChild(c); l.appendChild(el('span', '', it.label)); panel.appendChild(l); rows.push({ l: l, label: it.label.toLowerCase() });
+        var sp = el('span', '', it.label); sp.style.cssText = 'flex:1;text-align:left';
+        l.appendChild(c); l.appendChild(sp); panel.appendChild(l); rows.push({ l: l, label: it.label.toLowerCase() });
       });
       q.oninput = function () { var v = q.value.trim().toLowerCase(); rows.forEach(function (r) { r.l.style.display = !v || r.label.indexOf(v) >= 0 ? 'flex' : 'none'; }); };
       function sum() {
@@ -1310,7 +1313,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     box.appendChild(el('p', 'small', 'Open the list and check every state where you take jobs.'));
     box.appendChild(msel(Object.keys(US).sort(function (x, y) { return US[x][0] < US[y][0] ? -1 : 1; }).map(function (c) { return { value: c, label: US[c][0] }; }), states, function () { drawCities(); }, 'states'));
     box.appendChild(el('h3', '', 'Cities and how far you will travel'));
-    box.appendChild(el('p', 'small', 'For each state, check the major cities you want jobs near, then choose how many miles from that city you will go. Pick the nearest big city if yours is not listed.'));
+    box.appendChild(el('p', 'small', 'For each state, open the list and check the cities you want jobs near, then choose how many miles from each city you will go. Pick the nearest big city if yours is not listed.'));
     var cityBox = el('div'); box.appendChild(cityBox);
     var legacy = (!(pSet.areas || []).length && p.service_areas) ? p.service_areas : '';
     if (legacy) box.appendChild(el('p', 'small', 'On file from signup: ' + legacy + '. Choose your cities above to replace it.'));
@@ -1318,20 +1321,28 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       cityBox.textContent = '';
       var codes = Object.keys(states).sort(function (x, y) { return US[x][0] < US[y][0] ? -1 : 1; });
       if (!codes.length) { cityBox.appendChild(el('p', 'small', 'Check a state above to choose its cities.')); return; }
+      // Each state gets one dropdown of its cities (same style as the trades list); the chosen cities show below it with their miles.
       codes.forEach(function (c) {
         var sec = el('div', 'stsec'); sec.appendChild(el('strong', '', US[c][0]));
-        US[c][1].forEach(function (city) {
-          var key = c + '|' + city, row = el('div', 'cityrow');
-          var on = areas[key] != null;
-          row.appendChild(chk(city, on, function (v) { if (v) areas[key] = areas[key] || 25; else delete areas[key]; drawCities(); }));
-          if (on) {
+        var picked = {}; US[c][1].forEach(function (city) { if (areas[c + '|' + city] != null) picked[city] = true; });
+        var list = el('div');
+        function drawList() {
+          list.textContent = '';
+          US[c][1].filter(function (city) { return picked[city]; }).forEach(function (city) {
+            var key = c + '|' + city, row = el('div', 'cityrow');
+            var nm = el('span', '', city); nm.style.fontWeight = '600'; row.appendChild(nm);
             var sel = el('select'); sel.setAttribute('aria-label', 'Miles from ' + city);
             MILES.forEach(function (m) { var o = el('option', '', 'within ' + m + ' miles'); o.value = m; sel.appendChild(o); });
             sel.value = areas[key]; sel.onchange = function () { areas[key] = Number(sel.value); };
-            row.appendChild(sel);
-          }
-          sec.appendChild(row);
-        });
+            row.appendChild(sel); list.appendChild(row);
+          });
+        }
+        sec.appendChild(msel(US[c][1].map(function (city) { return { value: city, label: city }; }), picked, function () {
+          US[c][1].forEach(function (city) { var key = c + '|' + city; if (picked[city]) { if (areas[key] == null) areas[key] = 25; } else delete areas[key]; });
+          drawList();
+        }, 'cities'));
+        drawList();
+        sec.appendChild(list);
         cityBox.appendChild(sec);
       });
     }
@@ -1783,6 +1794,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     b.disabled = false; b.textContent = 'Send request';
   };
 
+  // A "Add your bank account" link from a TMG email lands on portal.html#bank; remember it through the sign-in redirect.
+  try { if (location.hash === '#bank') sessionStorage.setItem('tmgGo', 'bank'); } catch (e) { /* ignore */ }
   async function enter(account) {
     acct = account;
     show('loading');
@@ -1792,6 +1805,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
         $('welcome2').textContent = 'Welcome, ' + data.name;
         $('role2').textContent = 'Provider';
         show('board'); loadBoard(); loadSms();
+        var go = null; try { go = sessionStorage.getItem('tmgGo'); sessionStorage.removeItem('tmgGo'); } catch (e) { /* ignore */ }
+        if (go === 'bank') openProvSettings().then(function () { var bb = $('pSetBank'); if (bb && bb.scrollIntoView) bb.scrollIntoView({ block: 'start' }); });
         return;
       }
       if (data.kind === 'customer') {
