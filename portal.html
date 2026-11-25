@@ -340,16 +340,14 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
         <p id="bankCur" style="margin:0 0 8px;font-weight:700"></p>
         <p style="margin:0 0 10px">Link your business bank account securely through your bank's own login. TMG never sees your login or account number.</p>
         <label for="bankHolder">Name on the bank account</label><input id="bankHolder" autocomplete="name">
-        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:10px 0 12px"><input type="checkbox" id="bankConsent" style="margin-top:4px;width:auto"><span id="bankConsentText"></span></label>
-        <div class="crow"><span></span><button class="bigbtn green" id="bankLinkBtn" type="button">Link bank account</button></div>
       </div>
       <h3 id="cardHead" style="margin:0 0 6px">Or use a card</h3>
       <div id="cardSaved" hidden style="margin:0 0 14px;font-weight:700"></div>
       <div id="cardForm">
         <div id="cardBox" style="min-height:96px;margin:6px 0 12px"></div>
-        <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:6px 0 14px"><input type="checkbox" id="cardConsent" style="margin-top:4px;width:auto"><span id="cardConsentText"></span></label>
-        <div class="crow"><span></span><button class="bigbtn green" id="cardSave" type="button">Save card</button></div>
       </div>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:6px 0 14px"><input type="checkbox" id="cardConsent" style="margin-top:4px;width:auto"><span id="cardConsentText"></span></label>
+      <div class="crow" style="flex-wrap:wrap;gap:10px;justify-content:flex-end"><button class="bigbtn green" id="bankLinkBtn" type="button">Link bank account</button><button class="bigbtn green" id="cardSave" type="button">Save card</button></div>
       <div id="cardPayOnly" hidden class="crow"><span></span><button class="bigbtn green" id="cardPayRet" type="button"></button></div>
     </div>
   </div>
@@ -1418,7 +1416,6 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       : 'TMG requires a bank account or card on file. A bank account is preferred. We charge ' + money(cBilling.requiredTotal) + ' now to confirm it works. It is not a fee: it stays on your account as credit and is applied to your invoices first.');
     $('bankCur').textContent = haveBank ? 'Bank on file: ' + (cBilling.bank.bankName || 'Bank') + ' ending ' + (cBilling.bank.last4 || '----') + '. It is used first for your invoices.' : '';
     $('bankCur').hidden = !haveBank;
-    $('bankConsentText').textContent = cBilling.bankConsentText || ''; $('bankConsent').checked = false;
     $('bankLinkBtn').textContent = haveBank ? 'Link a different bank account' : 'Link bank account' + (owed > 0 ? ' and pay ' + money(owed) : '');
     $('cardHead').textContent = haveBank ? 'Card (backup)' : 'Or use a card';
     var sv = $('cardSaved'); sv.hidden = !haveCard; sv.textContent = haveCard ? 'Current card: ' + (cBilling.card.brand || 'Card') + ' ending ' + (cBilling.card.last4 || '----') : '';
@@ -1436,7 +1433,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     } catch (e) { cflash('msg6', e.message || 'The secure card form did not load.', false); }
   }
   $('cardSave').onclick = async function () {
-    if (!$('cardConsent').checked) return cflash('msg6', 'Please tick the box to authorize the charge.', false);
+    if (!$('cardConsent').checked) return cflash('msg6', 'Please tick the box at the bottom to authorize payment.', false);
     if (!sqCard) return cflash('msg6', 'The secure card form is not ready yet.', false);
     var bt = $('cardSave'); bt.disabled = true; var old = bt.textContent; bt.textContent = 'Saving...';
     try {
@@ -1487,7 +1484,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   $('bankLinkBtn').onclick = async function () {
     var name = $('bankHolder').value.trim();
     if (name.length < 2) return cflash('msg6', 'Enter the name on the bank account.', false);
-    if (!$('bankConsent').checked) return cflash('msg6', 'Please tick the box to authorize bank payments.', false);
+    if (!$('cardConsent').checked) return cflash('msg6', 'Please tick the box at the bottom to authorize payment.', false);
     var bt = $('bankLinkBtn'), old = bt.textContent; bt.disabled = true; bt.textContent = 'Opening your bank...';
     try {
       var bnon = await achTokenize({ accountHolderName: name, intent: 'STORE' });
