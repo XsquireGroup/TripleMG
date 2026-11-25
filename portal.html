@@ -958,7 +958,7 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     var ph = el('input', 'ph'); ph.type = 'tel'; ph.placeholder = 'Mobile number'; ph.autocomplete = 'tel'; ph.maxLength = 20; box.appendChild(ph);
     var lab = el('label', 'consent'); var cb = el('input'); cb.type = 'checkbox'; lab.appendChild(cb);
     var sp = el('span', null, SMS_WORDING);
-    var a1 = el('a', null, 'Text Message Terms'); a1.href = 'sms-terms.html'; a1.target = '_blank'; a1.rel = 'noopener';
+    var a1 = el('a', null, 'Text Message Terms'); a1.href = 'provider-terms.html#sms'; a1.target = '_blank'; a1.rel = 'noopener';
     var a2 = el('a', null, 'Privacy Policy'); a2.href = 'privacy-policy.html'; a2.target = '_blank'; a2.rel = 'noopener';
     sp.appendChild(a1); sp.appendChild(document.createTextNode(' and ')); sp.appendChild(a2); sp.appendChild(document.createTextNode('.'));
     lab.appendChild(sp); box.appendChild(lab);
