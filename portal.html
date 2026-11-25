@@ -334,22 +334,30 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     <div class="cpanel cform">
       <h2 id="cardTitle">Card on file</h2>
       <div id="msg6" class="msg" hidden></div>
-      <p id="cardIntro" style="margin:0 0 12px"></p>
-      <div id="bankSec" style="border:2px solid #15803d;padding:12px 14px;margin:0 0 18px">
-        <h3 style="margin:0 0 4px">Pay by bank account (preferred)</h3>
-        <p id="bankCur" style="margin:0 0 8px;font-weight:700"></p>
-        <p style="margin:0 0 10px">Link your business bank account securely through your bank's own login. TMG never sees your login or account number.</p>
-        <label for="bankHolder">Name on the bank account</label><input id="bankHolder" autocomplete="name">
-      </div>
-      <h3 id="cardHead" style="margin:0 0 6px">Or use a card</h3>
+      <p id="cardIntro" style="margin:0 0 16px"></p>
+      <p id="bankCur" style="margin:0 0 8px;font-weight:700"></p>
       <div id="cardSaved" hidden style="margin:0 0 14px;font-weight:700"></div>
-      <div id="cardForm">
-        <div id="cardBox" style="min-height:96px;margin:6px 0 12px"></div>
+      <div style="display:flex;flex-direction:column;gap:12px;max-width:520px;margin:6px 0 16px">
+        <button class="bigbtn green" id="openBank" type="button" style="font-size:18px;padding:18px"></button>
+        <button class="bigbtn gray" id="openCardM" type="button" style="font-size:18px;padding:18px"></button>
       </div>
-      <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:6px 0 14px"><input type="checkbox" id="cardConsent" style="margin-top:4px;width:auto"><span id="cardConsentText"></span></label>
-      <div class="crow" style="flex-wrap:wrap;gap:10px;justify-content:flex-end"><button class="bigbtn green" id="bankLinkBtn" type="button">Link bank account</button><button class="bigbtn green" id="cardSave" type="button">Save card</button></div>
       <div id="cardPayOnly" hidden class="crow"><span></span><button class="bigbtn green" id="cardPayRet" type="button"></button></div>
     </div>
+    <div class="modal" id="bankModal" hidden><div class="sheet cform" style="max-width:600px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start"><h2>Pay by bank account</h2><button type="button" class="linkbtn" data-close="bankModal" aria-label="Close" style="font-size:26px;text-decoration:none">&times;</button></div>
+      <div id="msgB" class="msg" hidden></div>
+      <p style="margin:0 0 12px">Link your business bank account securely through your bank's own login. TMG never sees your login or account number.</p>
+      <label for="bankHolder" style="display:block;font-weight:700;margin:0 0 4px">Name on the bank account</label><input id="bankHolder" autocomplete="name" style="width:100%;box-sizing:border-box">
+      <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:14px 0 16px"><input type="checkbox" id="bankConsent" style="margin-top:4px;width:auto"><span id="bankConsentText"></span></label>
+      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap"><button class="bigbtn gray" type="button" data-close="bankModal">Cancel</button><button class="bigbtn green" id="bankLinkBtn" type="button">Link bank account</button></div>
+    </div></div>
+    <div class="modal" id="cardModal" hidden><div class="sheet cform" style="max-width:600px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start"><h2 id="cardModalTitle">Place card on file</h2><button type="button" class="linkbtn" data-close="cardModal" aria-label="Close" style="font-size:26px;text-decoration:none">&times;</button></div>
+      <div id="msgC" class="msg" hidden></div>
+      <div id="cardBox" style="min-height:96px;margin:6px 0 12px"></div>
+      <label style="display:flex;gap:10px;align-items:flex-start;font-weight:400;margin:6px 0 16px"><input type="checkbox" id="cardConsent" style="margin-top:4px;width:auto"><span id="cardConsentText"></span></label>
+      <div style="display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap"><button class="bigbtn gray" type="button" data-close="cardModal">Cancel</button><button class="bigbtn green" id="cardSave" type="button">Place card on file</button></div>
+    </div></div>
   </div>
 
   <div class="cwrap" id="custNew" hidden>
@@ -1416,33 +1424,44 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       : 'TMG requires a bank account or card on file. A bank account is preferred. We charge ' + money(cBilling.requiredTotal) + ' now to confirm it works. It is not a fee: it stays on your account as credit and is applied to your invoices first.');
     $('bankCur').textContent = haveBank ? 'Bank on file: ' + (cBilling.bank.bankName || 'Bank') + ' ending ' + (cBilling.bank.last4 || '----') + '. It is used first for your invoices.' : '';
     $('bankCur').hidden = !haveBank;
-    $('bankLinkBtn').textContent = haveBank ? 'Link a different bank account' : 'Link bank account' + (owed > 0 ? ' and pay ' + money(owed) : '');
-    $('cardHead').textContent = haveBank ? 'Card (backup)' : 'Or use a card';
+    $('bankModal').hidden = true; $('cardModal').hidden = true;
+    $('bankConsentText').textContent = cBilling.bankConsentText || ''; $('bankConsent').checked = false;
+    $('openBank').textContent = haveBank ? 'Link a different bank account' : 'Link bank account (preferred)';
+    $('openCardM').textContent = haveCard ? 'Replace card' : 'Place card on file';
+    $('cardModalTitle').textContent = haveCard ? 'Replace card' : 'Place card on file';
+    $('bankLinkBtn').textContent = 'Link bank account';
     var sv = $('cardSaved'); sv.hidden = !haveCard; sv.textContent = haveCard ? 'Current card: ' + (cBilling.card.brand || 'Card') + ' ending ' + (cBilling.card.last4 || '----') : '';
     $('cardPayOnly').hidden = !((haveCard || haveBank) && owed > 0);
     $('cardPayRet').textContent = 'Pay ' + money(owed) + ' with the ' + (haveBank ? 'bank account' : 'card') + ' on file';
-    $('cardForm').hidden = false;
     $('cardConsentText').textContent = cBilling.consentText; $('cardConsent').checked = false;
-    $('cardSave').textContent = haveCard || haveBank ? 'Save card' : 'Save card and pay ' + money(owed);
+    $('cardSave').textContent = haveCard ? 'Replace card' : 'Place card on file';
+  }
+  function closeModal(id) { $(id).hidden = true; }
+  document.querySelectorAll('[data-close]').forEach(function (b) { b.onclick = function () { closeModal(b.getAttribute('data-close')); }; });
+  ['bankModal', 'cardModal'].forEach(function (id) { $(id).addEventListener('click', function (e) { if (e.target === $(id)) closeModal(id); }); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModal('bankModal'); closeModal('cardModal'); } });
+  $('openBank').onclick = function () { $('msgB').hidden = true; $('bankConsent').checked = false; $('bankModal').hidden = false; $('bankHolder').focus(); };
+  $('openCardM').onclick = async function () {
+    $('msgC').hidden = true; $('cardConsent').checked = false; $('cardModal').hidden = false;
     try {
       await loadSquareSdk(cBilling.square.sdkUrl);
       if (!window.Square) throw new Error('The secure card form did not load.');
       if (sqCard) { try { await sqCard.destroy(); } catch (e) { /* ignore */ } sqCard = null; }
       $('cardBox').textContent = '';
       sqCard = await sqPayments().card(); await sqCard.attach('#cardBox');
-    } catch (e) { cflash('msg6', e.message || 'The secure card form did not load.', false); }
-  }
+    } catch (e) { cflash('msgC', e.message || 'The secure card form did not load.', false); }
+  };
   $('cardSave').onclick = async function () {
-    if (!$('cardConsent').checked) return cflash('msg6', 'Please tick the box at the bottom to authorize payment.', false);
-    if (!sqCard) return cflash('msg6', 'The secure card form is not ready yet.', false);
+    if (!$('cardConsent').checked) return cflash('msgC', 'Please tick the box to authorize the charge.', false);
+    if (!sqCard) return cflash('msgC', 'The secure card form is not ready yet.', false);
     var bt = $('cardSave'); bt.disabled = true; var old = bt.textContent; bt.textContent = 'Saving...';
     try {
       var r = await sqCard.tokenize();
       if (r.status !== 'OK') throw new Error((r.errors && r.errors[0] && r.errors[0].message) || 'Please check the card details and try again.');
       await api('/customer/card', 'POST', { token: r.token, consent: true });
-      await loadBilling(); await loadCustBoard();
+      closeModal('cardModal'); await loadBilling(); await loadCustBoard();
       cflash('msg3', 'Your card is saved. Thank you.', true);
-    } catch (e) { cflash('msg6', e.message, false); }
+    } catch (e) { cflash('msgC', e.message, false); }
     bt.disabled = false; bt.textContent = old;
   };
   $('cardPayRet').onclick = async function () {
@@ -1483,8 +1502,8 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
   }
   $('bankLinkBtn').onclick = async function () {
     var name = $('bankHolder').value.trim();
-    if (name.length < 2) return cflash('msg6', 'Enter the name on the bank account.', false);
-    if (!$('cardConsent').checked) return cflash('msg6', 'Please tick the box at the bottom to authorize payment.', false);
+    if (name.length < 2) return cflash('msgB', 'Enter the name on the bank account.', false);
+    if (!$('bankConsent').checked) return cflash('msgB', 'Please tick the box to authorize bank payments.', false);
     var bt = $('bankLinkBtn'), old = bt.textContent; bt.disabled = true; bt.textContent = 'Opening your bank...';
     try {
       var bnon = await achTokenize({ accountHolderName: name, intent: 'STORE' });
@@ -1496,9 +1515,9 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
       if (link.owedNow > 0 && !rec) one = await achTokenize({ intent: 'CHARGE', bankAccountId: link.bankAccountId, amount: link.owedNow.toFixed(2), currency: 'USD' });
       bt.textContent = 'Finishing...';
       await api('/customer/bank/activate', 'POST', { bankId: link.bankId, recurringAuth: rec, oneTimeAuth: one, consent: true });
-      await loadBilling(); await loadCustBoard();
+      closeModal('bankModal'); await loadBilling(); await loadCustBoard();
       cflash('msg3', 'Your bank account is linked' + (link.owedNow > 0 ? ' and the payment has started (bank payments take a few business days to clear)' : '') + '.' + (rec ? '' : ' You will approve each bank payment on screen when you pay.'), true);
-    } catch (e) { cflash('msg6', e.message, false); }
+    } catch (e) { cflash('msgB', e.message, false); }
     bt.disabled = false; bt.textContent = old;
   };
   $('cCardBack').onclick = function () { if (cardFromSettings) { cardFromSettings = false; openSettings(); } else loadCustBoard(); };
