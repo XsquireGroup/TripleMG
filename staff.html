@@ -120,6 +120,10 @@ body.sheet-lock { overflow:hidden; }
 .bill-in { width:100%; padding:7px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .bill-ta { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .ai-btn,.ai-go,.ai-no { cursor:pointer; font:inherit; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:9px 14px; min-height:40px; border:2px solid; }
+.tgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:4px 14px; margin:6px 0 4px; }
+.tgrid label { display:flex; gap:8px; align-items:center; font-weight:400; margin:0; text-transform:none; letter-spacing:0; font-size:14px; }
+.tgrid input { width:auto; margin:0; }
+.tgrid .aitag { font-size:10px; font-weight:700; color:#1d4ed8; border:1px solid #1d4ed8; padding:0 4px; margin-left:2px; }
 .ai-btn { background:#1d4ed8; border-color:#1d4ed8; color:#fff; } .ai-go { background:#15803d; border-color:#15803d; color:#fff; } .ai-no { background:#fff; border-color:#950606; color:#950606; }
 .ai-panel { border:1px solid var(--border); background:var(--concrete); padding:12px; margin:10px 0; } .ai-panel label { display:block; font-size:12px; font-weight:600; text-transform:uppercase; margin:10px 0 3px; }
 .ai-panel select,.ai-panel input,.ai-panel textarea { width:100%; max-width:100%; padding:8px; border:1px solid var(--border); font:inherit; background:var(--paper); }
@@ -377,7 +381,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <div id="w1"><label for="wCust">1. Customer</label><select id="wCust"></select></div>
         <div id="w2" hidden><label for="wSite">2. Worksite</label><select id="wSite"></select></div>
         <div id="w3" hidden><label for="wTrade">3. Trade</label><select id="wTrade"><option value="">Choose...</option></select></div>
-        <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><label for="wPhotos">Photos (optional, up to 10)</label><input id="wPhotos" type="file" accept="image/*" multiple><div class="ph" id="wPhotoList"></div><div style="margin-top:14px"><button type="button" class="ai-btn" id="wArch" title="Automated Routing &amp; Cost Handler">A.R.C.H.</button></div><div id="wArchOut"></div></div>
+        <div id="w4" hidden><label for="wTitle">4. Short title</label><input id="wTitle" maxlength="200"><label for="wDesc">Problem details</label><textarea id="wDesc" maxlength="8000"></textarea><label>Alert these trades</label><p class="small" id="wTradesNote">When you finish the details, A.R.C.H. checks every trade that could do this job. Change them as needed. Related trades are added automatically.</p><div id="wTrades" class="tgrid"></div><label for="wPhotos">Photos (optional, up to 10)</label><input id="wPhotos" type="file" accept="image/*" multiple><div class="ph" id="wPhotoList"></div><div style="margin-top:14px"><button type="button" class="ai-btn" id="wArch" title="Automated Routing &amp; Cost Handler">A.R.C.H.</button></div><div id="wArchOut"></div></div>
         <div id="w5" hidden><label for="wPri">5. Priority</label><select id="wPri"><option value="normal">Normal</option><option value="urgent">Urgent</option><option value="emergency">Emergency</option></select></div>
         <div id="w6" hidden><label for="wCN">6. Customer NTE ($)</label><input id="wCN" type="number" min="1" step="0.01"><label for="wPrice">Pricing</label><select id="wPrice"><option value="hourly">Hourly (hours and materials)</option><option value="flat">Flat price (one price for the job)</option></select><label for="wPN">Initial provider NTE ($)</label><input id="wPN" type="number" min="1" step="0.01"><p class="small" id="wMargin"></p></div>
         <div id="w7" hidden><label>7. Review</label><dl id="wReview"></dl><label style="display:flex;gap:10px;align-items:flex-start;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink)"><input type="checkbox" id="wMine" checked style="width:20px;height:20px;margin-top:2px;flex:none"> Assign this ticket to me. Uncheck it to let the automatic workload rotation choose an employee.</label></div>
@@ -433,6 +437,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
               <button type="button" class="ai-btn" id="rlCheck" title="Automated Routing &amp; Cost Handler">A.R.C.H.</button></div>
             <div class="r"><div id="rlCheckOut"></div></div>
           </div>
+          <div><label>Alert these trades</label><p class="small" id="rlTradesNote">A.R.C.H. checked the trades that could do this job. Change them as needed. Related trades are added automatically.</p><div id="rlTrades" class="tgrid"></div></div>
           <div class="rr"><div class="l"><label for="rlPrice">Pricing</label><select id="rlPrice"><option value="hourly">Hourly (hours and materials)</option><option value="flat">Flat price (one price for the job)</option></select></div></div>
           <div class="relrow">
             <div class="nf cust"><label for="rlCust">Customer NTE ($)</label><input id="rlCust" inputmode="decimal"></div>
@@ -630,6 +635,11 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         <h3 style="font-size:14px;margin:18px 0 6px;text-transform:uppercase">Rates by trade</h3>
         <p class="small">Optional. A rate here replaces the default above for that trade only. Leave a trade blank to use the default. Only the Owner can change these.</p>
         <table class="t" id="prTradeTbl"><thead><tr><th>Trade</th><th>Lead Tech $/hr</th><th>Helper $/hr</th></tr></thead><tbody></tbody></table>
+      </div>
+      <div class="panel" id="provLicPanel" hidden>
+        <h2>Trade licenses</h2>
+        <p class="small">Jobs in licensed trades (Electrical, Plumbing, HVAC, Fire life safety, Roofing) only go to providers who claimed that license. Mark a license verified once you have seen a current copy under Documents.</p>
+        <div id="provLic"></div>
       </div>
       <div class="panel">
         <h2>Documents</h2>
@@ -1018,6 +1028,35 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
 
   var TRADES = ["Building maintenance (general)", "Handyman", "Plumbing", "Electrical", "HVAC", "Fire life safety", "Roofing", "Carpentry", "Flooring", "Painting & finishes", "Locksmith / doors", "Grounds & landscaping", "Irrigation repair", "Lot sweeping", "Snow removal", "Pressure washing", "Janitorial", "Capital projects", "Other"];
   function fillTradeSelect(sel, keep) { clear(sel); TRADES.forEach(function (t) { opt(sel, t, t); }); if (keep) sel.value = keep; }
+  // Alert trades (Rich, Nov 27 2026): the main trade sets the rates; every checked trade (plus related trades) hears about the job.
+  function drawTradeBoxes(box, primary, checked, aiList) {
+    clear(box); checked = checked || []; aiList = aiList || [];
+    TRADES.forEach(function (t) {
+      var l = document.createElement('label'), c = document.createElement('input'); c.type = 'checkbox'; c.value = t;
+      c.checked = t === primary || checked.indexOf(t) >= 0; c.disabled = t === primary; l.appendChild(c);
+      l.appendChild(document.createTextNode(t + (t === primary ? ' (main trade)' : '')));
+      if (aiList.indexOf(t) >= 0) { var g = document.createElement('span'); g.className = 'aitag'; g.textContent = 'A.R.C.H.'; l.appendChild(g); }
+      box.appendChild(l);
+    });
+  }
+  function checkedTrades(box) { return Array.prototype.slice.call(box.querySelectorAll('input:checked')).map(function (c) { return c.value; }); }
+  function splitTrades(v) { return String(v || '').split('|').filter(function (x) { return TRADES.indexOf(x) >= 0; }); }
+  var wzAi = { key: '', list: [] }, relAi = [];
+  $('wDesc').addEventListener('blur', function () { wizAiTrades(); });
+  $('rlTrade').addEventListener('change', function () { drawTradeBoxes($('rlTrades'), $('rlTrade').value, checkedTrades($('rlTrades')), relAi); });
+  $('wTrade').addEventListener('change', function () { drawTradeBoxes($('wTrades'), $('wTrade').value, checkedTrades($('wTrades')), wzAi.list); });
+  async function wizAiTrades() {
+    var key = $('wTitle').value.trim() + '\n' + $('wDesc').value.trim();
+    if (key.length < 8 || key === wzAi.key) return;
+    wzAi.key = key; $('wTradesNote').textContent = 'A.R.C.H. is reading the job...';
+    try {
+      var r = await api('/staff/ai/trades', 'POST', { title: $('wTitle').value, description: $('wDesc').value });
+      wzAi.list = r.trades || [];
+      var keep = checkedTrades($('wTrades')); wzAi.list.forEach(function (t) { if (keep.indexOf(t) < 0) keep.push(t); });
+      drawTradeBoxes($('wTrades'), $('wTrade').value, keep, wzAi.list);
+      $('wTradesNote').textContent = wzAi.list.length ? 'A.R.C.H. checked the trades marked below. Change them as needed. Related trades are added automatically.' : 'A.R.C.H. had nothing to add. Check any other trades that could do this job. Related trades are added automatically.';
+    } catch (e) { $('wTradesNote').textContent = 'A.R.C.H. is not available. Check any other trades that could do this job. Related trades are added automatically.'; }
+  }
   fillTradeSelect($('wTrade')); $('wTrade').insertBefore(Object.assign(document.createElement('option'), { value: '', textContent: 'Choose...' }), $('wTrade').firstChild); $('wTrade').value = '';
   var rateInputs = { pr: {}, bt: {} };
   function buildRateTable(tblId, key, rows, withDefault, ro) {
@@ -2494,7 +2533,16 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
         tr.appendChild(td('Yes'));
         var nm = document.createElement('td'), nl = mk('button', null, a.business_name + (a.preferred ? ' \u2605' : '')); nl.type = 'button';
         nl.style.cssText = 'background:none;border:0;padding:0;color:#1d4ed8;text-decoration:underline;cursor:pointer;font:inherit;text-align:left';
-        nl.onclick = function () { openReport(a.provider_id); }; nm.appendChild(nl); tr.appendChild(nm);
+        nl.onclick = function () { openReport(a.provider_id); }; nm.appendChild(nl);
+        var LICT = ['Electrical', 'Plumbing', 'HVAC', 'Fire life safety', 'Roofing'], jobLic = splitTrades(t.alert_trades || t.trade).filter(function (x) { return LICT.indexOf(x) >= 0; });
+        if (jobLic.length) {
+          var have = {}; String(a.licenses || '').split('|').forEach(function (z) { var q = z.split(':'); if (q[0]) have[q[0]] = q[1]; });
+          jobLic.forEach(function (lt) {
+            var st2 = have[lt], tag = mk('div', 'small', lt + ' license: ' + (st2 === 'verified' ? 'verified' : st2 === 'claimed' ? 'claimed, not verified' : 'none on file'));
+            tag.style.color = st2 === 'verified' ? '#15803d' : '#950606'; tag.style.fontWeight = '700'; nm.appendChild(tag);
+          });
+        }
+        tr.appendChild(nm);
         tr.appendChild(td(a.completed_jobs)); tr.appendChild(td(scoreText(a.score, a.rating_count))); tr.appendChild(td(fmt(a.accepted_at)));
         var c = document.createElement('td');
         if (open) c.appendChild(btn('Assign', function () { doAssign(a.provider_id, a.business_name); }));
@@ -2528,7 +2576,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       loadHandler(t);
       var isNew = t.status === 'new';
       $('reviewPanel').hidden = !isNew;
-      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); provTouched = false; $('rlProv').value = suggestProv($('rlCust').value); showRelMargin(); fillTradeSelect($('rlTrade')); $('rlTrade').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('rlCheckOut')); $('rlPrice').value = t.pricing_mode === 'flat' ? 'flat' : 'hourly'; }
+      if (isNew) { $('rlCust').value = Number(t.customer_nte).toFixed(2); provTouched = false; $('rlProv').value = suggestProv($('rlCust').value); showRelMargin(); fillTradeSelect($('rlTrade')); $('rlTrade').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('rlCheckOut')); relAi = splitTrades(t.ai_trades); drawTradeBoxes($('rlTrades'), $('rlTrade').value, splitTrades(t.alert_trades).concat(relAi), relAi); $('rlTradesNote').textContent = relAi.length ? 'A.R.C.H. checked the trades marked below. Change them as needed. Related trades are added automatically.' : 'Check any other trades that could do this job. Related trades are added automatically.'; $('rlPrice').value = t.pricing_mode === 'flat' ? 'flat' : 'hourly'; }
       $('tdPrice').value = t.pricing_mode === 'flat' ? 'flat' : 'hourly'; $('tdPrice').dataset.prev = $('tdPrice').value;
       var tp = $('tradePanel'); tp.hidden = isNew || ['closed', 'canceled', 'billed'].indexOf(t.status) >= 0; fillTradeSelect($('tdSel')); $('tdSel').value = TRADES.indexOf(t.trade) >= 0 ? t.trade : 'Other'; clear($('tdOut'));
     } catch (e) { flash(e.message, false); }
@@ -3400,7 +3448,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
   $('releaseForm').onsubmit = async function (ev) {
     ev.preventDefault();
     if (!String($('rlProv').value).trim()) { $('rlProv').focus(); return flash('Enter the provider NTE to post this job.', false); }
-    try { await api('/staff/tickets/' + currentTicket + '/release', 'POST', { providerNte: $('rlProv').value, customerNte: $('rlCust').value, trade: $('rlTrade').value, pricingMode: $('rlPrice').value }); flash('Posted to Open Jobs. Providers in the job\u2019s state have been alerted.', true); openTicket(currentTicket); }
+    try { await api('/staff/tickets/' + currentTicket + '/release', 'POST', { providerNte: $('rlProv').value, customerNte: $('rlCust').value, trade: $('rlTrade').value, trades: checkedTrades($('rlTrades')), pricingMode: $('rlPrice').value }); flash('Posted to Open Jobs. Providers who match the trades and area have been alerted. Others are alerted in waves if nobody accepts.', true); openTicket(currentTicket); }
     catch (e) { flash(e.message, false); }
   };
 
@@ -3565,7 +3613,7 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       wz.lookups = await api('/staff/lookups'); wz.step = 1;
       var cs = $('wCust'); clear(cs); opt(cs, '', 'Choose a customer...');
       wz.lookups.customers.forEach(function (c) { opt(cs, c.id, c.name); });
-      ['wTrade', 'wTitle', 'wDesc', 'wCN', 'wPN'].forEach(function (i) { $(i).value = ''; }); $('wPri').value = 'normal'; $('wMargin').textContent = ''; wzPhotos = []; drawWizPhotos();
+      ['wTrade', 'wTitle', 'wDesc', 'wCN', 'wPN'].forEach(function (i) { $(i).value = ''; }); $('wPri').value = 'normal'; $('wMargin').textContent = ''; wzPhotos = []; drawWizPhotos(); wzAi = { key: '', list: [] }; clear($('wTrades'));
       view('viewWizard'); wizDraw();
     } catch (e) { flash(e.message, false); }
   }
@@ -3609,19 +3657,21 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     }
     if (st === 2 && !$('wSite').value) return flash('Pick a worksite.', false);
     if (st === 3 && !$('wTrade').value) return flash('Pick a trade.', false);
+    if (st === 3) drawTradeBoxes($('wTrades'), $('wTrade').value, checkedTrades($('wTrades')), wzAi.list);
     if (st === 4 && ($('wTitle').value.trim().length < 3 || $('wDesc').value.trim().length < 5)) return flash('Add a short title and the problem details.', false);
+    if (st === 4 && wzAi.key !== $('wTitle').value.trim() + '\n' + $('wDesc').value.trim()) { await wizAiTrades(); return flash('A.R.C.H. checked the trades for this job. Look them over, then click Next.', true); }
     if (st === 6) {
       var c = Number($('wCN').value), p = Number($('wPN').value);
       if (!(c > 0) || !(p > 0)) return flash('Enter both NTE amounts.', false);
       if (p > c) return flash('Provider NTE cannot be higher than the customer NTE.', false);
       var r = $('wReview'); clear(r);
-      [['Customer', sel('wCust')], ['Worksite', sel('wSite')], ['Trade', $('wTrade').value], ['Title', $('wTitle').value], ['Details', $('wDesc').value], ['Priority', $('wPri').value], ['Pricing', $('wPrice').value === 'flat' ? 'Flat price' : 'Hourly'], ['Customer NTE', '$' + c.toFixed(2)], ['Provider NTE', '$' + p.toFixed(2)], ['Margin', (((c - p) / c) * 100).toFixed(1) + '%']].forEach(function (x) {
+      [['Customer', sel('wCust')], ['Worksite', sel('wSite')], ['Trade', $('wTrade').value], ['Alert trades', checkedTrades($('wTrades')).join(', ')], ['Title', $('wTitle').value], ['Details', $('wDesc').value], ['Priority', $('wPri').value], ['Pricing', $('wPrice').value === 'flat' ? 'Flat price' : 'Hourly'], ['Customer NTE', '$' + c.toFixed(2)], ['Provider NTE', '$' + p.toFixed(2)], ['Margin', (((c - p) / c) * 100).toFixed(1) + '%']].forEach(function (x) {
         var dt = document.createElement('dt'); dt.textContent = x[0]; var dd = document.createElement('dd'); dd.textContent = x[1]; r.appendChild(dt); r.appendChild(dd);
       });
     }
     if (st === 7) {
       try {
-        var res = await api('/staff/tickets', 'POST', { customerId: $('wCust').value, worksiteId: $('wSite').value, trade: $('wTrade').value, title: $('wTitle').value, description: $('wDesc').value, priority: $('wPri').value, assignToMe: $('wMine').checked, customerNte: $('wCN').value, providerNte: $('wPN').value, pricingMode: $('wPrice').value });
+        var res = await api('/staff/tickets', 'POST', { customerId: $('wCust').value, worksiteId: $('wSite').value, trade: $('wTrade').value, trades: checkedTrades($('wTrades')), title: $('wTitle').value, description: $('wDesc').value, priority: $('wPri').value, assignToMe: $('wMine').checked, customerNte: $('wCN').value, providerNte: $('wPN').value, pricingMode: $('wPrice').value });
         var failedPh = 0;
         for (var pi = 0; pi < wzPhotos.length; pi++) {
           try { await api('/staff/tickets/' + res.id + '/photos', 'POST', { filename: wzPhotos[pi].filename, dataBase64: wzPhotos[pi].dataBase64 }); } catch (pe) { failedPh++; }
@@ -3772,6 +3822,17 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       }
 
       loadProviderBank(id);
+      var lb = $('provLic'); clear(lb); $('provLicPanel').hidden = !(d.licenses && d.licenses.length);
+      (d.licenses || []).forEach(function (x) {
+        var row = mk('div', ''); row.style.cssText = 'display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid #e5e3dc';
+        row.appendChild(mk('strong', '', x.trade));
+        row.appendChild(mk('span', x.verified_at ? '' : 'small', x.verified_at ? 'License: verified by ' + (x.verified_by || 'TMG') + ' on ' + fmt(x.verified_at) : 'License: claimed ' + fmt(x.claimed_at) + ', not verified yet'));
+        if (isMgr()) row.appendChild(btn(x.verified_at ? 'Undo verified' : 'Mark verified', async function () {
+          try { await api('/staff/providers/' + id + '/licenses', 'POST', { trade: x.trade, verified: !x.verified_at }); openProvider(id); }
+          catch (e) { flash(e.message, false); }
+        }));
+        lb.appendChild(row);
+      });
       var db = $('docTable').tBodies[0]; clear(db);
       $('docEmpty').hidden = d.documents.length > 0;
       var DOCL = { insurance_coi: 'Certificate of insurance', w9: 'W-9', trade_license: 'Trade license', other: 'Other' };

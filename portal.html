@@ -1355,10 +1355,30 @@ a.pill { color:#1d4ed8; border-color:#1d4ed8; } a.pill:hover { background:#eef3f
     drawCities();
     box.appendChild(el('h3', '', 'Other trades you offer'));
     box.appendChild(el('p', 'small', 'Your main trade is ' + (p.primary_trade || 'set by TMG') + '. Open the list and check any others you also do.'));
-    box.appendChild(msel((pSet.trades || []).filter(function (t) { return t !== p.primary_trade && t !== 'Other'; }).map(function (t) { return { value: t, label: t }; }), trades, function () { }, 'trades'));
+    box.appendChild(msel((pSet.trades || []).filter(function (t) { return t !== p.primary_trade && t !== 'Other'; }).map(function (t) { return { value: t, label: t }; }), trades, function () { drawLic(); }, 'trades'));
+    // Trade licenses (Rich, Nov 27 2026): jobs in licensed trades only alert providers who say they hold that license.
+    var LIC = pSet.licensedTrades || [], lic = {}, licOk = {};
+    (pSet.licenses || []).forEach(function (x) { lic[x.trade] = true; licOk[x.trade] = x.verified; });
+    var licBox = el('div');
+    function drawLic() {
+      licBox.textContent = '';
+      var mine = LIC.filter(function (t) { return t === p.primary_trade || trades[t]; });
+      if (!mine.length) return;
+      licBox.appendChild(el('h3', '', 'Trade licenses'));
+      licBox.appendChild(el('p', 'small', 'Jobs in these trades are only sent to providers who hold a current license for them. Check each license you hold, then upload a copy under Documents so TMG can verify it.'));
+      mine.forEach(function (t) {
+        var l = el('label'); l.style.cssText = 'display:flex;gap:10px;align-items:center;margin:6px 0;text-transform:none;letter-spacing:0;font-weight:400';
+        var c = el('input'); c.type = 'checkbox'; c.checked = !!lic[t]; c.style.cssText = 'width:auto;margin:0';
+        c.onchange = function () { if (c.checked) lic[t] = true; else delete lic[t]; };
+        l.appendChild(c); l.appendChild(el('span', '', 'I hold a current license for ' + t));
+        if (lic[t]) l.appendChild(el('span', 'small', licOk[t] ? ' \u2713 Verified by TMG' : ' (TMG has not verified it yet)'));
+        licBox.appendChild(l);
+      });
+    }
+    drawLic(); box.appendChild(licBox);
     var sv = el('button', 'sbtn go', 'Save'); sv.type = 'button'; sv.style.marginTop = '16px'; sv.onclick = async function () {
       var list = Object.keys(areas).filter(function (k) { return states[k.split('|')[0]]; }).map(function (k) { var pr = k.split('|'); return { state: pr[0], city: pr.slice(1).join('|'), miles: areas[k] }; });
-      var body = { contactName: inp.contactName.value, phone: inp.phone.value, technicianCount: inp.technicianCount.value, states: Object.keys(states), areas: list, otherTrades: Object.keys(trades) };
+      var body = { contactName: inp.contactName.value, phone: inp.phone.value, technicianCount: inp.technicianCount.value, states: Object.keys(states), areas: list, otherTrades: Object.keys(trades), licenses: Object.keys(lic).filter(function (t) { return t === p.primary_trade || trades[t]; }) };
       try { await api('/provider/settings/profile', 'POST', body); cflash('msg8', 'Saved.', true); await loadProvSettings(); } catch (e) { cflash('msg8', e.message, false); }
     };
     box.appendChild(sv);
