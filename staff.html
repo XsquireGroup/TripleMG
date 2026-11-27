@@ -120,6 +120,9 @@ body.sheet-lock { overflow:hidden; }
 .bill-in { width:100%; padding:7px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .bill-ta { width:100%; padding:10px; border:1px solid var(--border); font:inherit; background:var(--paper); }
 .ai-btn,.ai-go,.ai-no { cursor:pointer; font:inherit; font-weight:700; text-transform:uppercase; letter-spacing:.04em; font-size:12px; padding:9px 14px; min-height:40px; border:2px solid; }
+.msc { display:inline-block; min-width:40px; text-align:center; font-weight:800; padding:4px 6px; color:#fff; border-radius:4px; }
+.msc.g { background:#15803d; } .msc.y { background:#b45309; } .msc.n { background:#6b7280; } .msc.r { background:#950606; }
+.mwhy { font-size:12px; color:#4a4a48; margin-top:3px; }
 .tgrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:4px 14px; margin:6px 0 4px; }
 .tgrid label { display:flex; gap:8px; align-items:center; font-weight:400; margin:0; text-transform:none; letter-spacing:0; font-size:14px; }
 .tgrid input { width:auto; margin:0; }
@@ -189,7 +192,8 @@ body.sheet-lock { overflow:hidden; }
 .mdl textarea{width:100%;min-height:90px;padding:10px;border:1px solid var(--border);font:inherit;font-size:16px;box-sizing:border-box}
 .mdl .acts{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
 .mdl .acts button{flex:1 1 150px;padding:12px 14px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;border:2px solid var(--ink);background:#fff;color:var(--ink)}
-.mdl .acts .red{background:#950606;border-color:#950606;color:#fff}.mdl .acts .grn{background:#15803d;border-color:#15803d;color:#fff}
+.mdl .acts .red{background:#950606;border-color:#950606;color:#fff}
+.mdl .sugtx{background:#fff;color:#1d4ed8;border:2px solid #1d4ed8;padding:7px 10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.mdl .sugas{background:#950606;color:#fff;border:2px solid #950606;padding:7px 10px;font:inherit;font-size:13px;font-weight:700;cursor:pointer}.mdl .sugtx[disabled]{opacity:.6}.mdl .acts .grn{background:#15803d;border-color:#15803d;color:#fff}
 .qbar{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)}
 .qbar button svg{flex:none}
 .qbar button{display:inline-flex;align-items:center;gap:8px;cursor:pointer;font:inherit;font-size:16px;font-weight:600;padding:10px 16px;background:var(--red);border:1px solid var(--red);color:var(--paper);border-radius:6px}
@@ -470,9 +474,9 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       <div class="panel sheet" id="custSection" hidden><h2 id="custTitle">Step 2 of 2: Customer bill</h2><div id="custBody"></div></div>
       <div class="panel" id="tkAssignPanel"><h2>Provider <span id="tkAccN" style="font-size:14px;color:#15803d"></span></h2><p class="small" id="tkAssignNote"></p><div id="provInfo"></div>
         <div id="repostBox"></div>
-        <table class="t" id="tkAcc"><thead><tr><th>Accepted</th><th>Provider</th><th>Completed jobs</th><th>Score</th><th>When</th><th></th></tr></thead><tbody></tbody></table>
+        <table class="t" id="tkAcc"><thead><tr><th>Match</th><th>Provider</th><th>Applied</th><th></th></tr></thead><tbody></tbody></table>
         <p class="small" id="tkAccE" hidden>No provider has accepted yet. Providers in the job's state see it as soon as it is posted.</p>
-        <form class="f" id="assignForm"><div><label for="asSel">Assign any approved provider (managers and the Owner)</label><select id="asSel" style="width:100%;padding:10px;border:1px solid var(--border);font:inherit"></select></div><div><button type="submit">Assign</button></div></form>
+        <div id="assignForm"><p class="small" style="margin:10px 0 8px">Direct assign (managers and the Owner): the top 5 matches who have not applied.</p><button type="button" class="ai-btn" id="sugBtn">A.R.C.H. · Suggested providers</button></div>
         <div id="cvRow" hidden style="margin-top:10px"></div>
       </div>
       <div class="panel" id="priorPanel" hidden><h2>First provider on this job</h2><p class="small">This job was reposted or the provider was replaced. Decide what to pay for the work already done once the new provider has billed.</p><div id="priorBody"></div></div>
@@ -2530,10 +2534,14 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
       $('tkAcc').hidden = !open;
       d.acceptances.forEach(function (a) {
         var tr = document.createElement('tr');
-        tr.appendChild(td('Yes'));
+        var mc = document.createElement('td');
+        if (a.match != null) { var bd = mk('span', 'msc ' + (a.isNew ? 'n' : a.match >= 75 ? 'g' : a.match >= 50 ? 'y' : 'r'), String(a.match)); mc.appendChild(bd); } else mc.textContent = scoreText(a.score, a.rating_count);
+        tr.appendChild(mc);
         var nm = document.createElement('td'), nl = mk('button', null, a.business_name + (a.preferred ? ' \u2605' : '')); nl.type = 'button';
         nl.style.cssText = 'background:none;border:0;padding:0;color:#1d4ed8;text-decoration:underline;cursor:pointer;font:inherit;text-align:left';
         nl.onclick = function () { openReport(a.provider_id); }; nm.appendChild(nl);
+        if (a.isNew) nm.appendChild(mk('span', 'small', ' NEW'));
+        if (a.why) nm.appendChild(mk('div', 'mwhy', a.why));
         var LICT = ['Electrical', 'Plumbing', 'HVAC', 'Fire life safety', 'Roofing'], jobLic = splitTrades(t.alert_trades || t.trade).filter(function (x) { return LICT.indexOf(x) >= 0; });
         if (jobLic.length) {
           var have = {}; String(a.licenses || '').split('|').forEach(function (z) { var q = z.split(':'); if (q[0]) have[q[0]] = q[1]; });
@@ -2543,13 +2551,11 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
           });
         }
         tr.appendChild(nm);
-        tr.appendChild(td(a.completed_jobs)); tr.appendChild(td(scoreText(a.score, a.rating_count))); tr.appendChild(td(fmt(a.accepted_at)));
+        tr.appendChild(td(fmt(a.accepted_at)));
         var c = document.createElement('td');
         if (open) c.appendChild(btn('Assign', function () { doAssign(a.provider_id, a.business_name); }));
         tr.appendChild(c); ab.appendChild(tr);
       });
-      var sel2 = $('asSel'); clear(sel2); opt(sel2, '', 'Choose a provider...');
-      d.providers.forEach(function (p) { opt(sel2, p.id, p.business_name + (p.preferred ? ' \u2605' : '') + ' - ' + p.primary_trade + (p.covers_state ? '' : ' (not in this state)')); });
       var mm = $('tkMoney'); clear(mm);
       if (t.customer_nte == null) { mm.textContent = 'No pricing yet.'; }
       else if (t.status === 'new') {
@@ -2860,10 +2866,51 @@ button.kpi { text-align:left; font:inherit; cursor:pointer; color:inherit; }
     try { await api('/staff/tickets/' + currentTicket + '/assign', 'POST', { providerId: pid }); flash('Assigned to ' + name + '.', true); openTicket(currentTicket); }
     catch (e) { flash(e.message, false); }
   }
-  $('assignForm').onsubmit = function (ev) {
-    ev.preventDefault();
-    if (!$('asSel').value) return flash('Choose a provider.', false);
-    doAssign($('asSel').value, sel('asSel').replace(/ \u2605.*| - .*/, ''));
+  // A.R.C.H. Suggested providers (Rich, Nov 27 2026): the top 5 matches who have not applied, with Text them / Assign, and a search of everyone.
+  $('sugBtn').onclick = async function () {
+    var box = mk('div', ''), close;
+    box.appendChild(mk('p', 'small', 'Ranked for this job. Text a provider to ask them to take it, or assign them directly.'));
+    var list = mk('div', ''); list.textContent = 'A.R.C.H. is ranking providers...'; box.appendChild(list);
+    var search = mk('div', ''); search.hidden = true;
+    var sl = mk('p', 'small', 'Not seeing who you want? '), sa = mk('button', null, 'Search all providers'); sa.type = 'button';
+    sa.style.cssText = 'background:none;border:0;padding:0;color:#1d4ed8;text-decoration:underline;cursor:pointer;font:inherit';
+    sa.onclick = function () {
+      sl.hidden = true; search.hidden = false; clear(search);
+      var q = document.createElement('input'); q.type = 'search'; q.placeholder = 'Type a provider name'; q.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit;box-sizing:border-box;margin:6px 0';
+      var s2 = document.createElement('select'); s2.style.cssText = 'width:100%;padding:10px;border:1px solid var(--border);font:inherit'; s2.size = 6;
+      function fill() { clear(s2); var v = q.value.toLowerCase(); curProviders.filter(function (p) { return !v || String(p.business_name).toLowerCase().indexOf(v) >= 0; }).forEach(function (p) { opt(s2, p.id, p.business_name + (p.preferred ? ' \u2605' : '') + ' - ' + p.primary_trade + (p.covers_state ? '' : ' (not in this state)')); }); }
+      q.oninput = fill; fill();
+      search.appendChild(q); search.appendChild(s2);
+      search.appendChild(mbtn('Assign selected', 'sugas', function () { if (!s2.value) return flash('Choose a provider.', false); var nmTxt = s2.options[s2.selectedIndex].text.replace(/ \u2605.*| - .*/, ''); close(); doAssign(s2.value, nmTxt); }));
+      q.focus();
+    };
+    sl.appendChild(sa); box.appendChild(sl); box.appendChild(search);
+    var acts = mk('div', 'acts'); acts.appendChild(mbtn('Close', '', function () { close(); })); box.appendChild(acts);
+    close = openModal('Top 5 matches \u00b7 not applied', [box]);
+    var mb = document.querySelectorAll('.mdl .box'); if (mb.length) mb[mb.length - 1].style.maxWidth = '860px';
+    try {
+      var r = await api('/staff/tickets/' + currentTicket + '/suggested');
+      clear(list);
+      if (!r.suggested.length) { list.appendChild(mk('p', '', 'No other providers match this job\u2019s trades and state. Use Search all providers below.')); return; }
+      var tb = document.createElement('table'); tb.className = 't'; var hd = tb.createTHead().insertRow(); ['Match', 'Provider', ''].forEach(function (h) { var th = document.createElement('th'); th.textContent = h; hd.appendChild(th); });
+      var bd2 = tb.createTBody();
+      r.suggested.forEach(function (p) {
+        var tr = bd2.insertRow(), c1 = tr.insertCell(), c2 = tr.insertCell(), c3 = tr.insertCell();
+        c1.appendChild(mk('span', 'msc ' + (p.isNew ? 'n' : p.score >= 75 ? 'g' : p.score >= 50 ? 'y' : 'r'), String(p.score)));
+        c2.appendChild(mk('strong', '', p.businessName + (p.preferred ? ' \u2605' : ''))); if (p.isNew) c2.appendChild(mk('span', 'small', ' NEW'));
+        var extra = []; if (p.alertedAt) extra.push('alerted ' + fmt(p.alertedAt)); if (p.invitedAt) extra.push('asked ' + fmt(p.invitedAt));
+        c2.appendChild(mk('div', 'mwhy', p.why + (extra.length ? ' \u00b7 ' + extra.join(' \u00b7 ') : '')));
+        c3.style.whiteSpace = 'nowrap';
+        var tx = mbtn('Text them', 'sugtx', async function () {
+          tx.disabled = true;
+          try { await api('/staff/tickets/' + currentTicket + '/invite', 'POST', { providerId: p.id }); tx.textContent = 'Sent'; flash('Asked ' + p.businessName + ' to take this job.', true); }
+          catch (e) { tx.disabled = false; flash(e.message, false); }
+        });
+        c3.appendChild(tx); c3.appendChild(document.createTextNode(' '));
+        c3.appendChild(mbtn('Assign', 'sugas', function () { close(); doAssign(p.id, p.businessName); }));
+      });
+      list.appendChild(tb);
+    } catch (e) { clear(list); list.appendChild(mk('p', '', e.message)); }
   };
 
   // ---- repost, replace a provider, credit card providers, the first provider's bill ----
